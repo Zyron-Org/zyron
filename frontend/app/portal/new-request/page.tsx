@@ -105,7 +105,8 @@ export default function NewAuditRequestPage() {
       if (data.commitSha) setGitCommit(data.commitSha);
       if (data.contracts && data.contracts.length > 0) {
         setProtocolName(`${data.owner}/${data.repo}`);
-        handleSelectGithubFile(data.owner, data.repo, data.contracts[0].path, data.branch || "main");
+        const firstFile = typeof data.contracts[0] === "string" ? data.contracts[0] : (data.contracts[0]?.path || data.contracts[0]);
+        handleSelectGithubFile(data.owner, data.repo, firstFile, data.branch || "main");
       }
       toast.success(`Fetched ${data.contracts?.length || 0} contract files from GitHub (${data.owner}/${data.repo})!`);
     } catch (err: any) {
@@ -219,12 +220,15 @@ export default function NewAuditRequestPage() {
         contractAddress: contractAddress || undefined,
         compilerVersion,
         network,
-        sourceCode,
         sloc: calculatedSloc,
         gitCommit,
       });
-      const createdTicket = res.data?.id ? `#${res.data.id}` : (res.data?.displayId || "#ZYR-9486");
+
+      const auditId = res.data?.id || "ZYR-9486";
+      const createdTicket = auditId.startsWith("#") ? auditId : `#${auditId}`;
       setSubmittedTicketId(createdTicket);
+
+      // Note: AST scan is triggered automatically by the backend on audit creation.
       toast.success(`Audit Request ${createdTicket} created successfully! AST scan queue initialized.`);
       setIsSubmitted(true);
     } catch (err: any) {
@@ -561,9 +565,9 @@ export default function NewAuditRequestPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-text-primary font-semibold">
                     <GitBranch className="h-4 w-4 text-accent-scan" />
-                    <span>Fetch Live Smart Contracts from GitHub REST API</span>
+                    <span>Connect GitHub Repository via REST API</span>
                   </div>
-                  <Badge severity="resolved" size="sm">API ACTIVE</Badge>
+                  <Badge severity="resolved" size="sm">LIVE API CONNECTED</Badge>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -590,13 +594,41 @@ export default function NewAuditRequestPage() {
                     isLoading={isFetchingGithub}
                     rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
                   >
-                    Fetch Contracts
+                    Fetch Repository
                   </Button>
                 </div>
 
-                <p className="text-[11px] text-text-muted">
-                  Supports public GitHub repositories out of the box (e.g. <code className="text-accent-scan">OpenZeppelin/openzeppelin-contracts</code>).
-                </p>
+                {/* Popular Repository Suggestion Chips */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-text-muted">
+                  <span className="text-text-muted">QUICK REPO PRESETS:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomGithubUrl("https://github.com/Vasakee/GhostFI");
+                    }}
+                    className="px-2 py-0.5 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-accent-scan text-[10px] font-mono transition-colors"
+                  >
+                    Vasakee/GhostFI
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomGithubUrl("https://github.com/OpenZeppelin/openzeppelin-contracts");
+                    }}
+                    className="px-2 py-0.5 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-accent-scan text-[10px] font-mono transition-colors"
+                  >
+                    OpenZeppelin/openzeppelin-contracts
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomGithubUrl("https://github.com/aura-finance/core-vaults");
+                    }}
+                    className="px-2 py-0.5 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-accent-scan text-[10px] font-mono transition-colors"
+                  >
+                    aura-finance/core-vaults
+                  </button>
+                </div>
               </div>
 
               {/* State 1: Not Connected */}
@@ -607,24 +639,26 @@ export default function NewAuditRequestPage() {
                   </div>
                   <div className="space-y-1 max-w-md mx-auto">
                     <div className="font-display text-base font-semibold text-text-primary">
-                      Connect GitHub Organization
+                      No Repository Scope Ingested
                     </div>
                     <p className="text-xs text-text-muted font-mono leading-relaxed">
-                      Enter any public or configured private repository above to auto-extract smart contract tree & commit SHA.
+                      Enter any public or private GitHub repository URL above and click <strong>Fetch Repository</strong> to extract live source tree and commit SHA.
                     </p>
                   </div>
                 </div>
               ) : (
-                /* State 2: Connected Repositories Table & File Picker */
+                /* State 2: Connected Real GitHub Repository Scope */
                 <div className="space-y-6">
                   {/* Connected Status Toolbar */}
                   <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-signal-resolved animate-pulse" />
                       <span className="text-text-primary font-semibold">LIVE GITHUB CONNECTED:</span>
-                      <span className="text-accent-scan">{fetchedGithubData ? `${fetchedGithubData.owner}/${fetchedGithubData.repo}` : "aura-finance"}</span>
+                      <span className="text-accent-scan font-bold">
+                        {fetchedGithubData ? `${fetchedGithubData.owner}/${fetchedGithubData.repo}` : customGithubUrl}
+                      </span>
                       <span className="text-text-muted text-[11px]">
-                        ({fetchedGithubData?.contracts?.length || MOCK_REPOSITORIES.length} contract files found)
+                        ({fetchedGithubData?.contracts?.length || 0} source files detected)
                       </span>
                     </div>
 
@@ -642,172 +676,54 @@ export default function NewAuditRequestPage() {
                     </div>
                   </div>
 
-                  {/* Render Live Extracted GitHub Contracts */}
+                  {/* Render Live Extracted GitHub Contracts List */}
                   {fetchedGithubData && (
-                    <div className="p-4 rounded-[4px] bg-bg-void border border-accent-scan/30 space-y-3 font-mono text-xs">
-                      <div className="flex items-center justify-between border-b border-border-hairline pb-2">
-                        <span className="text-accent-scan font-bold">LIVE REPOSITORY SCOPE (COMMIT {fetchedGithubData.commitSha})</span>
+                    <div className="p-5 rounded-[4px] bg-bg-void border border-accent-scan/30 space-y-4 font-mono text-xs">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline pb-3">
+                        <div className="space-y-0.5">
+                          <div className="text-accent-scan font-bold flex items-center gap-2">
+                            <Code2 className="h-4 w-4" />
+                            <span>LIVE REPOSITORY SCOPE: {fetchedGithubData.owner}/{fetchedGithubData.repo}</span>
+                          </div>
+                          <div className="text-text-muted text-[11px]">
+                            COMMIT SHA: <code className="text-accent-scan font-bold">{fetchedGithubData.commitSha || gitCommit.slice(0, 7)}</code>
+                          </div>
+                        </div>
                         <Badge severity="resolved" size="sm">FETCHED VIA GITHUB API</Badge>
                       </div>
 
-                      <div className="space-y-1.5">
-                        {fetchedGithubData.contracts?.map((c: any, i: number) => (
-                          <div
-                            key={i}
-                            onClick={() => handleSelectGithubFile(fetchedGithubData.owner, fetchedGithubData.repo, c.path, fetchedGithubData.branch || "main")}
-                            className="p-2.5 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan cursor-pointer flex items-center justify-between transition-colors"
-                          >
-                            <div className="flex items-center gap-2">
-                              <Code2 className="h-3.5 w-3.5 text-accent-scan" />
-                              <span className="text-text-primary font-bold">{c.path}</span>
-                            </div>
-                            <span className="text-text-muted text-[11px]">{c.slocEstimate} SLOC</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Repositories Table (Matching Table Primitive) */}
-                  <div className="space-y-2">
-                    <div className="font-mono text-xs text-text-muted">
-                      SELECT TARGET REPOSITORY:
-                    </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Repository</TableHead>
-                          <TableHead className="w-28">Visibility</TableHead>
-                          <TableHead className="w-32">Default Branch</TableHead>
-                          <TableHead className="w-36">Last Updated</TableHead>
-                          <TableHead className="w-28 text-right">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredRepos.map((repo) => {
-                          const isSelected = selectedRepoId === repo.id;
-                          return (
-                            <TableRow
-                              key={repo.id}
-                              className={`cursor-pointer transition-colors ${
-                                isSelected ? "bg-bg-panel-raised border-l-2 border-l-accent-scan" : ""
-                              }`}
-                              onClick={() => {
-                                setSelectedRepoId(repo.id);
-                                setSelectedBranch(repo.defaultBranch);
-                              }}
-                            >
-                              <TableCell className="font-medium text-text-primary flex items-center gap-2">
-                                <Code2 className="h-3.5 w-3.5 text-accent-scan" />
-                                <span>{repo.fullName}</span>
-                              </TableCell>
-                              <TableCell>
-                                <Badge severity={repo.isPrivate ? "informational" : "resolved"} size="sm">
-                                  {repo.isPrivate ? "PRIVATE" : "PUBLIC"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="font-mono text-xs text-text-muted">
-                                <span className="flex items-center gap-1">
-                                  <GitBranch className="h-3 w-3" />
-                                  {repo.defaultBranch}
-                                </span>
-                              </TableCell>
-                              <TableCell className="font-mono text-xs text-text-muted">
-                                {repo.lastUpdated}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant={isSelected ? "primary" : "secondary"}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedRepoId(repo.id);
-                                    setSelectedBranch(repo.defaultBranch);
-                                  }}
-                                >
-                                  {isSelected ? "Selected" : "Select"}
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  {/* Detected Solidity Files in Selected Repo */}
-                  {selectedRepo && (
-                    <div className="p-5 rounded-[4px] bg-bg-void border border-border-hairline space-y-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline pb-3">
-                        <div className="flex items-center gap-2 font-mono text-xs">
-                          <span className="text-text-muted">REPOSITORY:</span>
-                          <span className="text-text-primary font-semibold">{selectedRepo.fullName}</span>
-                        </div>
-
-                        {/* Branch Selector */}
-                        <div className="flex items-center gap-2 font-mono text-xs">
-                          <span className="text-text-muted">BRANCH:</span>
-                          <select
-                            value={selectedBranch}
-                            onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="h-7 px-2 rounded-[2px] bg-bg-panel border border-border-hairline text-accent-scan font-mono text-xs focus:outline-none"
-                          >
-                            {selectedRepo.branches.map((b) => (
-                              <option key={b} value={b}>
-                                {b}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Detected Files List */}
                       <div className="space-y-2">
-                        <div className="font-mono text-xs text-text-muted flex items-center justify-between">
-                          <span>DETECTED SOLIDITY CONTRACTS ({selectedRepo.contractFiles.length})</span>
-                          <span className="text-[10px] text-accent-scan">CLICK TO INGEST SOURCE</span>
+                        <div className="text-text-muted text-[11px] font-semibold flex items-center justify-between">
+                          <span>DETECTED FILES ({fetchedGithubData.contracts?.length || 0})</span>
+                          <span className="text-accent-scan">CLICK FILE TO INGEST SOURCE</span>
                         </div>
 
-                        <div className="space-y-2">
-                          {selectedRepo.contractFiles.map((file) => {
-                            const isCurrentFile = fileName === file.fileName;
+                        <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                          {fetchedGithubData.contracts?.map((c: any, i: number) => {
+                            const filePath = typeof c === "string" ? c : (c?.path || c);
+                            const isCurrentFile = contractFileName === (filePath.split("/").pop() || filePath);
                             return (
                               <div
-                                key={file.path}
-                                onClick={() => handleSelectRepoContract(file)}
-                                className={`p-3 rounded-[4px] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition-colors ${
+                                key={i}
+                                onClick={() => handleSelectGithubFile(fetchedGithubData.owner, fetchedGithubData.repo, filePath, fetchedGithubData.branch || "main")}
+                                className={`p-3 rounded-[4px] border flex items-center justify-between transition-colors cursor-pointer ${
                                   isCurrentFile
                                     ? "bg-bg-panel-raised border-accent-scan"
-                                    : "bg-bg-panel border-border-hairline hover:border-hairline/90"
+                                    : "bg-bg-panel border-border-hairline hover:border-accent-scan/70"
                                 }`}
                               >
-                                <div className="space-y-0.5">
-                                  <div className="font-mono text-xs font-semibold text-text-primary flex items-center gap-2">
-                                    <FileCode className="h-3.5 w-3.5 text-accent-scan" />
-                                    <span>{file.path}</span>
-                                    {isCurrentFile && (
-                                      <Badge severity="resolved" size="sm">
-                                        INGESTED
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <div className="font-mono text-[11px] text-text-muted pl-5.5">
-                                    COMMIT: {file.commit.slice(0, 7)} · {file.sloc} executable lines
-                                  </div>
+                                <div className="flex items-center gap-2.5 overflow-hidden">
+                                  <FileCode className={`h-4 w-4 shrink-0 ${isCurrentFile ? "text-accent-scan" : "text-text-muted"}`} />
+                                  <span className={`font-bold truncate ${isCurrentFile ? "text-accent-scan" : "text-text-primary"}`}>
+                                    {filePath}
+                                  </span>
+                                  {isCurrentFile && (
+                                    <Badge severity="resolved" size="sm">INGESTED</Badge>
+                                  )}
                                 </div>
-
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant={isCurrentFile ? "primary" : "outline"}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSelectRepoContract(file);
-                                  }}
-                                >
-                                  {isCurrentFile ? "Ingested ✓" : "Ingest Contract"}
-                                </Button>
+                                <span className={`text-[11px] font-mono shrink-0 ml-2 ${isCurrentFile ? "text-accent-scan font-bold" : "text-text-muted"}`}>
+                                  {isCurrentFile ? "ACTIVE SOURCE ✓" : "SELECT FILE →"}
+                                </span>
                               </div>
                             );
                           })}

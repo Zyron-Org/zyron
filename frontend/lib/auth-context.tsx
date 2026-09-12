@@ -1,8 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "./api-client";
+
+/** Sync JWT to a cookie so Next.js middleware can read it at the edge */
+function setAuthCookie(token: string) {
+  try {
+    // Expires in 7 days; SameSite=Lax is safe for same-origin redirects
+    document.cookie = `zyron_jwt_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+  } catch {}
+}
+
+function clearAuthCookie() {
+  try {
+    document.cookie = "zyron_jwt_token=; path=/; max-age=0";
+  } catch {}
+}
 
 export type UserRole = "CLIENT" | "AUDITOR" | "ADMIN" | "client" | "auditor" | "admin";
 
@@ -63,6 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState<boolean>(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  /** Destination to return to after login (set by middleware redirect) */
+  const redirectAfterLogin = searchParams?.get("redirect") || null;
 
   // Load from localStorage or API profile on mount
   React.useEffect(() => {
@@ -72,7 +90,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const savedRole = localStorage.getItem("zyron_auth_role");
 
         if (savedToken || savedRole) {
-          if (savedToken) setToken(savedToken);
+          if (savedToken) {
+            setToken(savedToken);
+            setAuthCookie(savedToken); // Keep cookie in sync
+          }
           try {
             const res = await apiClient.get("/auth/profile");
             setUser(res.data);
@@ -106,11 +127,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       localStorage.setItem("zyron_jwt_token", accessToken);
       localStorage.setItem("zyron_auth_role", apiUser.role.toLowerCase());
+      setAuthCookie(accessToken); // Sync to cookie for edge middleware
 
       const r = apiUser.role.toUpperCase();
-      if (r === "AUDITOR") router.push("/auditor/queue");
-      else if (r === "ADMIN") router.push("/admin/users");
-      else router.push("/portal");
+      const destination = redirectAfterLogin ||
+        (r === "AUDITOR" ? "/auditor/queue" : r === "ADMIN" ? "/admin/users" : "/portal");
+      router.push(destination);
     } finally {
       setLoading(false);
     }
@@ -126,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       localStorage.setItem("zyron_jwt_token", accessToken);
       localStorage.setItem("zyron_auth_role", apiUser.role.toLowerCase());
+      setAuthCookie(accessToken); // Sync to cookie for edge middleware
 
       router.push("/portal");
     } finally {
@@ -142,28 +165,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginAs = (roleStr: string) => {
+  const loginAs = async (roleStr: string) => {
     const key = roleStr.toLowerCase();
-    const selected = SAMPLE_ACCOUNTS[key] || SAMPLE_ACCOUNTS.client;
-    setUser(selected);
-    try {
-      localStorage.setItem("zyron_auth_role", key);
-      // Ensure JWT token is set so NestJS protected APIs receive Authorization Bearer header
-      const existingToken = localStorage.getItem("zyron_jwt_token");
-      if (!existingToken) {
-        // Standard JWT token payload for security@auraprotocol.io (CLIENT)
-        const mockToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfY2xpZW50XzAxIiwiZW1haWwiOiJzZWN1cml0eUBhdXJhcHJvdG9jb2wuaW8iLCJyb2xlIjoiQ0xJRU5UIiwiaWF0IjoxNzE2MjM5MDIyfQ.mock_jwt_token";
-        localStorage.setItem("zyron_jwt_token", mockToken);
-        setToken(mockToken);
-      }
-    } catch (e) {}
+    let email = "security@auraprotocol.io";
+    let password = "SecurePassword123!";
 
     if (key === "auditor") {
-      router.push("/auditor/queue");
+      email = "k4@zyron.labs";
+      password = "AuditorPass123!";
     } else if (key === "admin") {
-      router.push("/admin/users");
-    } else {
-      router.push("/portal");
+      email = "admin@zyron.labs";
+      password = "AdminPass123!";
+    }
+
+    try {
+      await login(email, password);
+    } catch (e) {
+      // Fallback to sample persona state if backend is unreachable
+      const selected = SAMPLE_ACCOUNTS[key] || SAMPLE_ACCOUNTS.client;
+      setUser(selected);
+      localStorage.setItem("zyron_auth_role", key);
+      const dest = key === "auditor" ? "/auditor/queue" : key === "admin" ? "/admin/users" : "/portal";
+      router.push(dest);
     }
   };
 
@@ -173,6 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem("zyron_jwt_token");
       localStorage.removeItem("zyron_auth_role");
+      clearAuthCookie(); // Clear edge middleware cookie
     } catch (e) {}
     router.push("/auth/login");
   };

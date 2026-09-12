@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import React from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -38,7 +39,9 @@ export default function RootLayout({
       </head>
       <body className="bg-bg-void text-text-primary font-sans antialiased min-h-screen selection:bg-accent-scan/20 selection:text-accent-scan">
         <Web3ErrorHandler />
-        <AuthProvider>{children}</AuthProvider>
+        <React.Suspense fallback={null}>
+          <AuthProvider>{children}</AuthProvider>
+        </React.Suspense>
         <Toaster position="top-right" theme="dark" richColors />
       </body>
     </html>

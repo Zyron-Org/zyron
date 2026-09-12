@@ -38,10 +38,10 @@ export function AuditorSidebar() {
           badgeType: "reverify" as const,
         },
         {
-          href: "/auditor/review/ZAM-9481",
+          href: "/auditor/review/ZYR-9481",
           label: "Dual-Pane Review",
           icon: Split,
-          badge: "ZAM-9481",
+          badge: "ZYR-9481",
           badgeType: "scan" as const,
         },
         {

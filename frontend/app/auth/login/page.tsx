@@ -271,6 +271,56 @@ export default function LoginPage() {
           Sign In with Ethereum (EIP-4361)
         </Button>
 
+        {/* Quick Demo Persona Shortcuts */}
+        <div className="p-4 rounded bg-bg-void border border-border-hairline space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] text-text-muted font-semibold tracking-wider flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3 text-accent-scan" /> QUICK TEST ACCOUNTS
+            </span>
+            <Badge severity="resolved" size="sm">DEMO READY</Badge>
+          </div>
+          <div className="grid grid-cols-3 gap-2 font-mono text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("security@auraprotocol.io");
+                setPassword("SecurePassword123!");
+                handleDemoLogin("client");
+              }}
+              className="p-2 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-left transition-colors cursor-pointer"
+            >
+              <div className="text-[10px] text-text-muted">ROLE: CLIENT</div>
+              <div className="font-bold text-text-primary text-[11px] truncate">Aura Client</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("k4@zyron.labs");
+                setPassword("AuditorPass123!");
+                handleDemoLogin("auditor");
+              }}
+              className="p-2 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-left transition-colors cursor-pointer"
+            >
+              <div className="text-[10px] text-signal-resolved font-bold">ROLE: AUDITOR</div>
+              <div className="font-bold text-text-primary text-[11px] truncate">0xAuditor_K4</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("admin@zyron.labs");
+                setPassword("AdminPass123!");
+                handleDemoLogin("admin");
+              }}
+              className="p-2 rounded bg-bg-panel border border-border-hairline hover:border-signal-critical text-left transition-colors cursor-pointer"
+            >
+              <div className="text-[10px] text-signal-critical font-bold">ROLE: ADMIN</div>
+              <div className="font-bold text-text-primary text-[11px] truncate">Admin Lead</div>
+            </button>
+          </div>
+        </div>
+
         <div className="pt-2 border-t border-border-hairline text-center font-mono text-xs text-text-muted">
           <span>Need to audit a new protocol? </span>
           <Link href="/auth/register" className="text-accent-scan hover:underline font-semibold">

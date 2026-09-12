@@ -21,7 +21,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api-client";
-
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 export default function AuditorTicketQueuePage() {
@@ -46,10 +46,10 @@ export default function AuditorTicketQueuePage() {
     fetchAudits();
   }, []);
 
-  // Claim action: calls POST /audits/:id/claim
+  // Claim action: calls PATCH /audits/:id/claim
   const handleClaimTicket = async (auditId: string, protocolName: string) => {
     try {
-      await apiClient.post(`/audits/${auditId}/claim`);
+      await apiClient.patch(`/audits/${auditId}/claim`);
       toast.success(`Claimed ticket ${auditId} (${protocolName})! Transferred to active workspace.`);
       fetchAudits();
     } catch (e: any) {
@@ -58,8 +58,10 @@ export default function AuditorTicketQueuePage() {
     }
   };
 
-  const claimedTickets = audits.filter((a) => a.leadAuditorId || a.stage === "IN_REVIEW");
-  const unclaimedTickets = audits.filter((a) => !a.leadAuditorId && a.stage !== "IN_REVIEW");
+  const { user } = useAuth();
+
+  const claimedTickets = audits.filter((a) => a.leadAuditorId && (user ? a.leadAuditorId === user.id : true));
+  const unclaimedTickets = audits.filter((a) => !a.leadAuditorId);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">

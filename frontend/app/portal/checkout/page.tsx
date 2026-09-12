@@ -24,10 +24,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
-import { MOCK_CLIENT_PROFILE } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth-context";
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = React.useState<"crypto" | "invoice">("crypto");
   const [selectedToken, setSelectedToken] = React.useState<"USDC" | "USDT">("USDC");
   const [selectedNetwork, setSelectedNetwork] = React.useState<"ethereum" | "arbitrum">("ethereum");
@@ -246,7 +247,7 @@ export default function CheckoutPage() {
                       <span className="text-signal-resolved">BALANCE: 45,200 {selectedToken}</span>
                     </div>
                     <div className="text-text-primary text-[11px] truncate">
-                      {MOCK_CLIENT_PROFILE.address}
+                      {(user as any)?.walletAddress || user?.email || "Not connected"}
                     </div>
                   </div>
 

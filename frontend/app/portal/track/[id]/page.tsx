@@ -83,12 +83,61 @@ export default function AuditStatusTrackerPage() {
   const [isLoadingApi, setIsLoadingApi] = React.useState(true);
 
   React.useEffect(() => {
+    let intervalId: any = null;
+
     async function fetchAuditDetails() {
       try {
         setIsLoadingApi(true);
         const res = await apiClient.get(`/audits/${ticketId}`);
         if (res.data) {
-          setRealAudit(res.data);
+          const fetchedAudit = res.data;
+          setRealAudit(fetchedAudit);
+
+          // Bind real findings from backend database if present
+          if (Array.isArray(fetchedAudit.findings) && fetchedAudit.findings.length > 0) {
+            const mappedFindings: DetailedFinding[] = fetchedAudit.findings.map((f: any) => ({
+              id: f.id || f.displayId,
+              title: f.title,
+              severity: (f.severity || "HIGH").toLowerCase() as any,
+              cvss: f.cvss || "CVSS 8.0",
+              status: f.status === "FIX_SUBMITTED" ? "fix-submitted" : f.status === "RESOLVED" ? "resolved" : "open",
+              taxonomy: f.taxonomy || "SWC-107 · CWE-841",
+              location: f.location || `${fetchedAudit.contractFileName || "Contract.sol"}:142`,
+              impact: f.impact || "POTENTIAL SECURITY RISK",
+              description: f.description || "Vulnerability detected during security AST pass.",
+              vulnerableCode: f.vulnerableCode || undefined,
+              remediatedCode: f.remediatedCode || undefined,
+              remediationNote: f.remediationNote || undefined,
+              comments: Array.isArray(f.comments)
+                ? f.comments.map((c: any) => ({
+                    id: c.id,
+                    sender: c.sender?.name || c.sender?.email || "0xAuditor_K4",
+                    senderRole: c.sender?.role?.toLowerCase() === "client" ? "client" : "auditor",
+                    timestamp: new Date(c.createdAt || Date.now()).toISOString().replace("T", " ").substring(0, 16) + " UTC",
+                    message: c.message,
+                    commitRef: c.commitRef,
+                  }))
+                : [],
+            }));
+            setFindings(mappedFindings);
+            if (mappedFindings.length > 0) {
+              setExpandedFindingId(mappedFindings[0].id);
+            }
+          }
+
+          // If stage is SCANNING (2), poll every 3s until scan finishes and advances stage to IN_REVIEW (3)
+          if (fetchedAudit.stageNumber === 2 || fetchedAudit.stage === "SCANNING") {
+            setIsLogStreaming(true);
+            if (!intervalId) {
+              intervalId = setInterval(fetchAuditDetails, 3000);
+            }
+          } else {
+            setIsLogStreaming(false);
+            if (intervalId) {
+              clearInterval(intervalId);
+              intervalId = null;
+            }
+          }
         }
       } catch (err) {
         console.warn("Could not fetch real audit from API, using fallback ticket:", err);
@@ -96,7 +145,12 @@ export default function AuditStatusTrackerPage() {
         setIsLoadingApi(false);
       }
     }
+
     if (ticketId) fetchAuditDetails();
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [ticketId]);
 
   const audit = realAudit || fallbackAudit;
@@ -314,6 +368,16 @@ pragma solidity 0.8.20;`,
   const activeCompiler = audit.compilerVersion || "v0.8.20";
   const activeNetwork = audit.network || "Ethereum Mainnet";
 
+  const activeStageNum = audit.stageNumber
+    ? audit.stageNumber
+    : audit.stage === "COMPLETED"
+    ? 4
+    : audit.stage === "IN_REVIEW"
+    ? 3
+    : audit.stage === "SCANNING"
+    ? 2
+    : 1;
+
   // Live scan log lines dynamically constructed from real audit metadata
   const scanLogLines = [
     { time: "13:30:14", type: "info", text: `Ingesting target contract: ${activeFile} (${activeSloc.toLocaleString()} SLOC)` },
@@ -517,7 +581,7 @@ pragma solidity 0.8.20;`,
           </div>
           <div className="font-mono text-xs text-accent-scan flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-accent-scan animate-pulse" />
-            STAGE 02 IN PROGRESS
+            STAGE 0{activeStageNum} {activeStageNum === 4 ? "COMPLETED" : activeStageNum === 3 ? "MANUAL REVIEW" : activeStageNum === 2 ? "SCANNING IN PROGRESS" : "INTAKE"}
           </div>
         </div>
 
@@ -525,53 +589,54 @@ pragma solidity 0.8.20;`,
         <div className="rounded-[4px] border border-border-hairline bg-bg-panel overflow-hidden">
           {/* Top Rail Bar */}
           <div className="border-b border-border-hairline bg-bg-void/80 px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Step 1: Intake (Completed) */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 font-mono">
+              {/* Step 1: Intake */}
               <div className="flex items-center gap-3">
-                <div className="h-7 w-7 rounded-full bg-bg-panel-raised border border-accent-scan text-accent-scan flex items-center justify-center font-mono text-xs font-bold shrink-0">
-                  ✓
+                <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${activeStageNum >= 1 ? "bg-bg-panel-raised border border-accent-scan text-accent-scan" : "bg-bg-panel border border-border-hairline text-text-muted"}`}>
+                  {activeStageNum > 1 ? "✓" : "01"}
                 </div>
                 <div className="space-y-0.5">
-                  <div className="font-mono text-[10px] text-text-muted">STAGE 01</div>
-                  <div className="font-mono text-xs font-semibold text-text-primary">01 INTAKE</div>
-                  <div className="text-[10px] font-mono text-signal-resolved">Commit Locked</div>
+                  <div className="text-[10px] text-text-muted">STAGE 01</div>
+                  <div className="text-xs font-semibold text-text-primary">01 INTAKE</div>
+                  <div className="text-[10px] text-signal-resolved">{activeStageNum > 1 ? "Commit Locked" : "Ingested"}</div>
                 </div>
               </div>
 
-              {/* Step 2: Scanning (Active) */}
+              {/* Step 2: Scanning */}
               <div className="flex items-center gap-3">
-                <div className="relative h-7 w-7 rounded-full bg-accent-scan text-bg-void flex items-center justify-center font-mono text-xs font-bold shrink-0">
-                  <span className="absolute inset-0 rounded-full bg-accent-scan animate-ping opacity-60" />
-                  <span className="relative">02</span>
+                <div className={`relative h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${activeStageNum === 2 ? "bg-accent-scan text-bg-void" : activeStageNum > 2 ? "bg-bg-panel-raised border border-accent-scan text-accent-scan" : "bg-bg-panel border border-border-hairline text-text-muted"}`}>
+                  {activeStageNum === 2 && <span className="absolute inset-0 rounded-full bg-accent-scan animate-ping opacity-60" />}
+                  <span className="relative">{activeStageNum > 2 ? "✓" : "02"}</span>
                 </div>
                 <div className="space-y-0.5">
-                  <div className="font-mono text-[10px] text-accent-scan">STAGE 02 · ACTIVE</div>
-                  <div className="font-mono text-xs font-bold text-accent-scan">02 SCANNING</div>
-                  <div className="text-[10px] font-mono text-text-muted">Pass 11/14 Active</div>
+                  <div className={`text-[10px] ${activeStageNum === 2 ? "text-accent-scan font-bold" : "text-text-muted"}`}>STAGE 02 {activeStageNum === 2 ? "· ACTIVE" : ""}</div>
+                  <div className={`text-xs ${activeStageNum === 2 ? "font-bold text-accent-scan" : "font-semibold text-text-primary"}`}>02 SCANNING</div>
+                  <div className="text-[10px] text-text-muted">{activeStageNum > 2 ? "14/14 AST Passes Complete" : activeStageNum === 2 ? "AST Taint Pass Active" : "Queued"}</div>
                 </div>
               </div>
 
-              {/* Step 3: Manual Review (Queued) */}
+              {/* Step 3: Manual Review */}
               <div className="flex items-center gap-3">
-                <div className="h-7 w-7 rounded-full bg-bg-panel border border-border-hairline text-text-muted flex items-center justify-center font-mono text-xs shrink-0">
-                  03
+                <div className={`relative h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${activeStageNum === 3 ? "bg-accent-scan text-bg-void" : activeStageNum > 3 ? "bg-bg-panel-raised border border-accent-scan text-accent-scan" : "bg-bg-panel border border-border-hairline text-text-muted"}`}>
+                  {activeStageNum === 3 && <span className="absolute inset-0 rounded-full bg-accent-scan animate-ping opacity-60" />}
+                  <span className="relative">{activeStageNum > 3 ? "✓" : "03"}</span>
                 </div>
                 <div className="space-y-0.5">
-                  <div className="font-mono text-[10px] text-text-muted">STAGE 03 · QUEUED</div>
-                  <div className="font-mono text-xs font-semibold text-text-muted">03 MANUAL REVIEW</div>
-                  <div className="text-[10px] font-mono text-text-muted">Assigned: 0xAuditor_K4</div>
+                  <div className={`text-[10px] ${activeStageNum === 3 ? "text-accent-scan font-bold" : "text-text-muted"}`}>STAGE 03 {activeStageNum === 3 ? "· ACTIVE" : activeStageNum < 3 ? "· QUEUED" : ""}</div>
+                  <div className={`text-xs ${activeStageNum === 3 ? "font-bold text-accent-scan" : activeStageNum > 3 ? "font-semibold text-text-primary" : "font-semibold text-text-muted"}`}>03 MANUAL REVIEW</div>
+                  <div className="text-[10px] text-text-muted">Assigned: {audit.assignedAuditor || "0xAuditor_K4"}</div>
                 </div>
               </div>
 
-              {/* Step 4: Attestation (Pending) */}
+              {/* Step 4: Attestation */}
               <div className="flex items-center gap-3">
-                <div className="h-7 w-7 rounded-full bg-bg-panel border border-border-hairline text-text-muted flex items-center justify-center font-mono text-xs shrink-0">
-                  04
+                <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${activeStageNum === 4 ? "bg-signal-resolved text-bg-void" : "bg-bg-panel border border-border-hairline text-text-muted"}`}>
+                  {activeStageNum === 4 ? "✓" : "04"}
                 </div>
                 <div className="space-y-0.5">
-                  <div className="font-mono text-[10px] text-text-muted">STAGE 04 · TARGET</div>
-                  <div className="font-mono text-xs font-semibold text-text-muted">04 ATTESTATION</div>
-                  <div className="text-[10px] font-mono text-text-muted">SHA-256 Vault Seal</div>
+                  <div className={`text-[10px] ${activeStageNum === 4 ? "text-signal-resolved font-bold" : "text-text-muted"}`}>STAGE 04 {activeStageNum === 4 ? "· COMPLETED" : "· TARGET"}</div>
+                  <div className={`text-xs ${activeStageNum === 4 ? "font-bold text-signal-resolved" : "font-semibold text-text-muted"}`}>04 ATTESTATION</div>
+                  <div className="text-[10px] text-text-muted">{activeStageNum === 4 ? "Report Sealed & Verified" : "SHA-256 Vault Seal"}</div>
                 </div>
               </div>
             </div>

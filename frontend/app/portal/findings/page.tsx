@@ -60,7 +60,7 @@ export default function OpenFindingsPage() {
   const [filterSeverity, setFilterSeverity] = React.useState<string>("all");
   const [filterTicket, setFilterTicket] = React.useState<string>("all");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
-  const [expandedFindingId, setExpandedFindingId] = React.useState<string | null>("ZAM-VAULT-001");
+  const [expandedFindingId, setExpandedFindingId] = React.useState<string | null>("ZYR-VAULT-001");
 
   // Per-finding new comment inputs
   const [commentInputs, setCommentInputs] = React.useState<Record<string, { message: string; commitRef: string }>>({});
@@ -68,8 +68,8 @@ export default function OpenFindingsPage() {
   // Aggregated Open and Fix-Submitted findings across active engagements (resolved findings are excluded)
   const [findings, setFindings] = React.useState<AggregatedFinding[]>([
     {
-      id: "ZAM-VAULT-001",
-      ticketId: "ZAM-9481",
+      id: "ZYR-VAULT-001",
+      ticketId: "ZYR-9481",
       protocolName: "Aura Liquidity Pool V3",
       contractFileName: "VaultCore.sol",
       title: "Reentrancy in withdrawAll() allows pool liquidation prior to balance reset",
@@ -104,8 +104,8 @@ require(sent, "Transfer failed");`,
       ],
     },
     {
-      id: "ZAM-9481-002",
-      ticketId: "ZAM-9481",
+      id: "ZYR-9481-002",
+      ticketId: "ZYR-9481",
       protocolName: "Aura Liquidity Pool V3",
       contractFileName: "VaultCore.sol",
       title: "Unchecked return value on raw ERC-20 transfer in reward distribution",
@@ -144,8 +144,8 @@ rewardToken.safeTransfer(msg.sender, accruedYield);`,
       ],
     },
     {
-      id: "ZAM-9481-004",
-      ticketId: "ZAM-9481",
+      id: "ZYR-9481-004",
+      ticketId: "ZYR-9481",
       protocolName: "Aura Liquidity Pool V3",
       contractFileName: "VaultCore.sol",
       title: "Floating compiler pragma statement ^0.8.20",
@@ -174,8 +174,8 @@ pragma solidity 0.8.20;`,
       ],
     },
     {
-      id: "ZAM-COLLAT-001",
-      ticketId: "ZAM-9478",
+      id: "ZYR-COLLAT-001",
+      ticketId: "ZYR-9478",
       protocolName: "Nexus Collateral Vault",
       contractFileName: "CollateralManager.sol",
       title: "Liquidation precision rounding error in collateral factor calculation",
@@ -205,8 +205,8 @@ uint256 incentive = (baseFee * collateralPrice) / 10000;`,
       ],
     },
     {
-      id: "ZAM-COLLAT-002",
-      ticketId: "ZAM-9478",
+      id: "ZYR-COLLAT-002",
+      ticketId: "ZYR-9478",
       protocolName: "Nexus Collateral Vault",
       contractFileName: "CollateralManager.sol",
       title: "Missing caller validation on liquidatePosition()",
@@ -239,8 +239,8 @@ function liquidatePosition(address borrower, uint256 debtToCover) external onlyR
       ],
     },
     {
-      id: "ZAM-COLLAT-003",
-      ticketId: "ZAM-9478",
+      id: "ZYR-COLLAT-003",
+      ticketId: "ZYR-9478",
       protocolName: "Nexus Collateral Vault",
       contractFileName: "CollateralManager.sol",
       title: "Front-running vulnerability on oracle price update window",
@@ -477,8 +477,8 @@ require(block.timestamp - updatedAt <= MAX_ORACLE_DELAY, "Stale price");`,
               className="h-8 px-2 rounded-[4px] bg-bg-panel border border-border-hairline font-mono text-xs text-text-primary focus:outline-none"
             >
               <option value="all">All Active Tickets</option>
-              <option value="ZAM-9481">#ZAM-9481 (Aura Vault)</option>
-              <option value="ZAM-9478">#ZAM-9478 (Nexus Collateral)</option>
+              <option value="ZYR-9481">#ZYR-9481 (Aura Vault)</option>
+              <option value="ZYR-9478">#ZYR-9478 (Nexus Collateral)</option>
             </select>
 
             {/* Severity Filter */}

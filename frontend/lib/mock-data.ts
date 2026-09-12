@@ -35,11 +35,13 @@ export interface AuditRequest {
   roundsToResolution?: number;
   failureReason?: string;
   currentActivity?: string;
+  onChainTxHash?: string;
+  onChainChainId?: number;
 }
 
 export const MOCK_AUDIT_REQUESTS: AuditRequest[] = [
   {
-    id: "ZAM-9481",
+    id: "ZYR-9481",
     protocolName: "Aura Liquidity Pool V3",
     contractFileName: "VaultCore.sol",
     contractAddress: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
@@ -61,7 +63,7 @@ export const MOCK_AUDIT_REQUESTS: AuditRequest[] = [
     },
   },
   {
-    id: "ZAM-9478",
+    id: "ZYR-9478",
     protocolName: "Nexus Collateral Vault",
     contractFileName: "CollateralManager.sol",
     contractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -84,7 +86,7 @@ export const MOCK_AUDIT_REQUESTS: AuditRequest[] = [
     },
   },
   {
-    id: "ZAM-9485",
+    id: "ZYR-9485",
     protocolName: "PerpetualOrderBook",
     contractFileName: "OrderEngine.sol",
     contractAddress: "0x6b175474e89094c44da98b954eedeac495271d0f",
@@ -105,7 +107,7 @@ export const MOCK_AUDIT_REQUESTS: AuditRequest[] = [
     },
   },
   {
-    id: "ZAM-9462",
+    id: "ZYR-9462",
     protocolName: "StakingRewardsDistributor",
     contractFileName: "StakingPool.sol",
     contractAddress: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
@@ -119,7 +121,7 @@ export const MOCK_AUDIT_REQUESTS: AuditRequest[] = [
     assignedAuditor: "0xAuditor_V9",
     peerAuditor: "0xAuditor_M2",
     bytecodeHash: "0x3e9f4a8b71d6012c8849b209d7c04419f8a32d645e771b",
-    reportPdfUrl: "/reports/ZAM-9462-StakingPool.pdf",
+    reportPdfUrl: "/reports/ZYR-9462-StakingPool.pdf",
     pdfSize: "1.8 MB",
     roundsToResolution: 2,
     findings: {
@@ -131,7 +133,7 @@ export const MOCK_AUDIT_REQUESTS: AuditRequest[] = [
     },
   },
   {
-    id: "ZAM-9449",
+    id: "ZYR-9449",
     protocolName: "YieldAggregatorV2",
     contractFileName: "StrategyRouter.sol",
     contractAddress: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
@@ -145,7 +147,7 @@ export const MOCK_AUDIT_REQUESTS: AuditRequest[] = [
     assignedAuditor: "0xAuditor_K4",
     peerAuditor: "0xAuditor_M2",
     bytecodeHash: "0x9812f84bc0192e471d99482bf47712a884910cf9281729",
-    reportPdfUrl: "/reports/ZAM-9449-StrategyRouter.pdf",
+    reportPdfUrl: "/reports/ZYR-9449-StrategyRouter.pdf",
     pdfSize: "3.2 MB",
     roundsToResolution: 3,
     findings: {
@@ -157,7 +159,7 @@ export const MOCK_AUDIT_REQUESTS: AuditRequest[] = [
     },
   },
   {
-    id: "ZAM-9471",
+    id: "ZYR-9471",
     protocolName: "CrossChainBridgeRouter",
     contractFileName: "BridgeEndpoint.sol",
     contractAddress: "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",

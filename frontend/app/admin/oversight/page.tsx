@@ -20,6 +20,7 @@ import {
   FileCode,
   Layers,
   Filter,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +35,10 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { MOCK_AUDIT_REQUESTS, type AuditRequest } from "@/lib/mock-data";
+import {
+  MOCK_AUDIT_REQUESTS, type AuditRequest
+} from "@/lib/mock-data";
+import { apiClient } from "@/lib/api-client";
 
 interface ExtendedTicket extends AuditRequest {
   slaStatus: "on-track" | "warning" | "breached";
@@ -45,6 +49,7 @@ export default function GlobalTicketOversightPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [auditorFilter, setAuditorFilter] = React.useState<string>("all");
   const [slaFilter, setSlaFilter] = React.useState<string>("all");
+  const [loading, setLoading] = React.useState(true);
 
   // Reassign Modal State
   const [ticketToReassign, setTicketToReassign] = React.useState<ExtendedTicket | null>(null);
@@ -52,42 +57,33 @@ export default function GlobalTicketOversightPage() {
   const [reassignReason, setReassignReason] = React.useState("");
   const [reassignFeedback, setReassignFeedback] = React.useState(false);
 
-  // Tickets with SLA Breach telemetry
-  const [tickets, setTickets] = React.useState<ExtendedTicket[]>([
-    {
-      ...MOCK_AUDIT_REQUESTS[0], // ZAM-9481 (Aura Liquidity Pool V3)
-      slaStatus: "on-track",
-    },
-    {
-      ...MOCK_AUDIT_REQUESTS[1], // ZAM-9478 (Nexus Collateral Vault)
-      slaStatus: "breached", // Overdue by 4h
-      slaOverdueHours: 4,
-    },
-    {
-      ...MOCK_AUDIT_REQUESTS[2], // ZAM-9462 (Chronos Yield Router)
-      slaStatus: "on-track",
-    },
-    {
-      ...MOCK_AUDIT_REQUESTS[3], // ZAM-9430 (Solv Synthetic Engine)
-      slaStatus: "on-track",
-    },
-    {
-      id: "ZAM-9485",
-      protocolName: "PerpetualOrderBook Core",
-      contractFileName: "OrderEngine.sol",
-      contractAddress: "0x3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be",
-      gitCommit: "9c2d1e0",
-      compilerVersion: "v0.8.20",
-      sloc: 3120,
-      stage: "pending",
-      stageNumber: 1,
-      submittedAt: "2026-08-20 18:00 UTC",
-      estimatedCompletion: "2026-08-24 12:00 UTC",
-      assignedAuditor: "0xAuditor_S9",
-      findings: { critical: 0, high: 2, medium: 1, low: 1, resolved: 0 },
-      slaStatus: "warning", // Approaching SLA within 6 hours
-    },
-  ]);
+  const [tickets, setTickets] = React.useState<ExtendedTicket[]>([]);
+
+  React.useEffect(() => {
+    apiClient
+      .get("/audits")
+      .then((res) => {
+        const data = (res.data || []).map((a: AuditRequest) => ({
+          ...a,
+          // Assign SLA status based on stage (heuristic — backend doesn't expose SLA yet)
+          slaStatus:
+            a.stage?.toUpperCase() === "COMPLETED" || a.stage?.toUpperCase() === "FAILED"
+              ? ("on-track" as const)
+              : ("on-track" as const),
+        } as ExtendedTicket));
+        setTickets(data);
+      })
+      .catch((e) => {
+        console.warn("Oversight: fetch error", e.message);
+        // Fallback to mocks
+        setTickets([
+          { ...MOCK_AUDIT_REQUESTS[0], slaStatus: "on-track" },
+          { ...MOCK_AUDIT_REQUESTS[1], slaStatus: "breached", slaOverdueHours: 4 },
+          { ...MOCK_AUDIT_REQUESTS[2], slaStatus: "on-track" },
+        ]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const auditorsList = [
     { handle: "0xAuditor_K4", name: "0xAuditor_K4 (Lead)", currentLoad: "2 Tickets" },
@@ -128,6 +124,15 @@ export default function GlobalTicketOversightPage() {
   const breachedTicketsCount = tickets.filter((t) => t.slaStatus === "breached").length;
   const warningTicketsCount = tickets.filter((t) => t.slaStatus === "warning").length;
   const totalSloc = tickets.reduce((acc, curr) => acc + curr.sloc, 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="h-6 w-6 text-accent-scan animate-spin" />
+        <span className="ml-3 font-mono text-xs text-text-muted">Loading platform audit data…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">

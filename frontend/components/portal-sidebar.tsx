@@ -63,7 +63,7 @@ export function PortalSidebar() {
           badgeColor: "scan" as const,
         },
         {
-          href: "/portal/track/ZAM-9481",
+          href: "/portal/track/ZYR-9481",
           label: "Active Trackers",
           icon: Radio,
           badge: `${activeCount} LIVE`,

@@ -18,29 +18,51 @@ import {
   Code2,
   Terminal,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
-import { MOCK_CLIENT_PROFILE, MOCK_REPOSITORIES } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth-context";
+import { apiClient } from "@/lib/api-client";
+
+interface OrgData {
+  id: string;
+  name: string;
+  legalName?: string;
+  tier?: string;
+  members?: { id: string; name: string; email: string; role: string }[];
+}
+
+interface Repository {
+  id: string;
+  fullName: string;
+  defaultBranch: string;
+  isPrivate: boolean;
+}
 
 export default function AccountSettingsPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = React.useState<"profile" | "connected" | "api" | "notifications">("connected");
 
+  // Org data
+  const [org, setOrg] = React.useState<OrgData | null>(null);
+  const [orgLoading, setOrgLoading] = React.useState(true);
+  const [repositories, setRepositories] = React.useState<Repository[]>([]);
+
   // Profile Form State
-  const [orgName, setOrgName] = React.useState(MOCK_CLIENT_PROFILE.name);
-  const [daoLegalName, setDaoLegalName] = React.useState(MOCK_CLIENT_PROFILE.organization);
-  const [contactEmail, setContactEmail] = React.useState("security@auraprotocol.io");
+  const [orgName, setOrgName] = React.useState("");
+  const [daoLegalName, setDaoLegalName] = React.useState("");
+  const [contactEmail, setContactEmail] = React.useState(user?.email || "");
   const [isSaved, setIsSaved] = React.useState(false);
 
-  // Connected Accounts State (reflects GitHub connection from New Audit Request)
-  const [isGithubConnected, setIsGithubConnected] = React.useState(true);
-  const [connectedWallet, setConnectedWallet] = React.useState(MOCK_CLIENT_PROFILE.address);
+  // Connected Accounts State
+  const [isGithubConnected, setIsGithubConnected] = React.useState(false);
   const [copiedWallet, setCopiedWallet] = React.useState(false);
   const [copiedApiKey, setCopiedApiKey] = React.useState(false);
 
-  // API Tokens
+  // API Tokens (local management only — no backend token API yet)
   const [apiTokens, setApiTokens] = React.useState([
     {
       id: "tok-1",
@@ -58,17 +80,48 @@ export default function AccountSettingsPage() {
     },
   ]);
 
-  // Notifications Form State
+  // Notifications
   const [notifications, setNotifications] = React.useState({
     criticalAlerts: true,
     fixVerified: true,
     stageProgress: true,
     weeklyDigest: false,
-    discordWebhook: "https://discord.com/api/webhooks/1094812/zam-alerts",
+    discordWebhook: "",
   });
 
+  React.useEffect(() => {
+    // Fetch org data
+    apiClient
+      .get("/organizations/me")
+      .then((res) => {
+        const o = res.data;
+        setOrg(o);
+        setOrgName(o.name || "");
+        setDaoLegalName(o.legalName || "");
+      })
+      .catch((e) => {
+        console.warn("Settings: org fetch error", e.message);
+      })
+      .finally(() => setOrgLoading(false));
+
+    // Fetch GitHub repos if connected
+    apiClient
+      .get("/integrations/github/repos")
+      .then((res) => {
+        if (res.data?.length) {
+          setRepositories(res.data);
+          setIsGithubConnected(true);
+        }
+      })
+      .catch(() => {
+        // GitHub not connected — that's fine
+      });
+  }, []);
+
+  const walletAddress = (user as any)?.walletAddress || "";
+
   const handleCopyWallet = () => {
-    navigator.clipboard?.writeText(connectedWallet);
+    navigator.clipboard?.writeText(walletAddress);
     setCopiedWallet(true);
     setTimeout(() => setCopiedWallet(false), 2000);
   };
@@ -79,10 +132,19 @@ export default function AccountSettingsPage() {
     setTimeout(() => setCopiedApiKey(false), 2000);
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2500);
+    if (!org?.id) return;
+    try {
+      await apiClient.patch(`/organizations/${org.id}`, {
+        name: orgName,
+        legalName: daoLegalName,
+      });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2500);
+    } catch (err: any) {
+      console.error("Settings: save error", err.message);
+    }
   };
 
   return (
@@ -98,7 +160,7 @@ export default function AccountSettingsPage() {
           </h1>
         </div>
         <div className="font-mono text-xs text-text-muted">
-          TIER // {MOCK_CLIENT_PROFILE.tier.toUpperCase()}
+          TIER // {orgLoading ? "…" : (org?.tier || "ENTERPRISE").toUpperCase()}
         </div>
       </div>
 
@@ -129,7 +191,7 @@ export default function AccountSettingsPage() {
         })}
       </div>
 
-      {/* TAB 1: CONNECTED ACCOUNTS (Reflects GitHub from New Audit Request & Web3 Signer) */}
+      {/* TAB 1: CONNECTED ACCOUNTS */}
       {activeTab === "connected" && (
         <div className="space-y-6">
           {/* GitHub Organization Integration */}
@@ -144,16 +206,11 @@ export default function AccountSettingsPage() {
                   Repository tree access and automatic commit hash pinning for audit requests.
                 </p>
               </div>
-
               <div className="flex items-center gap-2 font-mono text-xs">
                 {isGithubConnected ? (
-                  <Badge severity="resolved" size="sm">
-                    CONNECTED ✓
-                  </Badge>
+                  <Badge severity="resolved" size="sm">CONNECTED ✓</Badge>
                 ) : (
-                  <Badge severity="informational" size="sm">
-                    DISCONNECTED
-                  </Badge>
+                  <Badge severity="informational" size="sm">DISCONNECTED</Badge>
                 )}
               </div>
             </div>
@@ -163,50 +220,47 @@ export default function AccountSettingsPage() {
                 <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs">
                   <div className="space-y-1">
                     <div className="text-text-primary font-semibold flex items-center gap-2">
-                      <span>ORGANIZATION:</span>
-                      <span className="text-accent-scan">aura-finance</span>
+                      <span>REPOSITORIES:</span>
+                      <span className="text-accent-scan">{repositories.length} synced</span>
                     </div>
                     <div className="text-text-muted text-[11px]">
-                      {MOCK_REPOSITORIES.length} active smart contract repositories synchronized
+                      {repositories.length} active smart contract repositories synchronized
                     </div>
                   </div>
-
                   <div className="flex items-center gap-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setIsGithubConnected(false)}
-                    >
+                    <Button size="sm" variant="outline" onClick={() => setIsGithubConnected(false)}>
                       Disconnect Organization
                     </Button>
                   </div>
                 </div>
 
-                {/* Synced Repositories Preview */}
-                <div className="space-y-2">
-                  <div className="font-mono text-xs text-text-muted">SYNCHRONIZED AUDIT REPOSITORIES:</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
-                    {MOCK_REPOSITORIES.map((repo) => (
-                      <div
-                        key={repo.id}
-                        className="p-3 rounded-[4px] bg-bg-void border border-border-hairline flex items-center justify-between"
-                      >
-                        <div className="space-y-0.5 truncate">
-                          <div className="text-text-primary font-medium truncate">{repo.fullName}</div>
-                          <div className="text-[10px] text-text-muted">Branch: {repo.defaultBranch}</div>
+                {repositories.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="font-mono text-xs text-text-muted">SYNCHRONIZED AUDIT REPOSITORIES:</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
+                      {repositories.map((repo) => (
+                        <div
+                          key={repo.id}
+                          className="p-3 rounded-[4px] bg-bg-void border border-border-hairline flex items-center justify-between"
+                        >
+                          <div className="space-y-0.5 truncate">
+                            <div className="text-text-primary font-medium truncate">{repo.fullName}</div>
+                            <div className="text-[10px] text-text-muted">Branch: {repo.defaultBranch}</div>
+                          </div>
+                          <Badge severity={repo.isPrivate ? "informational" : "resolved"} size="sm">
+                            {repo.isPrivate ? "PRIVATE" : "PUBLIC"}
+                          </Badge>
                         </div>
-                        <Badge severity={repo.isPrivate ? "informational" : "resolved"} size="sm">
-                          {repo.isPrivate ? "PRIVATE" : "PUBLIC"}
-                        </Badge>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ) : (
               <div className="p-6 rounded-[4px] bg-bg-void border border-border-hairline text-center space-y-3">
                 <p className="text-xs font-mono text-text-muted">
-                  No GitHub organization currently linked. Connect to automatically select repositories during new audit intake.
+                  No GitHub organization currently linked. Connect to automatically select repositories
+                  during new audit intake.
                 </p>
                 <Button
                   size="sm"
@@ -232,38 +286,36 @@ export default function AccountSettingsPage() {
                   Primary EIP-712 cryptographic signer authorized for scope submissions and attestation approvals.
                 </p>
               </div>
-
-              <Badge severity="resolved" size="sm">
-                VERIFIED SIGNER
-              </Badge>
+              <Badge severity="resolved" size="sm">VERIFIED SIGNER</Badge>
             </div>
 
             <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs">
               <div className="space-y-1">
                 <div className="text-text-muted text-[10px]">AUTHORIZED SIGNER WALLET</div>
                 <div className="text-text-primary font-semibold truncate select-all">
-                  {connectedWallet}
+                  {walletAddress || user?.email || "No wallet linked"}
                 </div>
               </div>
-
-              <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={handleCopyWallet}
-                  className="px-2.5 py-1 rounded-[2px] bg-bg-panel border border-border-hairline text-text-muted hover:text-text-primary transition-colors flex items-center gap-1.5 text-[11px]"
-                >
-                  {copiedWallet ? (
-                    <>
-                      <Check className="h-3 w-3 text-signal-resolved" />
-                      <span className="text-signal-resolved">Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3 w-3" />
-                      <span>Copy Address</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              {walletAddress && (
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    onClick={handleCopyWallet}
+                    className="px-2.5 py-1 rounded-[2px] bg-bg-panel border border-border-hairline text-text-muted hover:text-text-primary transition-colors flex items-center gap-1.5 text-[11px]"
+                  >
+                    {copiedWallet ? (
+                      <>
+                        <Check className="h-3 w-3 text-signal-resolved" />
+                        <span className="text-signal-resolved">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" />
+                        <span>Copy Address</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -271,7 +323,10 @@ export default function AccountSettingsPage() {
 
       {/* TAB 2: ORGANIZATION PROFILE */}
       {activeTab === "profile" && (
-        <form onSubmit={handleSaveProfile} className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
+        <form
+          onSubmit={handleSaveProfile}
+          className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6"
+        >
           <div className="border-b border-border-hairline pb-3">
             <h2 className="font-display text-base font-semibold text-text-primary">
               Organization & Protocol Profile
@@ -281,38 +336,43 @@ export default function AccountSettingsPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1.5">
-              <label className="font-mono text-xs text-text-muted">PROTOCOL DISPLAY NAME</label>
-              <Input
-                value={orgName}
-                onChange={(e) => setOrgName(e.target.value)}
-                placeholder="Aura Core Protocol"
-                required
-              />
+          {orgLoading ? (
+            <div className="flex items-center gap-2 text-text-muted font-mono text-xs">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading organization profile…
             </div>
-
-            <div className="space-y-1.5">
-              <label className="font-mono text-xs text-text-muted">DAO / LEGAL ENTITY</label>
-              <Input
-                value={daoLegalName}
-                onChange={(e) => setDaoLegalName(e.target.value)}
-                placeholder="Aura Finance DAO Ltd."
-                required
-              />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs text-text-muted">PROTOCOL DISPLAY NAME</label>
+                <Input
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder="Aura Core Protocol"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs text-text-muted">DAO / LEGAL ENTITY</label>
+                <Input
+                  value={daoLegalName}
+                  onChange={(e) => setDaoLegalName(e.target.value)}
+                  placeholder="Aura Finance DAO Ltd."
+                  required
+                />
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="font-mono text-xs text-text-muted">PRIMARY SECURITY CONTACT EMAIL</label>
+                <Input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="security@auraprotocol.io"
+                  required
+                />
+              </div>
             </div>
-
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="font-mono text-xs text-text-muted">PRIMARY SECURITY CONTACT EMAIL</label>
-              <Input
-                type="email"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder="security@auraprotocol.io"
-                required
-              />
-            </div>
-          </div>
+          )}
 
           <div className="flex items-center justify-between pt-4 border-t border-border-hairline font-mono text-xs">
             {isSaved ? (
@@ -322,11 +382,10 @@ export default function AccountSettingsPage() {
               </span>
             ) : (
               <span className="text-text-muted text-[11px]">
-                Tier: Enterprise Protocol Scope (Unlimited SLOC capacity)
+                Tier: {org?.tier || "Enterprise"} Protocol Scope
               </span>
             )}
-
-            <Button type="submit" variant="primary" size="md">
+            <Button type="submit" variant="primary" size="md" disabled={orgLoading}>
               Save Profile Changes
             </Button>
           </div>
@@ -345,7 +404,6 @@ export default function AccountSettingsPage() {
                 Tokens used by GitHub Actions and Foundry hooks for automated pre-deployment scanning.
               </p>
             </div>
-
             <Button
               size="sm"
               variant="primary"
@@ -383,7 +441,6 @@ export default function AccountSettingsPage() {
                     Created: {token.created} · Last Used: {token.lastUsed}
                   </div>
                 </div>
-
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleCopyApiKey(token.secret)}
@@ -422,9 +479,7 @@ export default function AccountSettingsPage() {
               <label className="font-mono text-xs text-text-muted">DISCORD / SLACK ALERT WEBHOOK URL</label>
               <Input
                 value={notifications.discordWebhook}
-                onChange={(e) =>
-                  setNotifications((prev) => ({ ...prev, discordWebhook: e.target.value }))
-                }
+                onChange={(e) => setNotifications((prev) => ({ ...prev, discordWebhook: e.target.value }))}
                 placeholder="https://discord.com/api/webhooks/..."
               />
             </div>
@@ -458,7 +513,6 @@ export default function AccountSettingsPage() {
                     <div className="text-text-primary font-semibold">{item.label}</div>
                     <div className="text-[11px] text-text-muted">{item.desc}</div>
                   </div>
-
                   <div
                     className={`h-4 w-4 rounded-[2px] border flex items-center justify-center ${
                       notifications[item.key]
