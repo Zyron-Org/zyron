@@ -143,51 +143,60 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => handleDemoLogin("client")}
-            className="p-2.5 rounded-[2px] bg-bg-void border border-border-hairline hover:border-accent-scan/60 text-left transition-colors space-y-1 group"
+            className="p-3 rounded-[4px] bg-bg-void border border-border-hairline hover:border-accent-scan/60 text-left transition-colors space-y-1.5 group cursor-pointer"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-text-primary font-semibold group-hover:text-accent-scan text-[11px]">
-                Client Portal
-              </span>
-              <Badge severity="resolved" size="sm">
-                DAO CLIENT
+            <div className="flex items-center justify-between gap-1">
+              <Badge severity="resolved" size="sm" className="text-[9px] px-1.5 py-0">
+                CLIENT
               </Badge>
+              <span className="text-[9px] text-text-muted">1-CLICK</span>
             </div>
-            <div className="text-[10px] text-text-muted">Aura Finance DAO</div>
+            <div className="space-y-0.5">
+              <div className="text-text-primary font-bold group-hover:text-accent-scan text-[11px] truncate">
+                Client Portal
+              </div>
+              <div className="text-[10px] text-text-muted truncate">Aura Finance DAO</div>
+            </div>
           </button>
 
           {/* Auditor Sample Button */}
           <button
             type="button"
             onClick={() => handleDemoLogin("auditor")}
-            className="p-2.5 rounded-[2px] bg-bg-void border border-border-hairline hover:border-signal-high/60 text-left transition-colors space-y-1 group"
+            className="p-3 rounded-[4px] bg-bg-void border border-border-hairline hover:border-signal-high/60 text-left transition-colors space-y-1.5 group cursor-pointer"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-text-primary font-semibold group-hover:text-signal-high text-[11px]">
-                Auditor Workspace
-              </span>
-              <Badge severity="high" size="sm">
-                LEAD AUDITOR
+            <div className="flex items-center justify-between gap-1">
+              <Badge severity="high" size="sm" className="text-[9px] px-1.5 py-0">
+                AUDITOR
               </Badge>
+              <span className="text-[9px] text-text-muted">1-CLICK</span>
             </div>
-            <div className="text-[10px] text-text-muted">0xAuditor_K4 (Queue)</div>
+            <div className="space-y-0.5">
+              <div className="text-text-primary font-bold group-hover:text-signal-high text-[11px] truncate">
+                Auditor Workspace
+              </div>
+              <div className="text-[10px] text-text-muted truncate">0xAuditor_K4 (Queue)</div>
+            </div>
           </button>
 
           {/* Platform Admin Sample Button */}
           <button
             type="button"
             onClick={() => handleDemoLogin("admin")}
-            className="p-2.5 rounded-[2px] bg-bg-void border border-border-hairline hover:border-accent-scan text-left transition-colors space-y-1 group"
+            className="p-3 rounded-[4px] bg-bg-void border border-border-hairline hover:border-accent-scan text-left transition-colors space-y-1.5 group cursor-pointer"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-text-primary font-semibold group-hover:text-accent-scan text-[11px]">
-                Platform Admin
-              </span>
-              <Badge severity="critical" size="sm">
+            <div className="flex items-center justify-between gap-1">
+              <Badge severity="critical" size="sm" className="text-[9px] px-1.5 py-0">
                 SUPERUSER
               </Badge>
+              <span className="text-[9px] text-text-muted">1-CLICK</span>
             </div>
-            <div className="text-[10px] text-text-muted">0xAdmin_SecOps (Global)</div>
+            <div className="space-y-0.5">
+              <div className="text-text-primary font-bold group-hover:text-accent-scan text-[11px] truncate">
+                Platform Admin
+              </div>
+              <div className="text-[10px] text-text-muted truncate">0xAdmin_SecOps (Global)</div>
+            </div>
           </button>
         </div>
       </div>
