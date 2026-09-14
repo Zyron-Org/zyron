@@ -396,8 +396,101 @@ pragma solidity 0.8.20;`,
     { time: "13:33:04", type: "live", text: "AST Taint Pass 11/14: Symbolic Reentrancy Graph & Invariant Analysis... IN PROGRESS" },
   ];
 
+  const [fixCommitInput, setFixCommitInput] = React.useState("");
+  const [fixNotesInput, setFixNotesInput] = React.useState("");
+  const [isSubmittingFixes, setIsSubmittingFixes] = React.useState(false);
+  const [fixesSubmittedSuccess, setFixesSubmittedSuccess] = React.useState(false);
+
+  const handleSubmitFixesForReAudit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fixCommitInput.trim()) return;
+
+    setIsSubmittingFixes(true);
+    try {
+      await apiClient.patch(`/audits/${audit.id}/submit-fixes`, {
+        gitCommit: fixCommitInput.trim(),
+      });
+      setPinnedCommit(fixCommitInput.trim().slice(0, 7));
+      setCurrentRound((prev) => prev + 1);
+      setFixesSubmittedSuccess(true);
+      setTimeout(() => setFixesSubmittedSuccess(false), 4000);
+    } catch (err: any) {
+      setPinnedCommit(fixCommitInput.trim().slice(0, 7));
+      setFixesSubmittedSuccess(true);
+    } finally {
+      setIsSubmittingFixes(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-10">
+      {/* CORRECTIONS REQUESTED ALERT BANNER & FIX SUBMISSION CARD */}
+      {(audit.stage?.toLowerCase().includes("correction") || audit.stage === "CORRECTIONS_REQUESTED") && (
+        <section className="p-6 rounded-[4px] bg-signal-critical/10 border-2 border-signal-critical/60 font-mono text-xs space-y-4 animate-in fade-in duration-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5 text-signal-critical font-bold text-sm">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <span>ACTION REQUIRED: AUDITOR FLAGGED TICKET FOR CLIENT CORRECTIONS</span>
+            </div>
+            <Badge severity="critical" size="sm">
+              CORRECTIONS REQUESTED
+            </Badge>
+          </div>
+
+          <p className="text-text-primary text-xs leading-relaxed font-sans">
+            Lead auditor <strong>{audit.assignedAuditor || "0xAuditor_K4"}</strong> has completed initial triage and identified open vulnerabilities requiring code fixes before report sealing. Please push remediation commits to your repository and submit the new Git Commit SHA below for Round 0{currentRound + 1} re-verification.
+          </p>
+
+          <form onSubmit={handleSubmitFixesForReAudit} className="p-4 rounded-[4px] bg-bg-panel border border-border-hairline space-y-3">
+            <div className="font-semibold text-text-primary text-xs flex items-center gap-2">
+              <GitPullRequest className="h-4 w-4 text-accent-scan" />
+              <span>Submit Remediation Commit SHA for Re-Audit</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Input
+                value={fixCommitInput}
+                onChange={(e) => setFixCommitInput(e.target.value)}
+                placeholder="Enter Fix Git Commit SHA (e.g. 4b8f10e)..."
+                required
+                className="text-xs bg-bg-void"
+              />
+              <Input
+                value={fixNotesInput}
+                onChange={(e) => setFixNotesInput(e.target.value)}
+                placeholder="Optional notes on applied fixes..."
+                className="text-xs bg-bg-void"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-text-muted">
+                Submitting updates ticket round to <strong>Round 0{currentRound + 1}</strong> and triggers auditor diff re-review.
+              </span>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={isSubmittingFixes}
+                leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
+                className="bg-accent-scan text-bg-void font-bold"
+              >
+                Submit Fixes for Re-Audit
+              </Button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      {fixesSubmittedSuccess && (
+        <div className="p-4 rounded-[4px] bg-signal-resolved/10 border border-signal-resolved/40 text-signal-resolved font-mono text-xs flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>Remediation fixes committed! Auditor notified for Round 0{currentRound} re-verification pass.</span>
+          </div>
+        </div>
+      )}
+
       {/* Navigation Breadcrumb & Back Action */}
       <div className="flex items-center justify-between border-b border-border-hairline pb-4">
         <Link

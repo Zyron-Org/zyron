@@ -52,6 +52,13 @@ export function AuditorSidebar() {
           badgeType: "resolved" as const,
         },
         {
+          href: "/auditor/onboarding",
+          label: "Auditor Onboarding",
+          icon: User,
+          badge: "QUALIFY",
+          badgeType: "scan" as const,
+        },
+        {
           href: "/auditor/settings",
           label: "Account Settings",
           icon: SlidersHorizontal,

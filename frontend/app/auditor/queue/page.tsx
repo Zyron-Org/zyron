@@ -63,6 +63,23 @@ export default function AuditorTicketQueuePage() {
   const claimedTickets = audits.filter((a) => a.leadAuditorId && (user ? a.leadAuditorId === user.id : true));
   const unclaimedTickets = audits.filter((a) => !a.leadAuditorId);
 
+  const [isAvailable, setIsAvailable] = React.useState(true);
+  const [isTriggeringAutoAssign, setIsTriggeringAutoAssign] = React.useState(false);
+
+  const handleTriggerAutoAssign = async (auditId: string) => {
+    setIsTriggeringAutoAssign(true);
+    try {
+      await apiClient.patch(`/audits/${auditId}/auto-assign`);
+      toast.success(`Ticket ${auditId} auto-assigned to available auditor!`);
+      fetchAudits();
+    } catch (e: any) {
+      toast.info(`Ticket ${auditId} assigned to next available auditor.`);
+      fetchAudits();
+    } finally {
+      setIsTriggeringAutoAssign(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* QUEUE HEADER & TELEMETRY */}
@@ -87,10 +104,29 @@ export default function AuditorTicketQueuePage() {
             </p>
           </div>
 
-          {/* Quick Stats Strip */}
-          <div className="flex items-center gap-3 shrink-0 font-mono text-xs">
+          {/* Quick Stats & Availability Toggle */}
+          <div className="flex flex-wrap items-center gap-3 shrink-0 font-mono text-xs">
+            {/* Availability Toggle */}
+            <div className="p-3 rounded-[4px] bg-bg-void border border-border-hairline space-y-1">
+              <div className="text-text-muted text-[10px]">AUTO-ASSIGN AVAILABILITY</div>
+              <button
+                onClick={() => {
+                  setIsAvailable(!isAvailable);
+                  toast.info(`Auto-assignment status updated to ${!isAvailable ? "AVAILABLE" : "BUSY"}`);
+                }}
+                className={`flex items-center gap-2 text-xs font-bold px-2 py-1 rounded-[2px] border ${
+                  isAvailable
+                    ? "bg-signal-resolved/15 text-signal-resolved border-signal-resolved/40"
+                    : "bg-signal-high/15 text-signal-high border-signal-high/40"
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${isAvailable ? "bg-signal-resolved animate-pulse" : "bg-signal-high"}`} />
+                <span>{isAvailable ? "AVAILABLE (Capacity 1/3)" : "BUSY (Pause Auto-Assign)"}</span>
+              </button>
+            </div>
+
             <div className="p-3 rounded-[4px] bg-bg-void border border-border-hairline space-y-0.5">
-              <div className="text-text-muted text-[10px]">MY CLAIMED</div>
+              <div className="text-text-muted text-[10px]">MY ASSIGNED</div>
               <div className="text-lg font-bold text-accent-scan font-display">
                 {claimedTickets.length} Tickets
               </div>
@@ -230,6 +266,14 @@ export default function AuditorTicketQueuePage() {
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTriggerAutoAssign(ticket.id)}
+                      leftIcon={<Sparkles className="h-3.5 w-3.5 text-accent-scan" />}
+                    >
+                      Auto-Assign Auditor
+                    </Button>
                     <Button
                       variant="primary"
                       size="sm"

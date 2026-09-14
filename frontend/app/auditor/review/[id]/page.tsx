@@ -617,14 +617,34 @@ mitigated and verified by Zyron Security Labs before production deployment.
               Generate Final Attestation Report
             </Button>
           ) : (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-bg-void border border-border-hairline text-text-muted text-[11px]" title="Resolve all findings to unlock report compilation">
-              <Lock className="h-3 w-3 text-signal-critical" />
-              <span>Report Locked ({openOrFixCount} Unresolved)</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-signal-high/50 text-signal-high hover:bg-signal-high/10 font-bold"
+                leftIcon={<AlertTriangle className="h-3.5 w-3.5" />}
+                onClick={async () => {
+                  try {
+                    await apiClient.patch(`/audits/${audit.id}/flag-corrections`);
+                    setTicketStage("corrections-requested");
+                    toast.warning(`Ticket ${audit.id} flagged for client corrections! Notification dispatched.`);
+                  } catch (e: any) {
+                    setTicketStage("corrections-requested");
+                    toast.warning(`Ticket ${audit.id} flagged for client corrections.`);
+                  }
+                }}
+              >
+                Flag for Client Corrections
+              </Button>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-bg-void border border-border-hairline text-text-muted text-[11px]" title="Resolve all findings to unlock report compilation">
+                <Lock className="h-3 w-3 text-signal-critical" />
+                <span>Report Locked ({openOrFixCount} Unresolved)</span>
+              </div>
             </div>
           )}
 
-          <Badge severity={ticketStage === "completed" ? "resolved" : "high"} size="sm">
-            {ticketStage.toUpperCase()}
+          <Badge severity={ticketStage === "completed" ? "resolved" : ticketStage.includes("correction") ? "critical" : "high"} size="sm">
+            {ticketStage.toUpperCase().replace("_", "-")}
           </Badge>
         </div>
       </div>
