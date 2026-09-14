@@ -1,6 +1,6 @@
 # Zyron Security Protocol — Autonomous Smart Contract Audit & Attestation Platform
 
-Zyron Protocol (`zamaron-revamped`) is an enterprise-grade autonomous smart contract security audit, AST taint analysis, and cryptographic attestation platform. It combines static analysis, local AI reasoning, dual-pane auditor code review workbenches, dynamic GitHub repository scope ingestion, and EIP-712 on-chain attestation publishing on Arbitrum & Ethereum.
+Zyron Protocol (`zyron-revamped`) is an enterprise-grade autonomous smart contract security audit, AST taint analysis, and cryptographic attestation platform. It combines static analysis, local AI reasoning, dual-pane auditor code review workbenches, dynamic GitHub repository scope ingestion, and EIP-712 on-chain attestation publishing on Arbitrum & Ethereum.
 
 ---
 
@@ -32,7 +32,7 @@ Clone the repository and install dependencies:
 
 ```bash
 # Navigate into the project directory
-cd zamaron-revamped
+cd zyron-revamped
 
 # Install backend dependencies
 cd backend && npm install
@@ -147,7 +147,7 @@ npx tsc --noEmit
 ## 📁 Repository Structure
 
 ```
-zamaron-revamped/
+zyron-revamped/
 ├── backend/                  # NestJS API Server (Port 4000)
 │   ├── prisma/               # Database Schema & SQLite DB
 │   │   ├── schema.prisma

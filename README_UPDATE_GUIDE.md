@@ -87,7 +87,7 @@ npm run dev
 Run the following commands in your terminal to stage, commit, and push the updates:
 
 ```bash
-cd /Users/basil/Desktop/codes/Veriq/zamaron-revamped
+cd /Users/basil/Desktop/codes/Veriq/zyron-revamped
 
 # 1. Stage all modified and untracked files
 git add .
