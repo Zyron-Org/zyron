@@ -11,7 +11,6 @@ import {
   SlidersHorizontal,
   User,
   LogOut,
-  ArrowLeftRight,
   Cpu,
   Layers,
 } from "lucide-react";
@@ -23,7 +22,7 @@ import { X } from "lucide-react";
 
 export function AuditorSidebar() {
   const pathname = usePathname();
-  const { user, loginAs, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { isOpen, close } = useSidebar();
 
   const navLinks = [
@@ -124,16 +123,16 @@ export function AuditorSidebar() {
         <div className="px-4">
           <div className="p-3 rounded-[4px] bg-bg-void border border-border-hairline space-y-1.5 font-mono text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-text-primary font-semibold text-xs flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-accent-scan" />
-                <span>0xAuditor_K4</span>
+              <span className="text-text-primary font-semibold text-xs flex items-center gap-1.5 truncate">
+                <User className="h-3.5 w-3.5 text-accent-scan shrink-0" />
+                <span className="truncate">{user?.name || user?.email || "0xAuditor"}</span>
               </span>
-              <span className="text-[9px] bg-accent-scan/10 text-accent-scan px-1.5 py-0.2 rounded border border-accent-scan/30">
-                LEAD AUDITOR
+              <span className="text-[9px] bg-accent-scan/10 text-accent-scan px-1.5 py-0.2 rounded border border-accent-scan/30 shrink-0">
+                AUDITOR
               </span>
             </div>
-            <div className="text-[10px] text-text-muted leading-tight">
-              Queue: 2 Claimed · 2 Awaiting Re-test
+            <div className="text-[10px] text-text-muted leading-tight truncate">
+              {user?.email || "Workbench Queue: Active"}
             </div>
           </div>
         </div>
@@ -192,31 +191,16 @@ export function AuditorSidebar() {
 
       {/* Pinned Bottom Controls */}
       <div className="p-4 border-t border-border-hairline space-y-3 bg-bg-void/30 shrink-0 font-mono text-xs">
-        {/* Switch to Client Portal button */}
-        <button
-          onClick={() => {
-            close();
-            loginAs("client");
-          }}
-          className="w-full p-2 rounded-[4px] bg-bg-panel border border-border-hairline hover:border-accent-scan/50 text-text-muted hover:text-text-primary transition-colors flex items-center justify-between text-[11px]"
-        >
-          <div className="flex items-center gap-2">
-            <ArrowLeftRight className="h-3.5 w-3.5 text-accent-scan" />
-            <span>Switch to Client Portal</span>
-          </div>
-          <span className="text-[9px] text-text-muted">Aura DAO</span>
-        </button>
-
-        <div className="flex items-center justify-between text-[11px] text-text-muted pt-1">
-          <Link href="/kitchen-sink" onClick={close} className="hover:text-accent-scan">
-            /kitchen-sink
-          </Link>
+        <div className="flex items-center justify-between text-[11px] text-text-muted">
+          <span className="text-[10px] text-text-muted truncate">
+            {user?.role ? `ROLE: ${user.role}` : "AUDITOR WORKBENCH"}
+          </span>
           <button
             onClick={() => {
               close();
               logout();
             }}
-            className="hover:text-signal-critical flex items-center gap-1 transition-colors"
+            className="hover:text-signal-critical flex items-center gap-1 transition-colors cursor-pointer"
           >
             <LogOut className="h-3 w-3" />
             <span>Sign Out</span>

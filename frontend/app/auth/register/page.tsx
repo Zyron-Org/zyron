@@ -30,8 +30,8 @@ export default function RegisterPage() {
         name: protocolName,
         organizationName: protocolName,
       });
-      toast.success("Protocol Workspace registered successfully!");
-      router.push("/portal/new-request");
+      toast.success("Registration successful! Check your email to activate your account.");
+      router.push(`/auth/verify-email?status=pending&email=${encodeURIComponent(email)}`);
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || "Registration failed";
       const displayMsg = Array.isArray(msg) ? msg.join(", ") : msg;
@@ -40,6 +40,7 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">

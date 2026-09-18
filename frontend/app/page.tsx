@@ -108,6 +108,22 @@ const row3Chains = [
 export default function LandingPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isAuthenticated = mounted && !!user;
+
+  const dashboardHref = isAuthenticated
+    ? user?.role?.toUpperCase() === "AUDITOR"
+      ? "/auditor/queue"
+      : user?.role?.toUpperCase() === "ADMIN"
+      ? "/admin/users"
+      : "/portal"
+    : "/auth/login";
+
   const [activeTab, setActiveTab] = React.useState<"all" | "in_progress" | "completed" | "failed" | "drafts">("all");
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [expandedFaq, setExpandedFaq] = React.useState<number | null>(0);
@@ -390,13 +406,13 @@ export default function LandingPage() {
               <Globe className="h-4 w-4" />
             </button>
 
-            {/* Login / Dashboard ↗ Button */}
-            <Link href={user ? "/portal" : "/auth/login"}>
+            {/* Sign In / Dashboard ↗ Button */}
+            <Link href={dashboardHref}>
               <button
                 type="button"
-                className="h-9 px-3.5 sm:px-4 rounded-[4px] bg-text-primary text-bg-void font-bold text-xs hover:bg-white transition-colors flex items-center gap-1.5 shadow-sm font-mono"
+                className="h-9 px-3.5 sm:px-4 rounded-[4px] bg-text-primary text-bg-void font-bold text-xs hover:bg-white transition-colors flex items-center gap-1.5 shadow-sm font-mono cursor-pointer"
               >
-                <span>{user ? "Dashboard" : "Login"}</span>
+                <span>{isAuthenticated ? "Dashboard" : "Sign In"}</span>
                 <ArrowUpRight className="h-3.5 w-3.5 stroke-[2.5]" />
               </button>
             </Link>
@@ -422,6 +438,14 @@ export default function LandingPage() {
           <div className="lg:hidden px-4 pb-4 max-w-[1440px] mx-auto animate-in fade-in slide-in-from-top-2 duration-150">
             <div className="p-3.5 rounded-[6px] bg-bg-panel/95 border border-border-hairline backdrop-blur-xl shadow-2xl space-y-2 font-mono text-xs">
               <div className="space-y-1">
+                <Link
+                  href={dashboardHref}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between p-2.5 rounded-[4px] bg-text-primary text-bg-void font-bold hover:bg-white transition-colors mb-2"
+                >
+                  <span>{isAuthenticated ? "Dashboard" : "Sign In"}</span>
+                  <ArrowUpRight className="h-3.5 w-3.5 stroke-[2.5]" />
+                </Link>
                 <Link
                   href="#features"
                   onClick={() => setMobileMenuOpen(false)}

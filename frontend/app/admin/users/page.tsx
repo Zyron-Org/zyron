@@ -44,12 +44,7 @@ export default function UserRoleManagementPage() {
       setUsers(res.data || []);
     } catch (e: any) {
       console.warn("User list notice:", e.message);
-      // Fallback mock accounts
-      setUsers([
-        { id: "usr_01", name: "0xAuditor_K4", email: "k4@zyron.labs", role: "AUDITOR", organization: { name: "Zyron Security Labs" } },
-        { id: "usr_02", name: "Aura Finance DAO", email: "security@auraprotocol.io", role: "CLIENT", organization: { name: "Aura Protocol" } },
-        { id: "usr_03", name: "0xAdmin_SecOps", email: "admin@zyron.labs", role: "ADMIN", organization: { name: "Zyron Governance" } },
-      ]);
+      setUsers([]);
     } finally {
       setLoading(false);
     }

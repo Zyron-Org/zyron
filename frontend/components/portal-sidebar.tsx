@@ -26,12 +26,15 @@ import {
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Badge } from "@/components/ui/badge";
 import { useSidebar } from "@/components/ui/sidebar-context";
+import { useAuth } from "@/lib/auth-context";
 import { MOCK_CLIENT_PROFILE, MOCK_AUDIT_REQUESTS } from "@/lib/mock-data";
 
 export function PortalSidebar() {
   const pathname = usePathname();
   const { isOpen, close } = useSidebar();
+  const { user, logout } = useAuth();
   const [copied, setCopied] = React.useState(false);
+
 
   const activeCount = MOCK_AUDIT_REQUESTS.filter(
     (a) => a.stage === "scanning" || a.stage === "in-review" || a.stage === "pending"
@@ -177,16 +180,18 @@ export function PortalSidebar() {
           <div className="p-3 rounded-[4px] bg-bg-void border border-border-hairline space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-display text-xs font-semibold text-text-primary truncate">
-                {MOCK_CLIENT_PROFILE.name}
+                {user?.name || user?.organization?.name || MOCK_CLIENT_PROFILE.name}
               </span>
               <span className="font-mono text-[9px] text-accent-scan bg-accent-scan/10 px-1 py-0.5 rounded-[2px] border border-accent-scan/20">
-                PROT_DAO
+                {user?.role || "CLIENT"}
               </span>
             </div>
 
             <div className="flex items-center justify-between font-mono text-[10px] text-text-muted">
-              <span>
-                {MOCK_CLIENT_PROFILE.address.slice(0, 6)}...{MOCK_CLIENT_PROFILE.address.slice(-4)}
+              <span className="truncate max-w-[140px]">
+                {user?.walletAddress
+                  ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`
+                  : user?.email || MOCK_CLIENT_PROFILE.address.slice(0, 6) + "..." + MOCK_CLIENT_PROFILE.address.slice(-4)}
               </span>
               <button
                 onClick={handleCopy}
@@ -266,10 +271,17 @@ export function PortalSidebar() {
           <Link href="/kitchen-sink" onClick={close} className="hover:text-accent-scan">
             /kitchen-sink
           </Link>
-          <Link href="/" onClick={close} className="hover:text-signal-critical flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              close();
+              logout();
+            }}
+            className="hover:text-signal-critical flex items-center gap-1 transition-colors cursor-pointer"
+          >
             <LogOut className="h-3 w-3" />
             <span>Sign Out</span>
-          </Link>
+          </button>
         </div>
       </div>
     </div>

@@ -18,12 +18,14 @@ import {
   Radio,
   X,
   Menu,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { useSidebar } from "@/components/ui/sidebar-context";
+import { useAuth } from "@/lib/auth-context";
 import { MOCK_CLIENT_PROFILE } from "@/lib/mock-data";
 
 interface NotificationItem {
@@ -38,6 +40,7 @@ interface NotificationItem {
 }
 
 export function PortalHeader() {
+  const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   const { toggle, isOpen: sidebarOpen } = useSidebar();
@@ -250,12 +253,23 @@ export function PortalHeader() {
         {/* User Profile Chip */}
         <div className="flex items-center gap-2 pl-2 border-l border-border-hairline font-mono text-xs">
           <div className="h-7 w-7 rounded-[4px] bg-accent-scan/10 border border-accent-scan/30 flex items-center justify-center text-accent-scan font-bold text-[11px]">
-            AF
+            {user?.name ? user.name.slice(0, 2).toUpperCase() : "AF"}
           </div>
-          <span className="hidden xl:inline text-text-primary text-xs font-medium">
-            0x8920...43e7
+          <span className="hidden xl:inline text-text-primary text-xs font-medium truncate max-w-[120px]">
+            {user?.name || (user?.walletAddress ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}` : user?.email || "0x8920...43e7")}
           </span>
         </div>
+
+        {/* Sign Out Action Button */}
+        <button
+          type="button"
+          onClick={() => logout()}
+          className="h-8 px-2.5 rounded-[4px] bg-bg-panel border border-border-hairline hover:border-signal-critical/50 hover:text-signal-critical text-text-muted transition-colors flex items-center gap-1.5 font-mono text-xs cursor-pointer shrink-0"
+          title="Sign Out"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Sign Out</span>
+        </button>
       </div>
     </header>
   );

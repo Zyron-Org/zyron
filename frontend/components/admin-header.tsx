@@ -7,7 +7,6 @@ import {
   Key,
   Lock,
   Activity,
-  ArrowLeftRight,
   LogOut,
   Bell,
   Terminal,
@@ -20,7 +19,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useSidebar } from "@/components/ui/sidebar-context";
 
 export function AdminHeader() {
-  const { user, loginAs, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { toggle, isOpen } = useSidebar();
 
   return (
@@ -50,26 +49,23 @@ export function AdminHeader() {
 
       {/* Right: Telemetry & Profile */}
       <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
-        <div className="hidden lg:flex items-center gap-2 bg-bg-void px-2.5 py-1 rounded-[2px] border border-border-hairline text-[11px]">
+        <div className="hidden sm:flex items-center gap-2 bg-bg-void px-2.5 py-1 rounded-[2px] border border-border-hairline text-[11px]">
           <span className="h-1.5 w-1.5 rounded-full bg-signal-resolved animate-pulse" />
           <span className="text-text-muted">SESSION:</span>
-          <span className="text-text-primary font-bold">0xAdmin_SecOps</span>
+          <span className="text-text-primary font-bold truncate max-w-[150px]">
+            {user?.name || user?.email || "Admin"}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => loginAs("auditor")}
-            className="px-2 py-1 rounded-[2px] bg-bg-void border border-border-hairline hover:border-signal-high/60 text-signal-high text-[11px] transition-colors"
+            type="button"
+            onClick={() => logout()}
+            className="px-2.5 py-1 rounded-[2px] bg-bg-void border border-border-hairline hover:border-signal-critical/60 hover:text-signal-critical text-text-muted text-[11px] transition-colors flex items-center gap-1.5 cursor-pointer"
+            title="Sign Out"
           >
-            <span className="hidden sm:inline">Auditor View</span>
-            <span className="sm:hidden">Auditor</span>
-          </button>
-          <button
-            onClick={() => loginAs("client")}
-            className="px-2 py-1 rounded-[2px] bg-bg-void border border-border-hairline hover:border-accent-scan/60 text-accent-scan text-[11px] transition-colors"
-          >
-            <span className="hidden sm:inline">Client View</span>
-            <span className="sm:hidden">Client</span>
+            <LogOut className="h-3 w-3" />
+            <span>Sign Out</span>
           </button>
         </div>
       </div>

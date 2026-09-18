@@ -48,6 +48,8 @@ npm-debug.log*
 .vscode/
 .idea/
 .gemini/
+*.tsbuildinfo
+
 
 # Reference Codebase
 codebase/

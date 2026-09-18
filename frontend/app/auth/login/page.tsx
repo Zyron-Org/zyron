@@ -2,41 +2,60 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Terminal,
   Wallet,
   ArrowRight,
   Lock,
   Mail,
-  ShieldCheck,
-  User,
-  ShieldAlert,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { Badge } from "@/components/ui/badge";
-import { useAuth, SAMPLE_ACCOUNTS } from "@/lib/auth-context";
+import { useAuth, getDashboardForRole } from "@/lib/auth-context";
+import { apiClient } from "@/lib/api-client";
+import { getAddress } from "ethers";
 
 import { toast } from "sonner";
 
+
 export default function LoginPage() {
-  const { login, loginAs } = useAuth();
-  const [email, setEmail] = React.useState("security@auraprotocol.io");
-  const [password, setPassword] = React.useState("SecurePassword123!");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login, loginWithSiwe, user, loading } = useAuth();
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [isWeb3Loading, setIsWeb3Loading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+
+  // Auto-redirect if already authenticated
+  React.useEffect(() => {
+    if (!loading && user) {
+      const redirectParam = searchParams?.get("redirect");
+      const isValidRedirect =
+        redirectParam &&
+        !redirectParam.startsWith("/auth") &&
+        redirectParam !== "/";
+      const dest = isValidRedirect ? redirectParam : getDashboardForRole(user.role);
+      router.replace(dest);
+    }
+  }, [user, loading, router, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      await login(email, password);
-      toast.success("Authentication successful! Session token active.");
+      const loggedUser = await login(email, password);
+      toast.success("Authentication successful! Redirecting to workspace...");
+      const redirectParam = searchParams?.get("redirect");
+      const isValidRedirect =
+        redirectParam &&
+        !redirectParam.startsWith("/auth") &&
+        redirectParam !== "/";
+      const dest = isValidRedirect ? redirectParam : getDashboardForRole(loggedUser?.role);
+      router.replace(dest);
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || "Invalid email or password";
       const displayMsg = Array.isArray(msg) ? msg.join(", ") : msg;
@@ -47,19 +66,14 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoLogin = (roleStr: string) => {
-    loginAs(roleStr);
-    toast.info(`Switched to Demo Persona (${roleStr.toUpperCase()})`);
-  };
-
   const handleWeb3Login = async () => {
     setIsWeb3Loading(true);
     setErrorMsg(null);
 
-    // Timeout helper (5s limit so hung browser extensions never freeze the UI)
-    const withTimeout = <T,>(promise: Promise<T>, ms = 5000): Promise<T> => {
+    // Timeout helper (15s limit so user has time to approve wallet popup)
+    const withTimeout = <T,>(promise: Promise<T>, ms = 15000): Promise<T> => {
       return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error("Wallet request timed out (5s limit)")), ms);
+        const timer = setTimeout(() => reject(new Error("Wallet request timed out (15s limit)")), ms);
         promise
           .then((res) => {
             clearTimeout(timer);
@@ -81,40 +95,51 @@ export default function LoginPage() {
 
         const accounts = (await withTimeout(
           ethereum.request({ method: "eth_requestAccounts" }),
-          5000
+          15000
         )) as string[];
 
-        const address = accounts[0];
+        // Enforce canonical EIP-55 checksum on the Ethereum address
+        const address = getAddress(accounts[0]);
 
         const domain = window.location.host;
         const origin = window.location.origin;
         const issuedAt = new Date().toISOString();
-        const nonce = Math.random().toString(36).substring(2, 10);
+
+        // Fetch cryptographic SIWE nonce from backend
+        let nonce = Math.random().toString(36).substring(2, 10);
+        try {
+          const nonceRes = await apiClient.get("/auth/siwe/nonce");
+          if (nonceRes.data?.nonce) {
+            nonce = nonceRes.data.nonce;
+          }
+        } catch {}
 
         const message = `${domain} wants you to sign in with your Ethereum account:\n${address}\n\nSign in to Zyron Audit Workbench.\n\nURI: ${origin}\nVersion: 1\nChain ID: 1\nNonce: ${nonce}\nIssued At: ${issuedAt}`;
         const hexMessage = "0x" + Array.from(new TextEncoder().encode(message)).map((b) => b.toString(16).padStart(2, "0")).join("");
 
+
+        let signature: string;
         try {
-          await withTimeout(
+          signature = (await withTimeout(
             ethereum.request({
               method: "personal_sign",
               params: [hexMessage, address],
             }),
-            5000
-          );
+            15000
+          )) as string;
         } catch (e1: any) {
-          try {
-            await withTimeout(
-              ethereum.request({
-                method: "personal_sign",
-                params: [message, address],
-              }),
-              5000
-            );
-          } catch (e2: any) {}
+          signature = (await withTimeout(
+            ethereum.request({
+              method: "personal_sign",
+              params: [message, address],
+            }),
+            15000
+          )) as string;
         }
         toast.success(`Web3 Wallet Connected: ${address.substring(0, 6)}...${address.substring(38)}`);
-        loginAs("client");
+        const loggedUser = await loginWithSiwe(message, signature);
+        const dest = getDashboardForRole(loggedUser?.role);
+        router.replace(dest);
       } else {
         toast.error("Web3 Wallet Extension Not Detected: Please install MetaMask or another EVM wallet extension.");
       }
@@ -128,79 +153,6 @@ export default function LoginPage() {
 
   return (
     <div className="space-y-6">
-      {/* 1-CLICK DEMO PERSONA SELECTOR */}
-      <div className="p-4 rounded-[4px] bg-bg-panel border border-accent-scan/30 space-y-3 font-mono text-xs">
-        <div className="flex items-center justify-between border-b border-border-hairline pb-2">
-          <span className="text-accent-scan font-bold flex items-center gap-1.5 text-[11px]">
-            <Sparkles className="h-3.5 w-3.5" />
-            INSTANT DEMO PERSONAS
-          </span>
-          <span className="text-text-muted text-[10px]">1-CLICK LOGIN</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          {/* Client Sample Button */}
-          <button
-            type="button"
-            onClick={() => handleDemoLogin("client")}
-            className="p-3 rounded-[4px] bg-bg-void border border-border-hairline hover:border-accent-scan/60 text-left transition-colors space-y-1.5 group cursor-pointer"
-          >
-            <div className="flex items-center justify-between gap-1">
-              <Badge severity="resolved" size="sm" className="text-[9px] px-1.5 py-0">
-                CLIENT
-              </Badge>
-              <span className="text-[9px] text-text-muted">1-CLICK</span>
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-text-primary font-bold group-hover:text-accent-scan text-[11px] truncate">
-                Client Portal
-              </div>
-              <div className="text-[10px] text-text-muted truncate">Aura Finance DAO</div>
-            </div>
-          </button>
-
-          {/* Auditor Sample Button */}
-          <button
-            type="button"
-            onClick={() => handleDemoLogin("auditor")}
-            className="p-3 rounded-[4px] bg-bg-void border border-border-hairline hover:border-signal-high/60 text-left transition-colors space-y-1.5 group cursor-pointer"
-          >
-            <div className="flex items-center justify-between gap-1">
-              <Badge severity="high" size="sm" className="text-[9px] px-1.5 py-0">
-                AUDITOR
-              </Badge>
-              <span className="text-[9px] text-text-muted">1-CLICK</span>
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-text-primary font-bold group-hover:text-signal-high text-[11px] truncate">
-                Auditor Workspace
-              </div>
-              <div className="text-[10px] text-text-muted truncate">0xAuditor_K4 (Queue)</div>
-            </div>
-          </button>
-
-          {/* Platform Admin Sample Button */}
-          <button
-            type="button"
-            onClick={() => handleDemoLogin("admin")}
-            className="p-3 rounded-[4px] bg-bg-void border border-border-hairline hover:border-accent-scan text-left transition-colors space-y-1.5 group cursor-pointer"
-          >
-            <div className="flex items-center justify-between gap-1">
-              <Badge severity="critical" size="sm" className="text-[9px] px-1.5 py-0">
-                SUPERUSER
-              </Badge>
-              <span className="text-[9px] text-text-muted">1-CLICK</span>
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-text-primary font-bold group-hover:text-accent-scan text-[11px] truncate">
-                Platform Admin
-              </div>
-              <div className="text-[10px] text-text-muted truncate">0xAdmin_SecOps (Global)</div>
-            </div>
-          </button>
-        </div>
-      </div>
-
       {/* STANDARD FORM LOGIN */}
       <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
         <div className="space-y-1.5 border-b border-border-hairline pb-4">
@@ -215,6 +167,24 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {errorMsg && (
+          <div className="p-3.5 rounded-[4px] bg-signal-critical/10 border border-signal-critical/30 text-signal-critical font-mono text-xs space-y-2">
+            <div>{errorMsg}</div>
+            {errorMsg.toLowerCase().includes("verify your email") && (
+              <div className="pt-1">
+                <Link
+                  href={`/auth/verify-email?status=pending${email ? `&email=${encodeURIComponent(email)}` : ""}`}
+                  className="text-signal-success underline hover:text-signal-success/80 font-sans text-xs font-semibold inline-flex items-center gap-1"
+                >
+                  <span>Verify or Resend Verification Link</span>
+                  <span>&rarr;</span>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">
             <label className="font-mono text-xs text-text-muted">EMAIL ADDRESS</label>
@@ -222,7 +192,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="security@protocol.io"
+              placeholder="name@company.com"
               prefix={<Mail className="h-3.5 w-3.5 text-text-muted" />}
               required
             />
@@ -279,56 +249,6 @@ export default function LoginPage() {
         >
           Sign In with Ethereum (EIP-4361)
         </Button>
-
-        {/* Quick Demo Persona Shortcuts */}
-        <div className="p-4 rounded bg-bg-void border border-border-hairline space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] text-text-muted font-semibold tracking-wider flex items-center gap-1.5">
-              <Sparkles className="h-3 w-3 text-accent-scan" /> QUICK TEST ACCOUNTS
-            </span>
-            <Badge severity="resolved" size="sm">DEMO READY</Badge>
-          </div>
-          <div className="grid grid-cols-3 gap-2 font-mono text-xs">
-            <button
-              type="button"
-              onClick={() => {
-                setEmail("security@auraprotocol.io");
-                setPassword("SecurePassword123!");
-                handleDemoLogin("client");
-              }}
-              className="p-2 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-left transition-colors cursor-pointer"
-            >
-              <div className="text-[10px] text-text-muted">ROLE: CLIENT</div>
-              <div className="font-bold text-text-primary text-[11px] truncate">Aura Client</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setEmail("k4@zyron.labs");
-                setPassword("AuditorPass123!");
-                handleDemoLogin("auditor");
-              }}
-              className="p-2 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-left transition-colors cursor-pointer"
-            >
-              <div className="text-[10px] text-signal-resolved font-bold">ROLE: AUDITOR</div>
-              <div className="font-bold text-text-primary text-[11px] truncate">0xAuditor_K4</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setEmail("admin@zyron.labs");
-                setPassword("AdminPass123!");
-                handleDemoLogin("admin");
-              }}
-              className="p-2 rounded bg-bg-panel border border-border-hairline hover:border-signal-critical text-left transition-colors cursor-pointer"
-            >
-              <div className="text-[10px] text-signal-critical font-bold">ROLE: ADMIN</div>
-              <div className="font-bold text-text-primary text-[11px] truncate">Admin Lead</div>
-            </button>
-          </div>
-        </div>
 
         <div className="pt-2 border-t border-border-hairline text-center font-mono text-xs text-text-muted">
           <span>Need to audit a new protocol? </span>

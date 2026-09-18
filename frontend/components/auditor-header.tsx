@@ -7,11 +7,11 @@ import {
   Activity,
   Terminal,
   Cpu,
-  ArrowLeftRight,
   ShieldAlert,
   Inbox,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useSidebar } from "@/components/ui/sidebar-context";
 
 export function AuditorHeader() {
-  const { loginAs } = useAuth();
+  const { user, logout } = useAuth();
   const { toggle, isOpen } = useSidebar();
 
   return (
@@ -40,9 +40,6 @@ export function AuditorHeader() {
           <span className="text-accent-scan font-bold truncate">AUDITOR_LABS</span>
           <span>/</span>
           <span className="text-text-primary truncate">Workbench</span>
-          <Badge severity="high" size="sm" className="hidden sm:inline-flex">
-            2 RE-TEST
-          </Badge>
         </div>
       </div>
 
@@ -62,23 +59,25 @@ export function AuditorHeader() {
           <span>SOLC AST: v0.8.24</span>
         </div>
 
-        <button
-          onClick={() => loginAs("client")}
-          className="font-mono text-xs text-text-muted hover:text-text-primary flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-bg-panel border border-border-hairline hover:border-accent-scan/50 transition-colors"
-          title="Switch to Client View"
-        >
-          <ArrowLeftRight className="h-3.5 w-3.5 text-accent-scan" />
-          <span className="hidden sm:inline">Client View</span>
-        </button>
-
         <div className="flex items-center gap-2 pl-2 border-l border-border-hairline font-mono text-xs">
           <div className="h-7 w-7 rounded-[4px] bg-signal-high/15 border border-signal-high/40 flex items-center justify-center text-signal-high font-bold text-[11px]">
-            K4
+            {user?.name ? user.name.slice(0, 2).toUpperCase() : "AU"}
           </div>
-          <span className="hidden xl:inline text-text-primary text-xs font-semibold">
-            0xAuditor_K4
+          <span className="hidden xl:inline text-text-primary text-xs font-semibold truncate max-w-[140px]">
+            {user?.name || user?.email || "Auditor"}
           </span>
         </div>
+
+        {/* Sign Out Action Button */}
+        <button
+          type="button"
+          onClick={() => logout()}
+          className="h-8 px-2.5 rounded-[4px] bg-bg-panel border border-border-hairline hover:border-signal-critical/50 hover:text-signal-critical text-text-muted transition-colors flex items-center gap-1.5 font-mono text-xs cursor-pointer shrink-0"
+          title="Sign Out"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Sign Out</span>
+        </button>
       </div>
     </header>
   );

@@ -14,7 +14,8 @@ function setAuthCookie(token: string) {
 
 function clearAuthCookie() {
   try {
-    document.cookie = "zyron_jwt_token=; path=/; max-age=0";
+    document.cookie = "zyron_jwt_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax";
+    document.cookie = "zyron_auth_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax";
   } catch {}
 }
 
@@ -32,41 +33,23 @@ export interface AuthUser {
   specialization?: string;
 }
 
-export const SAMPLE_ACCOUNTS: Record<string, AuthUser> = {
-  client: {
-    id: "usr_client_01",
-    email: "security@auraprotocol.io",
-    name: "Aura Core Protocol",
-    role: "CLIENT",
-    organization: { name: "Aura Finance DAO Ltd." },
-    walletAddress: "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7",
-  },
-  auditor: {
-    id: "usr_auditor_01",
-    email: "k4@zyron.labs",
-    name: "0xAuditor_K4",
-    role: "AUDITOR",
-    auditorHandle: "0xAuditor_K4",
-    specialization: "EVM Opcodes · Reentrancy · Invariant Proofs",
-  },
-  admin: {
-    id: "usr_admin_01",
-    email: "admin@zyron.labs",
-    name: "Platform Security Lead",
-    role: "ADMIN",
-    organization: { name: "Zyron Security Labs HQ" },
-  },
-};
+export function getDashboardForRole(role?: string | null): string {
+  const r = (role || "").toUpperCase();
+  if (r === "AUDITOR") return "/auditor/queue";
+  if (r === "ADMIN") return "/admin/users";
+  return "/portal";
+}
 
 interface AuthContextType {
   user: AuthUser | null;
   role: string | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (dto: { email: string; password: string; name: string; organizationName?: string }) => Promise<void>;
-  loginAs: (roleStr: string) => void;
+  login: (email: string, password: string) => Promise<AuthUser>;
+  loginWithSiwe: (message: string, signature: string) => Promise<AuthUser>;
+  register: (dto: { email: string; password: string; name: string; organizationName?: string }) => Promise<any>;
   logout: () => void;
+
   refreshProfile: () => Promise<void>;
 }
 
@@ -98,17 +81,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const res = await apiClient.get("/auth/profile");
             setUser(res.data);
           } catch (e) {
-            // Restore session from saved persona role if API profile endpoint fails or is mock
-            const roleKey = (savedRole || "client").toLowerCase();
-            const restoredUser = SAMPLE_ACCOUNTS[roleKey] || SAMPLE_ACCOUNTS.client;
-            setUser(restoredUser);
+            setUser(null);
+            clearAuthCookie();
+            localStorage.removeItem("zyron_jwt_token");
+            localStorage.removeItem("zyron_auth_role");
           }
         } else {
           setUser(null);
         }
       } catch (e) {
-        const savedRole = localStorage.getItem("zyron_auth_role") || "client";
-        setUser(SAMPLE_ACCOUNTS[savedRole.toLowerCase()] || SAMPLE_ACCOUNTS.client);
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -117,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<AuthUser> => {
     setLoading(true);
     try {
       const res = await apiClient.post("/auth/login", { email, password });
@@ -129,32 +111,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("zyron_auth_role", apiUser.role.toLowerCase());
       setAuthCookie(accessToken); // Sync to cookie for edge middleware
 
-      const r = apiUser.role.toUpperCase();
-      const destination = redirectAfterLogin ||
-        (r === "AUDITOR" ? "/auditor/queue" : r === "ADMIN" ? "/admin/users" : "/portal");
+      const defaultDest = getDashboardForRole(apiUser.role);
+      const isValidRedirect =
+        redirectAfterLogin &&
+        !redirectAfterLogin.startsWith("/auth") &&
+        redirectAfterLogin !== "/";
+
+      const destination = isValidRedirect ? redirectAfterLogin : defaultDest;
       router.push(destination);
+      router.replace(destination);
+      return apiUser;
     } finally {
       setLoading(false);
     }
   };
 
-  const register = async (dto: { email: string; password: string; name: string; organizationName?: string }) => {
+  const loginWithSiwe = async (message: string, signature: string): Promise<AuthUser> => {
     setLoading(true);
     try {
-      const res = await apiClient.post("/auth/register", dto);
+      const res = await apiClient.post("/auth/siwe/verify", { message, signature });
       const { user: apiUser, accessToken } = res.data;
       setUser(apiUser);
       setToken(accessToken);
 
       localStorage.setItem("zyron_jwt_token", accessToken);
       localStorage.setItem("zyron_auth_role", apiUser.role.toLowerCase());
-      setAuthCookie(accessToken); // Sync to cookie for edge middleware
+      setAuthCookie(accessToken);
 
-      router.push("/portal");
+      const dest = getDashboardForRole(apiUser.role);
+      router.push(dest);
+      router.replace(dest);
+      return apiUser;
     } finally {
       setLoading(false);
     }
   };
+
+  const register = async (dto: { email: string; password: string; name: string; organizationName?: string }): Promise<any> => {
+    setLoading(true);
+    try {
+      const res = await apiClient.post("/auth/register", dto);
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const refreshProfile = async () => {
     try {
@@ -162,31 +164,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(res.data);
     } catch (e) {
       // ignore
-    }
-  };
-
-  const loginAs = async (roleStr: string) => {
-    const key = roleStr.toLowerCase();
-    let email = "security@auraprotocol.io";
-    let password = "SecurePassword123!";
-
-    if (key === "auditor") {
-      email = "k4@zyron.labs";
-      password = "AuditorPass123!";
-    } else if (key === "admin") {
-      email = "admin@zyron.labs";
-      password = "AdminPass123!";
-    }
-
-    try {
-      await login(email, password);
-    } catch (e) {
-      // Fallback to sample persona state if backend is unreachable
-      const selected = SAMPLE_ACCOUNTS[key] || SAMPLE_ACCOUNTS.client;
-      setUser(selected);
-      localStorage.setItem("zyron_auth_role", key);
-      const dest = key === "auditor" ? "/auditor/queue" : key === "admin" ? "/admin/users" : "/portal";
-      router.push(dest);
     }
   };
 
@@ -198,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("zyron_auth_role");
       clearAuthCookie(); // Clear edge middleware cookie
     } catch (e) {}
-    router.push("/auth/login");
+    router.replace("/auth/login");
   };
 
   return (
@@ -209,8 +186,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         loading,
         login,
+        loginWithSiwe,
         register,
-        loginAs,
         logout,
         refreshProfile,
       }}

@@ -37,7 +37,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Read JWT from cookie (set by auth-context on login/loginAs)
+  // Read JWT from cookie (set by auth-context on login)
   const token = request.cookies.get(JWT_COOKIE)?.value;
 
   if (!token) {
