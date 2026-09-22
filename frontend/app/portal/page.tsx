@@ -65,9 +65,10 @@ function normalizeStage(stage: string): PipelineStatus {
   if (s === "PENDING") return "pending";
   if (s === "SCANNING") return "scanning";
   if (s === "IN_REVIEW") return "in-review";
+  if (s === "CORRECTIONS_REQUESTED") return "corrections-requested";
   if (s === "COMPLETED") return "completed";
   if (s === "FAILED") return "failed";
-  return stage as PipelineStatus;
+  return (stage ? stage.toLowerCase() : "pending") as PipelineStatus;
 }
 
 function stageNumber(stage: string): number {

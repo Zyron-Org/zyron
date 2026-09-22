@@ -10,6 +10,7 @@ const statusPillVariants = cva(
         pending: "bg-bg-panel-raised text-text-muted border-border-hairline",
         scanning: "bg-accent-scan/10 text-accent-scan border-accent-scan/30",
         "in-review": "bg-[#6C9EFF]/10 text-signal-low border-signal-low/30",
+        "corrections-requested": "bg-signal-critical/10 text-signal-critical border-signal-critical/30",
         completed: "bg-signal-resolved/10 text-signal-resolved border-signal-resolved/30",
         failed: "bg-signal-critical/10 text-signal-critical border-signal-critical/30",
       },
@@ -30,6 +31,7 @@ export type PipelineStatus =
   | "pending"
   | "scanning"
   | "in-review"
+  | "corrections-requested"
   | "completed"
   | "failed";
 
@@ -44,6 +46,7 @@ const statusLabels: Record<PipelineStatus, string> = {
   pending: "PENDING",
   scanning: "SCANNING",
   "in-review": "IN MANUAL REVIEW",
+  "corrections-requested": "CORRECTIONS REQUESTED",
   completed: "COMPLETED",
   failed: "FAILED",
 };
@@ -73,6 +76,7 @@ export function StatusPill({
             status === "pending" && "bg-text-muted/60",
             status === "scanning" && "bg-accent-scan",
             status === "in-review" && "bg-signal-low",
+            status === "corrections-requested" && "bg-signal-critical",
             status === "completed" && "bg-signal-resolved",
             status === "failed" && "bg-signal-critical"
           )}

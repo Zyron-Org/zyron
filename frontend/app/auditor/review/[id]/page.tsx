@@ -620,7 +620,7 @@ mitigated and verified by Zyron Security Labs before production deployment.
             <div className="flex items-center gap-2">
               {ticketStage.includes("correction") ? (
                 <div className="flex items-center gap-2">
-                  <Badge severity="warning" size="sm">
+                  <Badge severity="high" size="sm">
                     FINDINGS RELEASED TO CLIENT (AWAITING FIXES)
                   </Badge>
                 </div>

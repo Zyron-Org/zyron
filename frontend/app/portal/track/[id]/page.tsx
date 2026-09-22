@@ -132,6 +132,24 @@ export default function AuditStatusTrackerPage() {
             setFindings([]);
           }
 
+          // Update round and pinned commit from fetchedAudit
+          if (Array.isArray(fetchedAudit.rounds) && fetchedAudit.rounds.length > 0) {
+            const activeR = fetchedAudit.rounds.find((r: any) => r.status === "active");
+            const roundToUse = activeR ? activeR.roundNumber : fetchedAudit.rounds[fetchedAudit.rounds.length - 1].roundNumber;
+            setCurrentRound(roundToUse);
+            if (activeR?.commitSha) {
+              setPinnedCommit(activeR.commitSha.slice(0, 7));
+            } else if (fetchedAudit.gitCommit) {
+              setPinnedCommit(fetchedAudit.gitCommit.slice(0, 7));
+            }
+          } else {
+            const fallbackRound = (rawStage === "CORRECTIONS_REQUESTED" || rawStage === "COMPLETED") ? 2 : 1;
+            setCurrentRound(fallbackRound);
+            if (fetchedAudit.gitCommit) {
+              setPinnedCommit(fetchedAudit.gitCommit.slice(0, 7));
+            }
+          }
+
           // If stage is SCANNING (2), poll every 3s until scan finishes and advances stage to IN_REVIEW (3)
           if (fetchedAudit.stageNumber === 2 || fetchedAudit.stage === "SCANNING") {
             setIsLogStreaming(true);
@@ -167,7 +185,7 @@ export default function AuditStatusTrackerPage() {
   const [copied, setCopied] = React.useState(false);
   const [isLogStreaming, setIsLogStreaming] = React.useState(true);
   const [showRoundsHistory, setShowRoundsHistory] = React.useState(false);
-  const [currentRound, setCurrentRound] = React.useState<number>(2);
+  const [currentRound, setCurrentRound] = React.useState<number>(1);
   const [pinnedCommit, setPinnedCommit] = React.useState<string>((audit.gitCommit || "8f9b2d4").slice(0, 7));
 
   // Expanded findings state
@@ -180,9 +198,11 @@ export default function AuditStatusTrackerPage() {
   const [findings, setFindings] = React.useState<DetailedFinding[]>([]);
 
   const handleCopyAddress = () => {
-    navigator.clipboard?.writeText(audit.contractAddress);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (audit.contractAddress) {
+      navigator.clipboard?.writeText(audit.contractAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const toggleExpand = (findingId: string) => {
@@ -244,6 +264,11 @@ export default function AuditStatusTrackerPage() {
   const activeCommit = (audit.gitCommit || "8f9b2d4").slice(0, 7);
   const activeCompiler = audit.compilerVersion || "v0.8.20";
   const activeNetwork = audit.network || "Ethereum Mainnet";
+  const leadAuditorName =
+    audit.leadAuditor?.auditorHandle ||
+    audit.leadAuditor?.name ||
+    audit.assignedAuditor ||
+    "0xAuditor_K4";
 
   const activeStageNum = audit.stageNumber
     ? audit.stageNumber
@@ -255,23 +280,181 @@ export default function AuditStatusTrackerPage() {
     ? 2
     : 1;
 
-  // Live scan log lines dynamically constructed from real audit metadata
+  // Derive dynamic audit rounds from database or audit state
+  const roundsList = React.useMemo(() => {
+    if (audit?.rounds && Array.isArray(audit.rounds) && audit.rounds.length > 0) {
+      return audit.rounds.map((r: any) => {
+        const isActive = r.status?.toLowerCase() === "active";
+        return {
+          id: r.id || `round-${r.roundNumber}`,
+          roundNumber: r.roundNumber,
+          commitSha: (r.commitSha || audit.gitCommit || "8f9b2d4").slice(0, 7),
+          status: r.status || (isActive ? "active" : "completed"),
+          summary: r.summary || (r.roundNumber === 1
+            ? "Initial compiler lock and automated AST scan. Scope verification."
+            : "Remediation commit re-test and auditor verification pass."),
+          date: r.startedAt
+            ? new Date(r.startedAt).toISOString().replace("T", " ").substring(0, 16) + " UTC"
+            : new Date(audit.submittedAt || audit.createdAt || Date.now()).toISOString().replace("T", " ").substring(0, 16) + " UTC",
+        };
+      });
+    }
+
+    // Dynamic fallback synthesis if rounds table not yet populated
+    const list = [
+      {
+        id: "round-1",
+        roundNumber: 1,
+        commitSha: (audit.gitCommit || "8f9b2d4").slice(0, 7),
+        status: (rawStage === "CORRECTIONS_REQUESTED" || rawStage === "COMPLETED") ? "completed" : "active",
+        summary: "Initial compiler lock and automated AST scan. Initial findings triaged by Lead Auditor.",
+        date: new Date(audit.submittedAt || audit.createdAt || Date.now()).toISOString().replace("T", " ").substring(0, 16) + " UTC",
+      },
+    ];
+
+    if (rawStage === "CORRECTIONS_REQUESTED" || rawStage === "COMPLETED") {
+      list.push({
+        id: "round-2",
+        roundNumber: 2,
+        commitSha: pinnedCommit,
+        status: rawStage === "COMPLETED" ? "completed" : "active",
+        summary: rawStage === "COMPLETED"
+          ? "Remediation verified. Cryptographic attestation generated and sealed."
+          : "Client remediation in progress. Auditor re-verification pass.",
+        date: new Date(audit.updatedAt || Date.now()).toISOString().replace("T", " ").substring(0, 16) + " UTC",
+      });
+    }
+
+    return list;
+  }, [audit, rawStage, pinnedCommit]);
+
+  const submissionDate = React.useMemo(() => {
+    return new Date(audit.submittedAt || audit.createdAt || Date.now());
+  }, [audit.submittedAt, audit.createdAt]);
+
+  const getLogTime = (offsetSec: number) => {
+    const d = new Date(submissionDate.getTime() + offsetSec * 1000);
+    return d.toTimeString().substring(0, 8);
+  };
+
+  // Live scan log lines dynamically constructed from real audit metadata and submission timestamp
   const scanLogLines = [
-    { time: "13:30:14", type: "info", text: `Ingesting target contract: ${activeFile} (${activeSloc.toLocaleString()} SLOC)` },
-    { time: "13:30:18", type: "info", text: `Locking Git commit SHA: ${activeCommit}` },
-    { time: "13:30:24", type: "info", text: `Compiler target verified: solc ${activeCompiler} --via-ir --optimize` },
-    { time: "13:30:30", type: "info", text: `Target Network: ${activeNetwork}` },
-    { time: "13:30:35", type: "info", text: `AST compilation successful: ${Math.max(120, activeSloc * 4)} EVM opcodes mapped across contract methods` },
-    { time: "13:31:02", type: "pass", text: "AST Taint Pass 01/14: Access Control & Ownable invariants... PASSED" },
-    { time: "13:31:18", type: "pass", text: "AST Taint Pass 02/14: Arithmetic overflow/underflow (Solidity 0.8+)... PASSED" },
-    { time: "13:31:40", type: "warn", text: "AST Taint Pass 04/14: ERC-20 return value compliance check..." },
-    { time: "13:31:44", type: "flag-high", text: `⚠ FLAG [SWC-104]: Unchecked return on token transfer in ${activeFile}` },
-    { time: "13:32:05", type: "pass", text: "AST Taint Pass 06/14: Timestamp dependency & block.number drift... PASSED" },
-    { time: "13:32:15", type: "warn", text: "AST Taint Pass 08/14: Low-level call execution order & state mutability..." },
-    { time: "13:32:19", type: "flag-crit", text: `⚠ CRITICAL [SWC-107]: msg.sender.call before balance zeroing in ${activeFile}` },
-    { time: "13:32:45", type: "pass", text: "AST Taint Pass 09/14: Delegatecall proxy storage slot collision... PASSED" },
-    { time: "13:33:04", type: "live", text: "AST Taint Pass 11/14: Symbolic Reentrancy Graph & Invariant Analysis... IN PROGRESS" },
+    { time: getLogTime(0), type: "info", text: `Ingesting target contract: ${activeFile} (${activeSloc.toLocaleString()} SLOC)` },
+    { time: getLogTime(4), type: "info", text: `Locking Git commit SHA: ${activeCommit}` },
+    { time: getLogTime(10), type: "info", text: `Compiler target verified: solc ${activeCompiler} --via-ir --optimize` },
+    { time: getLogTime(16), type: "info", text: `Target Network: ${activeNetwork}` },
+    { time: getLogTime(21), type: "info", text: `AST compilation successful: ${Math.max(120, activeSloc * 4)} EVM opcodes mapped across contract methods` },
+    { time: getLogTime(48), type: "pass", text: "AST Taint Pass 01/14: Access Control & Ownable invariants... PASSED" },
+    { time: getLogTime(64), type: "pass", text: "AST Taint Pass 02/14: Arithmetic overflow/underflow (Solidity 0.8+)... PASSED" },
+    { time: getLogTime(86), type: "warn", text: "AST Taint Pass 04/14: ERC-20 return value compliance check..." },
+    { time: getLogTime(90), type: "flag-high", text: `⚠ FLAG [SWC-104]: Unchecked return on token transfer in ${activeFile}` },
+    { time: getLogTime(111), type: "pass", text: "AST Taint Pass 06/14: Timestamp dependency & block.number drift... PASSED" },
+    { time: getLogTime(121), type: "warn", text: "AST Taint Pass 08/14: Low-level call execution order & state mutability..." },
+    { time: getLogTime(125), type: "flag-crit", text: `⚠ CRITICAL [SWC-107]: msg.sender.call before balance zeroing in ${activeFile}` },
+    { time: getLogTime(151), type: "pass", text: "AST Taint Pass 09/14: Delegatecall proxy storage slot collision... PASSED" },
+    { time: getLogTime(170), type: "live", text: "AST Taint Pass 11/14: Symbolic Reentrancy Graph & Invariant Analysis... COMPLETED" },
   ];
+
+  // Dynamically constructed chronological activity journal from real audit data
+  const timelineEvents = React.useMemo(() => {
+    const events: Array<{
+      time: string;
+      title: string;
+      desc: string;
+      badge: string;
+      badgeSeverity: "critical" | "high" | "medium" | "low" | "informational" | "resolved";
+    }> = [];
+
+    const baseTime = new Date(audit.submittedAt || audit.createdAt || Date.now());
+    const formatTs = (d: Date) => d.toISOString().replace("T", " ").substring(0, 19) + " UTC";
+
+    // 1. Scope Ingestion
+    events.push({
+      time: formatTs(baseTime),
+      title: "Scope Ingested & Git Commit Pinned",
+      desc: `Target contract ${activeFile} (${activeSloc.toLocaleString()} SLOC) ingested from ${audit.githubRepoUrl || "Git repository"}. Commit SHA ${activeCommit} permanently locked to engagement scope.`,
+      badge: "RESOLVED",
+      badgeSeverity: "resolved",
+    });
+
+    // 2. Compiler verification (if stageNumber >= 2 or stage is not PENDING)
+    if (activeStageNum >= 2 || rawStage !== "PENDING") {
+      const compileTime = new Date(baseTime.getTime() + 10 * 1000);
+      events.push({
+        time: formatTs(compileTime),
+        title: `Compiler Solc ${activeCompiler} Locked`,
+        desc: `Verified target environment on ${activeNetwork} with deterministic AST generation flags.`,
+        badge: "PASSED",
+        badgeSeverity: "resolved",
+      });
+    }
+
+    // 3. AST Symbolic Scan execution (if stageNumber >= 2 or stage is not PENDING)
+    if (activeStageNum >= 2 || rawStage !== "PENDING") {
+      const scanTime = new Date(baseTime.getTime() + 25 * 1000);
+      events.push({
+        time: formatTs(scanTime),
+        title: "AST Control Flow & Symbolic Execution Pass",
+        desc: `Security engine (${audit.engineVersion || "v3.0.0-ast"}) mapped ~${Math.max(120, activeSloc * 4)} EVM opcodes across execution pathways. Automated static taint analysis executed.`,
+        badge: "PASSED",
+        badgeSeverity: "resolved",
+      });
+    }
+
+    // 4. Auditor Assignment (if stageNumber >= 3 or leadAuditor present)
+    if (activeStageNum >= 3 || audit.leadAuditor || audit.leadAuditorId) {
+      const assignTime = new Date(baseTime.getTime() + 50 * 1000);
+      events.push({
+        time: formatTs(assignTime),
+        title: `Lead Auditor ${leadAuditorName} Assigned`,
+        desc: `Engagement assigned to senior security auditor for manual verification, Foundry invariant testing, and peer review.`,
+        badge: "ASSIGNED",
+        badgeSeverity: "informational",
+      });
+    }
+
+    // 5. Findings Triage / Corrections Requested (if stage reached CORRECTIONS_REQUESTED or COMPLETED)
+    if (rawStage === "CORRECTIONS_REQUESTED" || rawStage === "COMPLETED") {
+      const triageTime = audit.updatedAt ? new Date(audit.updatedAt) : new Date(baseTime.getTime() + 120 * 1000);
+      const findingsCount = findings.length > 0 ? findings.length : (Array.isArray(audit.findings) ? audit.findings.length : 0);
+      events.push({
+        time: formatTs(triageTime),
+        title: "Auditor Triage Complete & Findings Released",
+        desc: `Lead Auditor concluded triage pass${findingsCount > 0 ? ` and released ${findingsCount} actionable vulnerability finding(s)` : ""}. Client remediation requested.`,
+        badge: "ACTION REQUIRED",
+        badgeSeverity: "critical",
+      });
+    }
+
+    // 6. Any client comments / remediation commits posted on findings
+    if (findings.length > 0) {
+      findings.forEach((f) => {
+        f.comments?.forEach((c) => {
+          events.push({
+            time: c.timestamp,
+            title: `${c.senderRole === "client" ? "Client" : "Auditor"} Activity on ${f.id}`,
+            desc: `"${c.message}"${c.commitRef ? ` · Remediation Git Commit SHA: ${c.commitRef.slice(0, 7)}` : ""}`,
+            badge: c.commitRef ? "FIX SUBMITTED" : c.senderRole === "client" ? "CLIENT NOTE" : "AUDITOR NOTE",
+            badgeSeverity: c.commitRef ? "resolved" : "informational",
+          });
+        });
+      });
+    }
+
+    // 7. Completion & On-chain attestation (if stage is COMPLETED)
+    if (rawStage === "COMPLETED") {
+      const completionTime = audit.completedAt ? new Date(audit.completedAt) : new Date(audit.updatedAt || Date.now());
+      events.push({
+        time: formatTs(completionTime),
+        title: "Audit Completed & Cryptographic Attestation Sealed",
+        desc: `Audit sealed with Attestation Status: ${audit.attestationStatus || "CONFIRMED"}. Bytecode SHA: ${(audit.bytecodeHash || "0x9f81a...").slice(0, 14)}... On-chain Tx: ${audit.onChainTxHash ? audit.onChainTxHash.slice(0, 10) + "..." : "Sealed on Registry"}.`,
+        badge: "COMPLETED",
+        badgeSeverity: "resolved",
+      });
+    }
+
+    return events;
+  }, [audit, activeFile, activeSloc, activeCommit, activeCompiler, activeNetwork, activeStageNum, rawStage, findings, leadAuditorName]);
 
   const [fixCommitInput, setFixCommitInput] = React.useState("");
   const [fixNotesInput, setFixNotesInput] = React.useState("");
@@ -284,11 +467,16 @@ export default function AuditStatusTrackerPage() {
 
     setIsSubmittingFixes(true);
     try {
-      await apiClient.patch(`/audits/${audit.id}/submit-fixes`, {
+      const res = await apiClient.patch(`/audits/${audit.id}/submit-fixes`, {
         gitCommit: fixCommitInput.trim(),
       });
+      if (res.data) {
+        setRealAudit(res.data);
+      }
       setPinnedCommit(fixCommitInput.trim().slice(0, 7));
       setCurrentRound((prev) => prev + 1);
+      setFixCommitInput("");
+      setFixNotesInput("");
       setFixesSubmittedSuccess(true);
       setTimeout(() => setFixesSubmittedSuccess(false), 4000);
     } catch (err: any) {
@@ -396,7 +584,7 @@ export default function AuditStatusTrackerPage() {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-3">
               <Eyebrow size="xs" variant="scan" prefix="// LIVE_TRACKER · ">
-                STAGE 02 OF 04
+                STAGE 0{activeStageNum} OF 04
               </Eyebrow>
 
               {/* Round Tracker Tag */}
@@ -412,7 +600,7 @@ export default function AuditStatusTrackerPage() {
                 className="font-mono text-[11px] text-text-muted hover:text-accent-scan underline flex items-center gap-1"
               >
                 <History className="h-3 w-3" />
-                Rounds History (2)
+                Rounds History ({roundsList.length})
               </button>
             </div>
 
@@ -443,7 +631,7 @@ export default function AuditStatusTrackerPage() {
             <div className="flex items-center justify-between border-b border-border-hairline pb-2">
               <span className="font-semibold text-text-primary flex items-center gap-2">
                 <History className="h-3.5 w-3.5 text-accent-scan" />
-                Audit Review Rounds & Commit History
+                Audit Review Rounds & Commit History ({roundsList.length})
               </span>
               <button
                 onClick={() => setShowRoundsHistory(false)}
@@ -454,31 +642,33 @@ export default function AuditStatusTrackerPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              {/* Round 1 */}
-              <div className="p-3 rounded-[2px] bg-bg-panel border border-border-hairline space-y-1">
-                <div className="flex items-center justify-between text-text-muted text-[10px]">
-                  <span>ROUND 01 — INITIAL INTAKE</span>
-                  <span className="text-signal-resolved">COMPLETED</span>
-                </div>
-                <div className="text-text-primary font-medium">Commit SHA: 8f9b2d4</div>
-                <p className="text-[11px] text-text-muted">
-                  Initial compiler lock and AST scan. 4 findings triaged by Lead Auditor.
-                </p>
-                <div className="text-[10px] text-text-muted pt-1">Date: 2026-08-18 21:30 UTC</div>
-              </div>
-
-              {/* Round 2 */}
-              <div className="p-3 rounded-[2px] bg-bg-panel-raised border border-accent-scan/40 space-y-1">
-                <div className="flex items-center justify-between text-accent-scan text-[10px] font-bold">
-                  <span>ROUND 02 — REMEDIATION RE-TEST (CURRENT)</span>
-                  <span className="bg-accent-scan/10 px-1 py-0.5 rounded-[2px]">ACTIVE</span>
-                </div>
-                <div className="text-text-primary font-medium">Commit SHA: {pinnedCommit}</div>
-                <p className="text-[11px] text-text-muted">
-                  Client submitted fixes for ZAM-9481-002 and ZAM-9481-003. Re-verification in progress.
-                </p>
-                <div className="text-[10px] text-text-muted pt-1">Date: 2026-08-20 14:20 UTC</div>
-              </div>
+              {roundsList.map((round: any) => {
+                const isActive = round.status?.toLowerCase() === "active";
+                return (
+                  <div
+                    key={round.roundNumber}
+                    className={`p-3 rounded-[2px] space-y-1 ${
+                      isActive
+                        ? "bg-bg-panel-raised border border-accent-scan/40"
+                        : "bg-bg-panel border border-border-hairline"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className={isActive ? "text-accent-scan font-bold" : "text-text-muted font-medium"}>
+                        ROUND {String(round.roundNumber).padStart(2, "0")} — {round.roundNumber === 1 ? "INITIAL INTAKE" : "REMEDIATION RE-TEST"} {isActive && "(CURRENT)"}
+                      </span>
+                      <span className={isActive ? "bg-accent-scan/10 text-accent-scan px-1 py-0.5 rounded-[2px] font-bold" : "text-signal-resolved font-medium"}>
+                        {round.status?.toUpperCase() || "COMPLETED"}
+                      </span>
+                    </div>
+                    <div className="text-text-primary font-medium">Commit SHA: {round.commitSha.slice(0, 7)}</div>
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      {round.summary}
+                    </p>
+                    <div className="text-[10px] text-text-muted pt-1">Date: {round.date}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -491,16 +681,20 @@ export default function AuditStatusTrackerPage() {
               TARGET CONTRACT ADDRESS
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-text-primary text-[11px] truncate">
-                {audit.contractAddress.slice(0, 10)}...{audit.contractAddress.slice(-8)}
+              <span className="text-text-primary text-[11px] truncate" title={audit.contractAddress || audit.githubRepoUrl || "Git Repository Scope"}>
+                {audit.contractAddress
+                  ? `${audit.contractAddress.slice(0, 10)}...${audit.contractAddress.slice(-8)}`
+                  : (audit.githubRepoUrl ? audit.githubRepoUrl.replace("https://github.com/", "") : "Git Repository Scope")}
               </span>
-              <button
-                onClick={handleCopyAddress}
-                className="text-text-muted hover:text-text-primary transition-colors"
-                title="Copy Address"
-              >
-                {copied ? <Check className="h-3 w-3 text-signal-resolved" /> : <Copy className="h-3 w-3" />}
-              </button>
+              {audit.contractAddress && (
+                <button
+                  onClick={handleCopyAddress}
+                  className="text-text-muted hover:text-text-primary transition-colors"
+                  title="Copy Address"
+                >
+                  {copied ? <Check className="h-3 w-3 text-signal-resolved" /> : <Copy className="h-3 w-3" />}
+                </button>
+              )}
             </div>
           </div>
 
@@ -510,7 +704,7 @@ export default function AuditStatusTrackerPage() {
               SCOPE & COMPILER
             </div>
             <div className="text-accent-scan font-medium text-[11px]">
-              {audit.sloc.toLocaleString()} SLOC · {audit.compilerVersion}
+              {activeSloc.toLocaleString()} SLOC · {activeCompiler}
             </div>
           </div>
 
@@ -521,7 +715,7 @@ export default function AuditStatusTrackerPage() {
             </div>
             <div className="text-text-primary font-medium text-[11px] flex items-center gap-1.5">
               <User className="h-3 w-3 text-accent-scan" />
-              <span>{audit.assignedAuditor || "0xAuditor_K4"}</span>
+              <span>{leadAuditorName}</span>
             </div>
           </div>
 
@@ -532,7 +726,11 @@ export default function AuditStatusTrackerPage() {
             </div>
             <div className="text-signal-resolved font-medium text-[11px] flex items-center gap-1.5">
               <Clock className="h-3 w-3" />
-              <span>{audit.estimatedCompletion || "~48h ETA"}</span>
+              <span>
+                {audit.estimatedCompletion
+                  ? new Date(audit.estimatedCompletion).toISOString().replace("T", " ").substring(0, 16) + " UTC"
+                  : "~48h ETA"}
+              </span>
             </div>
           </div>
         </div>
@@ -1007,49 +1205,13 @@ export default function AuditStatusTrackerPage() {
             TIMESTAMPED_ACTIVITY_TIMELINE
           </Eyebrow>
           <span className="font-mono text-xs text-text-muted">
-            CHRONOLOGICAL AUDIT JOURNAL
+            CHRONOLOGICAL AUDIT JOURNAL ({timelineEvents.length} EVENTS)
           </span>
         </div>
 
         <div className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
           <div className="space-y-6 relative before:absolute before:inset-0 before:left-3 before:w-[1px] before:bg-border-hairline">
-            {[
-              {
-                time: "2026-08-18 21:30:14 UTC",
-                title: "Scope Ingested & Git Commit Pinned",
-                desc: "Contract VaultCore.sol (2,410 SLOC) ingested. Commit SHA 8f9b2d4 locked to engagement scope.",
-                badge: "RESOLVED",
-                badgeSeverity: "resolved" as const,
-              },
-              {
-                time: "2026-08-18 21:30:24 UTC",
-                title: "Compiler Solc v0.8.20 Locked",
-                desc: "Verified Shanghai EVM target flags with --via-ir optimizations (200 runs).",
-                badge: "PASSED",
-                badgeSeverity: "resolved" as const,
-              },
-              {
-                time: "2026-08-18 21:30:35 UTC",
-                title: "AST Control Flow Tree Constructed",
-                desc: "Engine mapped 1,842 EVM opcodes and generated 14 isolated execution pathways.",
-                badge: "PASSED",
-                badgeSeverity: "resolved" as const,
-              },
-              {
-                time: "2026-08-18 21:32:19 UTC",
-                title: "Reentrancy Vulnerability Detected on Line 142",
-                desc: "Static taint pass flagged unchecked external call before state decrement in withdrawAll(). SWC-107 pattern triggered.",
-                badge: "CRITICAL",
-                badgeSeverity: "critical" as const,
-              },
-              {
-                time: "2026-08-18 21:33:00 UTC",
-                title: "Lead Auditor 0xAuditor_K4 Assigned",
-                desc: "Ticket routed to senior protocol auditor queue for manual verification and Foundry PoC reproduction.",
-                badge: "ASSIGNED",
-                badgeSeverity: "informational" as const,
-              },
-            ].map((event, i) => (
+            {timelineEvents.map((event, i) => (
               <div key={i} className="flex items-start gap-6 relative pl-8">
                 {/* Timeline node dot */}
                 <div className="absolute left-2.5 top-1 h-2 w-2 rounded-full bg-accent-scan -translate-x-1/2 ring-4 ring-bg-panel" />
