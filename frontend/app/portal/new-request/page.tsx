@@ -3,40 +3,26 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  UploadCloud,
   FileCode,
-  FileCheck,
   Check,
   ArrowRight,
-  AlertCircle,
-  Hash,
-  ShieldCheck,
-  Terminal,
-  Layers,
-  Clock,
-  Sparkles,
-  Info,
-  ChevronRight,
-  RefreshCw,
   GitBranch,
-  GitPullRequest,
-  Search,
-  Lock,
-  Globe,
-  ExternalLink,
   Code2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { StatusPill } from "@/components/ui/status-pill";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { MOCK_REPOSITORIES, type MockRepository, type SolContractFile } from "@/lib/mock-data";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+
+const defaultRepo = MOCK_REPOSITORIES[0];
+const defaultContract = defaultRepo.contractFiles[0];
 
 export default function NewAuditRequestPage() {
   const { user, loading } = useAuth();
@@ -49,81 +35,22 @@ export default function NewAuditRequestPage() {
       router.push("/auth/login");
     }
   }, [user, loading, router]);
-  // Method Toggle: "upload" | "github"
-  const [sourceMode, setSourceMode] = React.useState<"upload" | "github">("upload");
 
-  const handleSwitchSourceMode = (mode: "upload" | "github") => {
-    setSourceMode(mode);
-    if (mode === "github" && !fetchedGithubData) {
-      setSourceCode("");
-      setContractFileName("");
-      setFileName("");
-      setFileSize("0 KB");
-    }
-  };
-
-  // GitHub State
-  const [isGithubConnected, setIsGithubConnected] = React.useState(false);
-  const [repoSearch, setRepoSearch] = React.useState("");
-  const [selectedRepoId, setSelectedRepoId] = React.useState<string>("repo-1");
-  const [selectedBranch, setSelectedBranch] = React.useState<string>("main");
+  // Selected preset repository ID ("repo-1", "repo-2", "repo-3", "repo-4")
+  const [selectedPresetId, setSelectedPresetId] = React.useState<string>("repo-1");
   const [customGithubUrl, setCustomGithubUrl] = React.useState("https://github.com/aura-finance/core-vaults");
+  const [selectedBranch, setSelectedBranch] = React.useState<string>("main");
   const [isFetchingGithub, setIsFetchingGithub] = React.useState(false);
   const [fetchedGithubData, setFetchedGithubData] = React.useState<any>(null);
 
-  const handleSelectGithubFile = async (owner: string, repo: string, filePath: string, branch = "main") => {
-    const fname = filePath.split("/").pop() || filePath;
-    setContractFileName(fname);
-    setFileName(fname);
-
-    try {
-      const res = await apiClient.get("/integrations/github/file-content", {
-        params: { owner, repo, filePath, branch },
-      });
-      if (res.data?.content) {
-        setSourceCode(res.data.content);
-        setFileSize(`${(res.data.content.length / 1024).toFixed(1)} KB`);
-        toast.success(`Loaded real source code for ${fname} from GitHub!`);
-      }
-    } catch (e: any) {
-      toast.error(`Could not fetch raw source for ${fname}: ${e.message}`);
-    }
-  };
-
-  const handleFetchRealGithubRepo = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!customGithubUrl.trim()) return;
-
-    setIsFetchingGithub(true);
-    try {
-      const res = await apiClient.get(`/integrations/github/contracts`, {
-        params: { repoUrl: customGithubUrl, branch: selectedBranch || "main" },
-      });
-      const data = res.data;
-      setFetchedGithubData(data);
-      setIsGithubConnected(true);
-      if (data.commitSha) setGitCommit(data.commitSha);
-      if (data.contracts && data.contracts.length > 0) {
-        setProtocolName(`${data.owner}/${data.repo}`);
-        const firstFile = typeof data.contracts[0] === "string" ? data.contracts[0] : (data.contracts[0]?.path || data.contracts[0]);
-        handleSelectGithubFile(data.owner, data.repo, firstFile, data.branch || "main");
-      }
-      toast.success(`Fetched ${data.contracts?.length || 0} contract files from GitHub (${data.owner}/${data.repo})!`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || "Failed to fetch GitHub repo";
-      toast.error(`GitHub API Notice: ${msg}`);
-    } finally {
-      setIsFetchingGithub(false);
-    }
-  };
-
   // Form State
   const [protocolName, setProtocolName] = React.useState("Aura Liquidity Protocol");
-  const [contractFileName, setContractFileName] = React.useState("");
+  const [contractFileName, setContractFileName] = React.useState(defaultContract.fileName);
   const [contractAddress, setContractAddress] = React.useState("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48");
   const [compilerVersion, setCompilerVersion] = React.useState("v0.8.20");
   const [network, setNetwork] = React.useState("Ethereum Mainnet (1)");
-  const [gitCommit, setGitCommit] = React.useState("8f9b2d4c01e9a37");
+  const [gitCommit, setGitCommit] = React.useState(defaultContract.commit);
+  const [sourceCode, setSourceCode] = React.useState<string>(defaultContract.sourceCode);
 
   // Invariant checkboxes
   const [invariants, setInvariants] = React.useState<Record<string, boolean>>({
@@ -134,24 +61,9 @@ export default function NewAuditRequestPage() {
     crosschain: false,
   });
 
-  // Source code state
-  const [sourceCode, setSourceCode] = React.useState<string>("");
-
-  const [fileName, setFileName] = React.useState<string>("No file uploaded yet");
-  const [fileSize, setFileSize] = React.useState<string>("0 KB");
-  const [isDragOver, setIsDragOver] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSubmitted, setIsSubmitted] = React.useState(false);
-
-  // Selected repo object
-  const selectedRepo = MOCK_REPOSITORIES.find((r) => r.id === selectedRepoId) || MOCK_REPOSITORIES[0];
-
-  // Filtered repos list
-  const filteredRepos = MOCK_REPOSITORIES.filter(
-    (repo) =>
-      repo.name.toLowerCase().includes(repoSearch.toLowerCase()) ||
-      repo.fullName.toLowerCase().includes(repoSearch.toLowerCase())
-  );
+  const [submittedTicketId, setSubmittedTicketId] = React.useState<string>("#ZYR-9486");
 
   // Dynamic SLOC count based on source code lines
   const calculatedSloc = React.useMemo(() => {
@@ -167,42 +79,101 @@ export default function NewAuditRequestPage() {
     return "48–72 Hours";
   }, [calculatedSloc]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      setContractFileName(file.name);
-      setFileSize(`${(file.size / 1024).toFixed(1)} KB`);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setSourceCode(event.target.result as string);
-        }
-      };
-      reader.readAsText(file);
+  // Current active preset (if any)
+  const currentPreset = MOCK_REPOSITORIES.find((r) => r.id === selectedPresetId);
+
+  // Handler for clicking a preset repository card
+  const handleSelectPreset = (repo: MockRepository) => {
+    setSelectedPresetId(repo.id);
+    setCustomGithubUrl(`https://github.com/${repo.fullName}`);
+    setSelectedBranch(repo.defaultBranch);
+    setFetchedGithubData(null);
+
+    const primaryContract = repo.contractFiles[0];
+    if (primaryContract) {
+      setContractFileName(primaryContract.fileName);
+      setSourceCode(primaryContract.sourceCode);
+      setGitCommit(primaryContract.commit);
+      setProtocolName(
+        `Aura ${repo.name
+          .split("-")
+          .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+          .join(" ")}`
+      );
+      toast.success(`Loaded preset repository: ${repo.fullName}`);
     }
   };
 
-  const handleLoadSample = () => {
-    setFileName("VaultCore.sol");
-    setFileSize("14.8 KB");
-    setContractFileName("VaultCore.sol");
-    setProtocolName("Aura Liquidity Protocol");
-    setContractAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48");
-  };
-
-  const handleSelectRepoContract = (file: SolContractFile) => {
-    setFileName(file.fileName);
+  // Handler for selecting a specific contract within the current preset
+  const handleSelectPresetContract = (file: SolContractFile) => {
     setContractFileName(file.fileName);
     setSourceCode(file.sourceCode);
     setGitCommit(file.commit);
-    setFileSize(`${(file.sloc * 0.038).toFixed(1)} KB`);
-    if (selectedRepo) {
-      setProtocolName(`Aura ${selectedRepo.name}`);
+    toast.success(`Selected contract: ${file.fileName} (${file.sloc} SLOC)`);
+  };
+
+  // Handler for selecting a file from fetched GitHub data
+  const handleSelectGithubFile = async (owner: string, repo: string, filePath: string, branch = "main") => {
+    const fname = filePath.split("/").pop() || filePath;
+    setContractFileName(fname);
+
+    try {
+      const res = await apiClient.get("/integrations/github/file-content", {
+        params: { owner, repo, filePath, branch },
+      });
+      if (res.data?.content) {
+        setSourceCode(res.data.content);
+        toast.success(`Loaded source code for ${fname} from GitHub!`);
+      }
+    } catch (e: any) {
+      toast.error(`Could not fetch raw source for ${fname}: ${e.message}`);
     }
   };
 
-  const [submittedTicketId, setSubmittedTicketId] = React.useState<string>("#ZYR-9486");
+  // Handler for fetching a real or custom GitHub repository
+  const handleFetchRealGithubRepo = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const url = customGithubUrl.trim();
+    if (!url) return;
+
+    // Check if user entered one of the preset names
+    const matchedPreset = MOCK_REPOSITORIES.find(
+      (r) =>
+        url.toLowerCase().includes(r.fullName.toLowerCase()) ||
+        url.toLowerCase().includes(r.name.toLowerCase())
+    );
+    if (matchedPreset) {
+      handleSelectPreset(matchedPreset);
+      return;
+    }
+
+    setIsFetchingGithub(true);
+    try {
+      const res = await apiClient.get(`/integrations/github/contracts`, {
+        params: { repoUrl: url, branch: selectedBranch || "main" },
+      });
+      const data = res.data;
+      setSelectedPresetId("");
+      setFetchedGithubData(data);
+      if (data.commitSha) setGitCommit(data.commitSha);
+      if (data.contracts && data.contracts.length > 0) {
+        setProtocolName(`${data.owner}/${data.repo}`);
+        const firstFile =
+          typeof data.contracts[0] === "string"
+            ? data.contracts[0]
+            : (data.contracts[0]?.path || data.contracts[0]);
+        handleSelectGithubFile(data.owner, data.repo, firstFile, data.branch || selectedBranch || "main");
+      }
+      toast.success(
+        `Fetched ${data.contracts?.length || 0} contract files from GitHub (${data.owner}/${data.repo})!`
+      );
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to fetch GitHub repo";
+      toast.error(`GitHub API Notice: ${msg}`);
+    } finally {
+      setIsFetchingGithub(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,12 +187,16 @@ export default function NewAuditRequestPage() {
     try {
       const res = await apiClient.post("/audits", {
         protocolName,
-        contractFileName: contractFileName || fileName || "Contract.sol",
+        contractFileName: contractFileName || "Contract.sol",
         contractAddress: contractAddress || undefined,
         compilerVersion,
         network,
         sloc: calculatedSloc,
         gitCommit,
+        sourceCode: sourceCode || undefined,
+        githubRepoUrl: customGithubUrl || undefined,
+        githubBranch: selectedBranch || "main",
+        invariants,
       });
 
       const auditId = res.data?.id || "ZYR-9486";
@@ -248,6 +223,7 @@ export default function NewAuditRequestPage() {
     const activeInvariantsList = Object.keys(invariants)
       .filter((k) => invariants[k])
       .join(", ") || "reentrancy, access_control, erc20_compliance";
+
     const mappedOpcodes = Math.max(120, calculatedSloc * 4);
 
     return (
@@ -271,7 +247,7 @@ export default function NewAuditRequestPage() {
           </div>
 
           <p className="text-sm text-text-muted leading-relaxed">
-            Your contract <code className="text-text-primary font-mono text-xs">{contractFileName || fileName || "Contract.sol"}</code> ({calculatedSloc} SLOC) has been pinned to commit <code className="text-accent-scan font-mono text-xs">{gitCommit.slice(0, 7)}</code>. The automated AST symbolic scanner is executing.
+            Your contract <code className="text-text-primary font-mono text-xs">{contractFileName || "Contract.sol"}</code> ({calculatedSloc} SLOC) has been pinned to commit <code className="text-accent-scan font-mono text-xs">{gitCommit.slice(0, 7)}</code>. The automated AST symbolic scanner is executing.
           </p>
 
           {/* Submission Details Grid */}
@@ -301,7 +277,7 @@ export default function NewAuditRequestPage() {
               <span className="text-signal-resolved text-[11px]">ACTIVE SYMBOLIC TAINT PASS</span>
             </div>
             <div className="space-y-1.5 text-[11px] font-mono leading-relaxed text-text-muted">
-              <div>[INFO] Ingesting target contract: <span className="text-text-primary font-bold">{contractFileName || fileName || "Contract.sol"}</span> ({calculatedSloc} SLOC)</div>
+              <div>[INFO] Ingesting target contract: <span className="text-text-primary font-bold">{contractFileName || "Contract.sol"}</span> ({calculatedSloc} SLOC)</div>
               <div>[INFO] Locking Git commit SHA: <span className="text-accent-scan">{gitCommit}</span></div>
               <div>[INFO] Compiler target verified: <span className="text-text-primary">solc {compilerVersion} --via-ir --optimize</span></div>
               <div>[INFO] Target Deployment Network: <span className="text-text-primary">{network}</span></div>
@@ -397,7 +373,7 @@ export default function NewAuditRequestPage() {
               />
             </div>
 
-            {/* Deployed / Target Contract Address (with Input mono variant) */}
+            {/* Deployed / Target Contract Address */}
             <div className="space-y-1.5 md:col-span-2">
               <label className="font-mono text-xs text-text-muted flex items-center justify-between">
                 <span>TARGET CONTRACT ADDRESS (MONOSPACE)</span>
@@ -450,297 +426,219 @@ export default function NewAuditRequestPage() {
           </div>
         </section>
 
-        {/* STEP 2: SOLIDITY SOURCE INGESTION (File Upload vs GitHub Repository) */}
+        {/* STEP 2: GIT REPOSITORY INGESTION */}
         <section className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
-          <div className="border-b border-border-hairline pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="border-b border-border-hairline pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="h-5 w-5 rounded-full bg-accent-scan text-bg-void font-mono text-[11px] font-bold flex items-center justify-center">
                 02
               </span>
               <h2 className="font-display text-base font-semibold text-text-primary">
-                Contract Source Ingestion
+                Git Repository Ingestion & Scope Lock
               </h2>
             </div>
-
-            {/* Segmented Method Toggle */}
-            <div className="flex items-center rounded-[4px] border border-border-hairline bg-bg-void p-0.5 font-mono text-xs">
-              <button
-                type="button"
-                onClick={() => handleSwitchSourceMode("upload")}
-                className={`px-3 py-1 rounded-[2px] transition-colors ${
-                  sourceMode === "upload"
-                    ? "bg-bg-panel-raised text-accent-scan font-semibold border border-border-hairline"
-                    : "text-text-muted hover:text-text-primary"
-                }`}
-              >
-                Upload File
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSwitchSourceMode("github")}
-                className={`px-3 py-1 rounded-[2px] transition-colors ${
-                  sourceMode === "github"
-                    ? "bg-bg-panel-raised text-accent-scan font-semibold border border-border-hairline"
-                    : "text-text-muted hover:text-text-primary"
-                }`}
-              >
-                Connect GitHub Repository
-              </button>
+            <div className="flex items-center gap-2">
+              <Badge severity="resolved" size="sm">
+                GIT-ONLY INGESTION
+              </Badge>
+              <span className="font-mono text-[11px] text-text-muted">ZERO-DISK MEMORY PIPELINE</span>
             </div>
           </div>
 
-          {/* PATH A: UPLOAD FILE DRAG AND DROP */}
-          {sourceMode === "upload" && (
-            <div className="space-y-4">
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragOver(true);
-                }}
-                onDragLeave={() => setIsDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragOver(false);
-                  const file = e.dataTransfer.files?.[0];
-                  if (file) {
-                    setFileName(file.name);
-                    setContractFileName(file.name);
-                    setFileSize(`${(file.size / 1024).toFixed(1)} KB`);
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      if (event.target?.result) {
-                        setSourceCode(event.target.result as string);
-                      }
-                    };
-                    reader.readAsText(file);
-                  }
-                }}
-                className={`border-2 border-dashed rounded-[4px] p-8 text-center transition-colors relative ${
-                  isDragOver
-                    ? "border-accent-scan bg-accent-scan/5"
-                    : "border-border-hairline hover:border-hairline/80 bg-bg-void/40"
-                }`}
-              >
-                <input
-                  type="file"
-                  accept=".sol,.zip,.tar,.gz"
-                  onChange={handleFileUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-                <div className="flex flex-col items-center space-y-2 pointer-events-none">
-                  <div className="h-10 w-10 rounded-[4px] bg-bg-panel-raised border border-border-hairline flex items-center justify-center text-accent-scan">
-                    <UploadCloud className="h-5 w-5" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="font-display text-sm font-semibold text-text-primary">
-                      Drag and drop <code className="text-accent-scan font-mono">.sol</code> contract file or repository archive
-                    </div>
-                    <div className="font-mono text-xs text-text-muted">
-                      Supports single Solidity files (.sol) or zipped multi-file projects up to 25MB
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Preset Sample Quick-Load */}
-              <div className="flex items-center justify-between text-xs font-mono text-text-muted pt-1">
-                <span>QUICK LOAD FOR TESTING:</span>
-                <button
-                  type="button"
-                  onClick={handleLoadSample}
-                  className="text-accent-scan hover:underline flex items-center gap-1"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  Load Sample VaultCore.sol (1,482 SLOC)
-                </button>
-              </div>
+          {/* PRESET SELECTOR CARDS */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="font-mono text-xs text-text-muted flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-accent-scan" />
+                <span>1-CLICK SAMPLE TEST REPOSITORIES (INSTANT AUDIT SANDBOX)</span>
+              </label>
+              <span className="font-mono text-[10px] text-accent-scan">CLICK PRESET TO AUTOLOAD</span>
             </div>
-          )}
 
-          {/* PATH B: CONNECT GITHUB REPOSITORY */}
-          {sourceMode === "github" && (
-            <div className="space-y-6">
-              {/* Live GitHub Repository URL Fetch Component */}
-              <div className="p-6 rounded-[4px] bg-bg-void border border-border-hairline space-y-4 font-mono text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-text-primary font-semibold">
-                    <GitBranch className="h-4 w-4 text-accent-scan" />
-                    <span>Connect GitHub Repository via REST API</span>
-                  </div>
-                  <Badge severity="resolved" size="sm">LIVE API CONNECTED</Badge>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <div className="flex-1 w-full">
-                    <Input
-                      value={customGithubUrl}
-                      onChange={(e) => setCustomGithubUrl(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleFetchRealGithubRepo();
-                        }
-                      }}
-                      placeholder="https://github.com/owner/repository or owner/repo"
-                      prefix={<Code2 className="h-3.5 w-3.5 text-text-muted" />}
-                      className="h-9 text-xs"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={handleFetchRealGithubRepo}
-                    isLoading={isFetchingGithub}
-                    rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
-                  >
-                    Fetch Repository
-                  </Button>
-                </div>
-
-                {/* Popular Repository Suggestion Chips */}
-                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-text-muted">
-                  <span className="text-text-muted">QUICK REPO PRESETS:</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {MOCK_REPOSITORIES.map((repo) => {
+                const isSelected = selectedPresetId === repo.id && !fetchedGithubData;
+                return (
                   <button
+                    key={repo.id}
                     type="button"
-                    onClick={() => {
-                      setCustomGithubUrl("https://github.com/Vasakee/GhostFI");
-                    }}
-                    className="px-2 py-0.5 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-accent-scan text-[10px] font-mono transition-colors"
+                    onClick={() => handleSelectPreset(repo)}
+                    className={`p-3.5 rounded-[4px] border text-left transition-all relative flex flex-col justify-between ${
+                      isSelected
+                        ? "bg-bg-panel-raised border-accent-scan ring-1 ring-accent-scan/40 shadow-sm"
+                        : "bg-bg-void border-border-hairline hover:border-accent-scan/50 hover:bg-bg-panel"
+                    }`}
                   >
-                    Vasakee/GhostFI
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomGithubUrl("https://github.com/OpenZeppelin/openzeppelin-contracts");
-                    }}
-                    className="px-2 py-0.5 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-accent-scan text-[10px] font-mono transition-colors"
-                  >
-                    OpenZeppelin/openzeppelin-contracts
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomGithubUrl("https://github.com/aura-finance/core-vaults");
-                    }}
-                    className="px-2 py-0.5 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-accent-scan text-[10px] font-mono transition-colors"
-                  >
-                    aura-finance/core-vaults
-                  </button>
-                </div>
-              </div>
-
-              {/* State 1: Not Connected */}
-              {!isGithubConnected ? (
-                <div className="p-8 rounded-[4px] bg-bg-void border border-border-hairline text-center space-y-4">
-                  <div className="h-12 w-12 rounded-[4px] bg-bg-panel border border-border-hairline mx-auto flex items-center justify-center text-accent-scan">
-                    <GitBranch className="h-6 w-6" />
-                  </div>
-                  <div className="space-y-1 max-w-md mx-auto">
-                    <div className="font-display text-base font-semibold text-text-primary">
-                      No Repository Scope Ingested
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-mono text-[10px] text-text-muted flex items-center gap-1">
+                          <GitBranch className="h-3 w-3 text-accent-scan" />
+                          {repo.defaultBranch}
+                        </span>
+                        {isSelected && (
+                          <span className="h-4 px-1.5 rounded bg-accent-scan text-bg-void font-mono text-[9px] font-bold flex items-center">
+                            ACTIVE
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-display text-xs font-semibold text-text-primary truncate">
+                        {repo.name}
+                      </div>
+                      <div className="font-mono text-[10px] text-text-muted truncate">
+                        {repo.fullName}
+                      </div>
                     </div>
-                    <p className="text-xs text-text-muted font-mono leading-relaxed">
-                      Enter any public or private GitHub repository URL above and click <strong>Fetch Repository</strong> to extract live source tree and commit SHA.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                /* State 2: Connected Real GitHub Repository Scope */
-                <div className="space-y-6">
-                  {/* Connected Status Toolbar */}
-                  <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-signal-resolved animate-pulse" />
-                      <span className="text-text-primary font-semibold">LIVE GITHUB CONNECTED:</span>
+
+                    <div className="mt-3 pt-2 border-t border-border-hairline flex items-center justify-between font-mono text-[10px] text-text-muted">
+                      <span>{repo.contractFiles.length} {repo.contractFiles.length === 1 ? "contract" : "contracts"}</span>
                       <span className="text-accent-scan font-bold">
-                        {fetchedGithubData ? `${fetchedGithubData.owner}/${fetchedGithubData.repo}` : customGithubUrl}
-                      </span>
-                      <span className="text-text-muted text-[11px]">
-                        ({fetchedGithubData?.contracts?.length || 0} source files detected)
+                        {repo.contractFiles.reduce((acc, f) => acc + f.sloc, 0)} SLOC
                       </span>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsGithubConnected(false);
-                          setFetchedGithubData(null);
-                        }}
-                        className="text-text-muted hover:text-signal-critical text-[11px] underline"
-                      >
-                        Disconnect
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Render Live Extracted GitHub Contracts List */}
-                  {fetchedGithubData && (
-                    <div className="p-5 rounded-[4px] bg-bg-void border border-accent-scan/30 space-y-4 font-mono text-xs">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline pb-3">
-                        <div className="space-y-0.5">
-                          <div className="text-accent-scan font-bold flex items-center gap-2">
-                            <Code2 className="h-4 w-4" />
-                            <span>LIVE REPOSITORY SCOPE: {fetchedGithubData.owner}/{fetchedGithubData.repo}</span>
-                          </div>
-                          <div className="text-text-muted text-[11px]">
-                            COMMIT SHA: <code className="text-accent-scan font-bold">{fetchedGithubData.commitSha || gitCommit.slice(0, 7)}</code>
-                          </div>
-                        </div>
-                        <Badge severity="resolved" size="sm">FETCHED VIA GITHUB API</Badge>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-text-muted text-[11px] font-semibold flex items-center justify-between">
-                          <span>DETECTED FILES ({fetchedGithubData.contracts?.length || 0})</span>
-                          <span className="text-accent-scan">CLICK FILE TO INGEST SOURCE</span>
-                        </div>
-
-                        <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                          {fetchedGithubData.contracts?.map((c: any, i: number) => {
-                            const filePath = typeof c === "string" ? c : (c?.path || c);
-                            const isCurrentFile = contractFileName === (filePath.split("/").pop() || filePath);
-                            return (
-                              <div
-                                key={i}
-                                onClick={() => handleSelectGithubFile(fetchedGithubData.owner, fetchedGithubData.repo, filePath, fetchedGithubData.branch || "main")}
-                                className={`p-3 rounded-[4px] border flex items-center justify-between transition-colors cursor-pointer ${
-                                  isCurrentFile
-                                    ? "bg-bg-panel-raised border-accent-scan"
-                                    : "bg-bg-panel border-border-hairline hover:border-accent-scan/70"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2.5 overflow-hidden">
-                                  <FileCode className={`h-4 w-4 shrink-0 ${isCurrentFile ? "text-accent-scan" : "text-text-muted"}`} />
-                                  <span className={`font-bold truncate ${isCurrentFile ? "text-accent-scan" : "text-text-primary"}`}>
-                                    {filePath}
-                                  </span>
-                                  {isCurrentFile && (
-                                    <Badge severity="resolved" size="sm">INGESTED</Badge>
-                                  )}
-                                </div>
-                                <span className={`text-[11px] font-mono shrink-0 ml-2 ${isCurrentFile ? "text-accent-scan font-bold" : "text-text-muted"}`}>
-                                  {isCurrentFile ? "ACTIVE SOURCE ✓" : "SELECT FILE →"}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </div>
 
-          {/* CONVERGED INGESTION STATISTICS STRIP (Appears for both Upload & GitHub methods) */}
+          {/* CUSTOM REPOSITORY URL INPUT BAR */}
+          <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline space-y-3 font-mono text-xs">
+            <div className="flex items-center justify-between text-text-muted text-[11px]">
+              <span className="flex items-center gap-1.5 text-text-primary font-semibold">
+                <Code2 className="h-3.5 w-3.5 text-accent-scan" />
+                <span>OR FETCH CUSTOM GITHUB REPOSITORY</span>
+              </span>
+              <span>REST API INTEGRATION</span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2.5">
+              <div className="flex-1 w-full">
+                <Input
+                  value={customGithubUrl}
+                  onChange={(e) => setCustomGithubUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleFetchRealGithubRepo();
+                    }
+                  }}
+                  placeholder="https://github.com/owner/repository or owner/repo"
+                  prefix={<GitBranch className="h-3.5 w-3.5 text-text-muted" />}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div className="w-full sm:w-36">
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  className="w-full h-9 px-2.5 rounded-[4px] bg-bg-panel border border-border-hairline font-mono text-xs text-text-primary focus:outline-none focus:border-accent-scan transition-colors"
+                >
+                  <option value="main">branch: main</option>
+                  <option value="master">branch: master</option>
+                  <option value="develop">branch: develop</option>
+                  <option value="audit-remediation">branch: audit-remediation</option>
+                </select>
+              </div>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleFetchRealGithubRepo}
+                isLoading={isFetchingGithub}
+                rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
+                className="w-full sm:w-auto h-9"
+              >
+                Fetch
+              </Button>
+            </div>
+          </div>
+
+          {/* CONTRACT SCOPE PICKER */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between font-mono text-xs text-text-muted">
+              <span className="flex items-center gap-1.5">
+                <FileCode className="h-3.5 w-3.5 text-accent-scan" />
+                <span>CONTRACT FILES IN SCOPE</span>
+              </span>
+              <span className="text-[11px] text-accent-scan">CLICK A FILE TO DESIGNATE AS PRIMARY AUDIT TARGET</span>
+            </div>
+
+            {/* If fetched from live GitHub */}
+            {fetchedGithubData ? (
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 font-mono text-xs">
+                {fetchedGithubData.contracts?.map((c: any, i: number) => {
+                  const filePath = typeof c === "string" ? c : (c?.path || c);
+                  const fname = filePath.split("/").pop() || filePath;
+                  const isCurrentFile = contractFileName === fname;
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => handleSelectGithubFile(fetchedGithubData.owner, fetchedGithubData.repo, filePath, fetchedGithubData.branch || selectedBranch || "main")}
+                      className={`p-3 rounded-[4px] border flex items-center justify-between transition-colors cursor-pointer ${
+                        isCurrentFile
+                          ? "bg-bg-panel-raised border-accent-scan"
+                          : "bg-bg-void border-border-hairline hover:border-accent-scan/70"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 overflow-hidden">
+                        <FileCode className={`h-4 w-4 shrink-0 ${isCurrentFile ? "text-accent-scan" : "text-text-muted"}`} />
+                        <span className={`font-bold truncate ${isCurrentFile ? "text-accent-scan" : "text-text-primary"}`}>
+                          {filePath}
+                        </span>
+                        {isCurrentFile && <Badge severity="resolved" size="sm">ACTIVE TARGET</Badge>}
+                      </div>
+                      <span className={`text-[11px] font-mono shrink-0 ml-2 ${isCurrentFile ? "text-accent-scan font-bold" : "text-text-muted"}`}>
+                        {isCurrentFile ? "ACTIVE SOURCE ✓" : "SELECT FILE →"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : currentPreset ? (
+              /* If using preset repository */
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 font-mono text-xs">
+                {currentPreset.contractFiles.map((file, i) => {
+                  const isCurrentFile = contractFileName === file.fileName;
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => handleSelectPresetContract(file)}
+                      className={`p-3 rounded-[4px] border flex items-center justify-between transition-colors cursor-pointer ${
+                        isCurrentFile
+                          ? "bg-bg-panel-raised border-accent-scan"
+                          : "bg-bg-void border-border-hairline hover:border-accent-scan/70"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 overflow-hidden">
+                        <FileCode className={`h-4 w-4 shrink-0 ${isCurrentFile ? "text-accent-scan" : "text-text-muted"}`} />
+                        <div className="flex items-center gap-2 truncate">
+                          <span className={`font-bold truncate ${isCurrentFile ? "text-accent-scan" : "text-text-primary"}`}>
+                            {file.path}
+                          </span>
+                          <span className="text-[10px] text-text-muted">
+                            ({file.sloc} SLOC)
+                          </span>
+                        </div>
+                        {isCurrentFile && <Badge severity="resolved" size="sm">ACTIVE TARGET</Badge>}
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 ml-2 font-mono text-[11px]">
+                        <span className="text-text-muted hidden sm:inline">commit: {file.commit.slice(0, 7)}</span>
+                        <span className={isCurrentFile ? "text-accent-scan font-bold" : "text-text-muted"}>
+                          {isCurrentFile ? "ACTIVE SOURCE ✓" : "SELECT FILE →"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+
+          {/* CONVERGED INGESTION STATISTICS STRIP */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-[4px] bg-bg-void border border-border-hairline font-mono text-xs">
             <div>
-              <div className="text-text-muted text-[10px]">INGESTED FILE</div>
-              <div className="text-text-primary font-medium truncate">{fileName}</div>
+              <div className="text-text-muted text-[10px]">INGESTED TARGET CONTRACT</div>
+              <div className="text-text-primary font-medium truncate">{contractFileName || "Contract.sol"}</div>
             </div>
             <div>
               <div className="text-text-muted text-[10px]">SOURCE LINES (SLOC)</div>
@@ -748,7 +646,7 @@ export default function NewAuditRequestPage() {
             </div>
             <div>
               <div className="text-text-muted text-[10px]">PINNED COMMIT</div>
-              <div className="text-text-primary">{gitCommit.slice(0, 7)}</div>
+              <div className="text-text-primary font-mono">{gitCommit.slice(0, 7)}</div>
             </div>
             <div>
               <div className="text-text-muted text-[10px]">ESTIMATED TURNAROUND</div>
@@ -768,7 +666,7 @@ export default function NewAuditRequestPage() {
             <div className="rounded-[4px] border border-border-hairline bg-bg-void/90 p-4 font-mono text-xs leading-relaxed max-h-48 overflow-y-auto text-text-muted">
               <pre>
                 <code>
-                  {sourceCode || "// Connect a GitHub repository above or select a contract file to load raw source code..."}
+                  {sourceCode || "// Select a repository preset or contract file above to view raw Solidity code..."}
                 </code>
               </pre>
             </div>
