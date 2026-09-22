@@ -129,7 +129,50 @@ In a production enterprise workflow:
 
 ---
 
-## 2. Additional Roadmap Items
+## 2. Multi-Contract Repository Scope & Batch AST Scanning
+
+### Problem Statement & Motivation
+In production Web3 protocols, architectures are almost never contained in a single contract or a single inheritance graph. A repository often houses multiple standalone, independently deployable contracts (e.g., Uniswap `Factory.sol` + `Router.sol`, or Aura `VaultCore.sol` + `CollateralManager.sol` + `StakingPool.sol`) that do not import one another.
+
+Currently:
+1. The audit intake flow locks onto a single `contractFileName` entrypoint (`CreateAuditDto.contractFileName`).
+2. The automated AST scanner runs solely against that primary contract and its direct import graph.
+3. Completely separate, unlinked contracts in the same repository are excluded from the initial automated AST scanning pass, requiring manual file creation or individual single-file audits.
+
+### Technical Specification & Design
+
+#### A. Database Schema Refactor (`schema.prisma`)
+1. **Support Multi-Contract Scope in `AuditRequest`**:
+   - Add `scopedFiles String?` (JSON array of relative paths: `["contracts/VaultCore.sol", "contracts/CollateralManager.sol"]`).
+   - Retain `contractFileName` as the primary entrypoint or protocol descriptor, or derive from scope.
+   - Aggregate total `sloc` across all scoped contract files.
+2. **Finding Attribution**:
+   - Ensure all finding records (`Finding.location`) explicitly tag the relative contract file path (e.g. `contracts/CollateralManager.sol:142-146`) so findings from multiple root files map cleanly into the review suite.
+
+#### B. Backend Ingestion & Scanner Refactor (`backend/src/scanner/` & `backend/src/audit/`)
+- [ ] **Extend `CreateAuditDto`**:
+  - Accept `scopedFiles?: string[]` and optionally a map of virtual source files or file paths.
+- [ ] **Batch AST Orchestrator in `ScanOrchestratorService`**:
+  - Iterate through all distinct root contracts in `scopedFiles`.
+  - For each contract, invoke `ASTEngineRunnerService` with its virtual dependency tree.
+  - Consolidate all detected AST and legacy findings into the single audit ticket (`#ZYR-xxxx`).
+  - Calculate unified attestation Merkle root and `sourceHash` covering all scoped files.
+- [ ] **Import Deduplication**:
+  - Shared dependencies (e.g., `@openzeppelin/contracts/token/ERC20/IERC20.sol`) should only be parsed once in the shared `virtualFiles` AST context to avoid duplicate findings.
+
+#### C. Frontend Intake UI Refactor (`frontend/app/portal/new-request/page.tsx`)
+- [ ] **Multi-Select Scope Checkboxes**:
+  - Replace the single-select file radio list with multi-select checkboxes for all detected `.sol` files in the repository.
+  - Add a **"Select All Repository Contracts"** toggle button.
+- [ ] **Aggregate SLOC & SLA Calculator**:
+  - Dynamically sum SLOC and recalculate estimated turnaround SLA across all checked contracts.
+- [ ] **Multi-File Source Code Preview**:
+  - Provide tabs or a file selector dropdown above the source code preview box to inspect any selected contract's code before submitting.
+
+---
+
+## 3. Additional Roadmap Items
 
 - [ ] **Fine-Grained Audit Ticket Assignments**: Organization owners can assign specific audits to designated internal developers.
 - [ ] **Audit Trail & Governance Logs**: Log every membership change, permission mutation, and audit action taken within an organization for compliance.
+
