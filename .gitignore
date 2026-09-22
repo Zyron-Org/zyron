@@ -50,7 +50,9 @@ npm-debug.log*
 .gemini/
 *.tsbuildinfo
 
+# VPS / Process Manager
+ecosystem.config.js
+logs/
 
 # Reference Codebase
 codebase/
-

@@ -31,6 +31,8 @@ export interface AuthUser {
   walletAddress?: string;
   auditorHandle?: string;
   specialization?: string;
+  githubLogin?: string;
+  githubAvatarUrl?: string;
 }
 
 export function getDashboardForRole(role?: string | null): string {
@@ -47,9 +49,9 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   loginWithSiwe: (message: string, signature: string) => Promise<AuthUser>;
+  loginWithToken: (token: string, role: string) => void;
   register: (dto: { email: string; password: string; name: string; organizationName?: string }) => Promise<any>;
   logout: () => void;
-
   refreshProfile: () => Promise<void>;
 }
 
@@ -158,6 +160,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
 
+  /** Used by GitHub OAuth callback to store token received via URL param */
+  const loginWithToken = (accessToken: string, role: string) => {
+    localStorage.setItem("zyron_jwt_token", accessToken);
+    localStorage.setItem("zyron_auth_role", role.toLowerCase());
+    setToken(accessToken);
+    setAuthCookie(accessToken);
+    // Fire-and-forget profile fetch to populate the user object
+    apiClient.get("/auth/profile").then((res) => setUser(res.data)).catch(() => {});
+  };
+
   const refreshProfile = async () => {
     try {
       const res = await apiClient.get("/auth/profile");
@@ -187,6 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         login,
         loginWithSiwe,
+        loginWithToken,
         register,
         logout,
         refreshProfile,
