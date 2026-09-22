@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: ["class"],
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,30 +10,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Exact tokens from GEMINI.md
-        "bg-void": "#0B0D10",
-        "bg-panel": "#14171C",
-        "bg-panel-raised": "#1B1F26",
-        "border-hairline": "#262B33",
-        "text-primary": "#E8EAED",
-        "text-muted": "#8B93A1",
-        "accent-scan": "#5EC8FF",
-        "signal-critical": "#FF5468",
-        "signal-high": "#FF9F43",
-        "signal-medium": "#FFD166",
-        "signal-low": "#6C9EFF",
-        "signal-resolved": "#3DDC97",
+        // Design tokens connected dynamically to CSS variables with full alpha support
+        "bg-void": "rgb(var(--bg-void) / <alpha-value>)",
+        "bg-panel": "rgb(var(--bg-panel) / <alpha-value>)",
+        "bg-panel-raised": "rgb(var(--bg-panel-raised) / <alpha-value>)",
+        "border-hairline": "rgb(var(--border-hairline) / <alpha-value>)",
+        "text-primary": "rgb(var(--text-primary) / <alpha-value>)",
+        "text-muted": "rgb(var(--text-muted) / <alpha-value>)",
+        "accent-scan": "rgb(var(--accent-scan) / <alpha-value>)",
+        "signal-critical": "rgb(var(--signal-critical) / <alpha-value>)",
+        "signal-high": "rgb(var(--signal-high) / <alpha-value>)",
+        "signal-medium": "rgb(var(--signal-medium) / <alpha-value>)",
+        "signal-low": "rgb(var(--signal-low) / <alpha-value>)",
+        "signal-resolved": "rgb(var(--signal-resolved) / <alpha-value>)",
 
-        // Convenient semantic aliases
-        void: "#0B0D10",
+        // Semantic aliases
+        void: "rgb(var(--bg-void) / <alpha-value>)",
         panel: {
-          DEFAULT: "#14171C",
-          raised: "#1B1F26",
+          DEFAULT: "rgb(var(--bg-panel) / <alpha-value>)",
+          raised: "rgb(var(--bg-panel-raised) / <alpha-value>)",
         },
-        hairline: "#262B33",
-        primary: "#E8EAED",
-        muted: "#8B93A1",
-        scan: "#5EC8FF",
+        hairline: "rgb(var(--border-hairline) / <alpha-value>)",
+        primary: "rgb(var(--text-primary) / <alpha-value>)",
+        muted: "rgb(var(--text-muted) / <alpha-value>)",
+        scan: "rgb(var(--accent-scan) / <alpha-value>)",
       },
       fontFamily: {
         display: ["var(--font-sans-display)", "system-ui", "sans-serif"],

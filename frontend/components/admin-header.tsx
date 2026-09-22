@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { useAuth } from "@/lib/auth-context";
 import { useSidebar } from "@/components/ui/sidebar-context";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function AdminHeader() {
   const { user, logout } = useAuth();
@@ -58,6 +59,9 @@ export function AdminHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Theme Mode Switcher */}
+          <ThemeToggle size="sm" />
+
           <button
             type="button"
             onClick={() => logout()}

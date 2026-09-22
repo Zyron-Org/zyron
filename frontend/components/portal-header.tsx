@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import { useAuth } from "@/lib/auth-context";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { MOCK_CLIENT_PROFILE } from "@/lib/mock-data";
 
 interface NotificationItem {
@@ -242,6 +243,9 @@ export function PortalHeader() {
             </div>
           )}
         </div>
+
+        {/* Theme Mode Switcher */}
+        <ThemeToggle size="sm" />
 
         {/* Primary CTA Action */}
         <Link href="/portal/new-request">

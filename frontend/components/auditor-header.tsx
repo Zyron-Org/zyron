@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { useSidebar } from "@/components/ui/sidebar-context";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function AuditorHeader() {
   const { user, logout } = useAuth();
@@ -58,6 +59,9 @@ export function AuditorHeader() {
           <Cpu className="h-3 w-3 text-accent-scan" />
           <span>SOLC AST: v0.8.24</span>
         </div>
+
+        {/* Theme Mode Switcher */}
+        <ThemeToggle size="sm" />
 
         <div className="flex items-center gap-2 pl-2 border-l border-border-hairline font-mono text-xs">
           <div className="h-7 w-7 rounded-[4px] bg-signal-high/15 border border-signal-high/40 flex items-center justify-center text-signal-high font-bold text-[11px]">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Terminal, ArrowLeft } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export const metadata: Metadata = {
   title: "Authentication — Zyron Protocol Security",
@@ -28,13 +29,16 @@ export default function AuthLayout({
           </span>
         </Link>
 
-        <Link
-          href="/"
-          className="font-mono text-xs text-text-muted hover:text-text-primary flex items-center gap-1.5 transition-colors"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          <span>RETURN TO HOME</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <ThemeToggle size="sm" />
+          <Link
+            href="/"
+            className="font-mono text-xs text-text-muted hover:text-text-primary flex items-center gap-1.5 transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>RETURN TO HOME</span>
+          </Link>
+        </div>
       </header>
 
       {/* Main Auth Form Container */}
