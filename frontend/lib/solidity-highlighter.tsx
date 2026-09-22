@@ -2,21 +2,39 @@
 
 import React from "react";
 import Prism from "prismjs";
-import "prismjs/components/prism-clike";
-import "prismjs/components/prism-solidity";
 
-// Enhance Prism Solidity grammar with EVM specific variables, security functions, and libraries
-if (Prism.languages.solidity && !(Prism.languages.solidity as any).__zyron_enhanced) {
-  try {
-    Prism.languages.insertBefore("solidity", "keyword", {
-      "evm-variable": /\b(?:msg\.(?:sender|value|data|sig)|tx\.(?:origin|gasprice)|block\.(?:timestamp|number|prevrandao|chainid|basefee|gaslimit|coinbase)|address\(this\))\b/,
-      "security-call": /\b(?:require|assert|revert)\b(?=\s*\()/,
-      "safe-erc20": /\b(?:safeTransfer|safeTransferFrom|safeApprove|safeIncreaseAllowance|safeDecreaseAllowance)\b/,
-    });
-    (Prism.languages.solidity as any).__zyron_enhanced = true;
-  } catch (e) {
-    // Graceful fallback if grammar is already locked
-  }
+// Ensure globalThis.Prism is set in all environments
+if (typeof globalThis !== "undefined" && !(globalThis as any).Prism) {
+  (globalThis as any).Prism = Prism;
+}
+
+// Directly define robust Solidity grammar on Prism so there are zero runtime dependencies
+if (!Prism.languages.solidity) {
+  Prism.languages.solidity = Prism.languages.extend("clike", {
+    "class-name": {
+      pattern: /(\b(?:contract|enum|interface|library|new|struct|using|is)\s+)(?!\d)[\w$]+/,
+      lookbehind: true,
+    },
+    keyword: /\b(?:_|anonymous|as|assembly|break|calldata|case|constant|constructor|continue|contract|default|delete|do|else|emit|enum|event|external|for|from|function|if|import|indexed|inherited|interface|internal|is|let|library|mapping|memory|modifier|new|override|payable|pragma|private|public|pure|returns?|selfdestruct|solidity|storage|struct|suicide|switch|this|throw|using|var|view|virtual|while)\b/,
+    operator: /=>|->|:=|=:|\*\*|\+\+|--|\|\||&&|<<=?|>>=?|[-+*/%^&|<>!=]=?|[~?]/,
+  });
+
+  Prism.languages.insertBefore("solidity", "keyword", {
+    "evm-variable": /\b(?:msg\.(?:sender|value|data|sig)|tx\.(?:origin|gasprice)|block\.(?:timestamp|number|prevrandao|chainid|basefee|gaslimit|coinbase)|address\(this\))\b/,
+    "security-call": /\b(?:require|assert|revert)\b(?=\s*\()/,
+    "safe-erc20": /\b(?:safeTransfer|safeTransferFrom|safeApprove|safeIncreaseAllowance|safeDecreaseAllowance)\b/,
+    builtin: /\b(?:address|bool|byte|u?int(?:8|16|24|32|40|48|56|64|72|80|88|96|104|112|120|128|136|144|152|160|168|176|184|192|200|208|216|224|232|240|248|256)?|string|bytes(?:[1-9]|[12]\d|3[0-2])?)\b/,
+  });
+
+  Prism.languages.insertBefore("solidity", "number", {
+    version: {
+      pattern: /([<>]=?|\^)\d+\.\d+\.\d+\b/,
+      lookbehind: true,
+      alias: "number",
+    },
+  });
+
+  Prism.languages.sol = Prism.languages.solidity;
 }
 
 export interface HighlightToken {
@@ -71,7 +89,8 @@ export function tokenizeSolidityLine(code: string): HighlightToken[] {
   }
 
   try {
-    const tokens = Prism.tokenize(code, Prism.languages.solidity);
+    const grammar = Prism.languages.solidity || Prism.languages.clike;
+    const tokens = Prism.tokenize(code, grammar);
     const result: HighlightToken[] = [];
 
     const processToken = (tok: Prism.Token | string, parentClasses: string[] = []) => {
@@ -101,7 +120,8 @@ export function tokenizeSolidityLine(code: string): HighlightToken[] {
 
     tokens.forEach((t) => processToken(t));
     return result;
-  } catch {
+  } catch (err) {
+    console.error("Tokenization error:", err);
     return [{ text: code, classes: [] }];
   }
 }
@@ -142,7 +162,7 @@ export const HighlightedSolidityBlock = React.memo(function HighlightedSolidityB
   code: string;
   className?: string;
 }) {
-  const lines = React.useMemo(() => code.split("\n"), [code]);
+  const lines = React.useMemo(() => (code || "").split("\n"), [code]);
 
   return (
     <div className={`font-mono text-xs leading-relaxed space-y-0.5 ${className}`}>
@@ -154,4 +174,3 @@ export const HighlightedSolidityBlock = React.memo(function HighlightedSolidityB
     </div>
   );
 });
-

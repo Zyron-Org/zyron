@@ -180,9 +180,17 @@ export default function AuditorCodeReviewPage() {
   const [fpJustificationInput, setFpJustificationInput] = React.useState("");
   const [findingToDismiss, setFindingToDismiss] = React.useState<TriageFinding | null>(null);
 
+  // Edit Finding Modal State (reuses newFindingForm, flagged by editingFindingId)
+  const [editingFindingId, setEditingFindingId] = React.useState<string | null>(null);
+  const [isEditingFinding, setIsEditingFinding] = React.useState(false);
+
   // Ticket Completion Status
   const [ticketStage, setTicketStage] = React.useState<string>("in-review");
   const [isFinalized, setIsFinalized] = React.useState(false);
+
+  // Whether audit is in "corrections requested" stage — client is applying fixes, auditor is in read-only review mode
+  const isCorrectionsStage = ticketStage.includes("correction");
+
 
   // Scope Dossier Drawer
   const [showProjectDossier, setShowProjectDossier] = React.useState(false);
@@ -638,6 +646,87 @@ library TransferHelper {
     }
   };
 
+  // Open Edit Finding Modal — pre-populates the Add Finding form with existing finding data
+  const handleOpenEditFinding = (finding: TriageFinding) => {
+    setEditingFindingId(finding.id);
+    setNewFindingForm({
+      title: finding.title,
+      severity: finding.severity.toUpperCase() as any,
+      cvss: finding.cvss || "CVSS 8.5",
+      taxonomy: finding.swcId || "SWC-107 · CWE-841 (Reentrancy)",
+      file: finding.file,
+      line: finding.line,
+      impact: finding.impact || "",
+      description: finding.description || "",
+      vulnerableCode: finding.vulnerableCode || "",
+      remediation: finding.remediation || "",
+    });
+    setShowAddFindingModal(true);
+  };
+
+  // Submit Edit Finding — PATCH existing finding instead of creating new one
+  const handleSubmitEditFinding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFindingId || !newFindingForm.title.trim()) {
+      toast.error("Please provide a title for the finding.");
+      return;
+    }
+
+    setIsEditingFinding(true);
+    try {
+      await apiClient.patch(`/findings/${editingFindingId}`, {
+        title: newFindingForm.title.trim(),
+        severity: newFindingForm.severity,
+        cvss: newFindingForm.cvss,
+        taxonomy: newFindingForm.taxonomy,
+        location: `${newFindingForm.file}:${newFindingForm.line}`,
+        impact: newFindingForm.impact,
+        description: newFindingForm.description,
+        vulnerableCode: newFindingForm.vulnerableCode,
+        remediationNote: newFindingForm.remediation,
+      });
+    } catch (e: any) {
+      console.warn("Could not patch finding on API, applying locally:", e.message);
+    }
+
+    setFindings((prev) =>
+      prev.map((f) =>
+        f.id === editingFindingId
+          ? {
+              ...f,
+              title: newFindingForm.title.trim(),
+              severity: newFindingForm.severity.toLowerCase() as any,
+              cvss: newFindingForm.cvss,
+              swcId: newFindingForm.taxonomy.split(" ")[0] || f.swcId,
+              file: newFindingForm.file,
+              line: Number(newFindingForm.line),
+              impact: newFindingForm.impact,
+              description: newFindingForm.description,
+              vulnerableCode: newFindingForm.vulnerableCode,
+              remediation: newFindingForm.remediation,
+            }
+          : f
+      )
+    );
+
+    toast.success(`Finding ${editingFindingId} updated successfully.`);
+    setShowAddFindingModal(false);
+    setEditingFindingId(null);
+    setNewFindingForm({
+      title: "",
+      severity: "HIGH",
+      cvss: "CVSS 8.5",
+      taxonomy: "SWC-107 · CWE-841 (Reentrancy)",
+      file: activeFile.path,
+      line: 1,
+      impact: "Potential protocol liquidity drain or unauthorized state manipulation.",
+      description: "",
+      vulnerableCode: "",
+      remediation: "",
+    });
+    setIsEditingFinding(false);
+  };
+
   // Open False Positive Modal
   const handleOpenFpModal = (finding: TriageFinding) => {
     setFindingToDismiss(finding);
@@ -966,16 +1055,18 @@ mitigated or verified false positives before production deployment.
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Quick Add Finding Button in Header */}
-          <Button
-            variant="outline"
-            size="sm"
-            leftIcon={<Plus className="h-3.5 w-3.5 text-accent-scan" />}
-            onClick={() => handleOpenAddFinding()}
-            className="border-accent-scan/30 hover:bg-accent-scan/10 text-accent-scan"
-          >
-            Add Finding
-          </Button>
+          {/* Quick Add Finding Button in Header — hidden when client corrections are in progress */}
+          {!isCorrectionsStage && (
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<Plus className="h-3.5 w-3.5 text-accent-scan" />}
+              onClick={() => handleOpenAddFinding()}
+              className="border-accent-scan/30 hover:bg-accent-scan/10 text-accent-scan"
+            >
+              Add Finding
+            </Button>
+          )}
 
           {/* Conditional Report Generation Action */}
           {allFindingsResolved ? (
@@ -1066,15 +1157,17 @@ mitigated or verified false positives before production deployment.
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<Plus className="h-3 w-3 text-accent-scan" />}
-                onClick={() => handleOpenAddFinding(activeFile.path, 1)}
-                className="text-[11px] h-7 px-2 border-border-hairline"
-              >
-                Flag Line
-              </Button>
+              {!isCorrectionsStage && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Plus className="h-3 w-3 text-accent-scan" />}
+                  onClick={() => handleOpenAddFinding(activeFile.path, 1)}
+                  className="text-[11px] h-7 px-2 border-border-hairline"
+                >
+                  Flag Line
+                </Button>
+              )}
 
               <div className="flex items-center rounded-[3px] border border-border-hairline bg-bg-panel p-0.5">
                 <button
@@ -1251,15 +1344,18 @@ mitigated or verified false positives before production deployment.
                         >
                           {/* Gutter with line number and + flag button on hover */}
                           <div className="flex items-center justify-end gap-1 w-12 shrink-0 select-none text-[11px] text-text-muted/60">
-                            <button
-                              onClick={() => handleOpenAddFinding(activeFile.path, row.line, row.code)}
-                              className="opacity-0 group-hover:opacity-100 hover:text-accent-scan p-0.5 transition-opacity"
-                              title={`Add finding on line ${row.line}`}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </button>
+                            {!isCorrectionsStage && (
+                              <button
+                                onClick={() => handleOpenAddFinding(activeFile.path, row.line, row.code)}
+                                className="opacity-0 group-hover:opacity-100 hover:text-accent-scan p-0.5 transition-opacity"
+                                title={`Add finding on line ${row.line}`}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            )}
                             <span className="w-6 text-right">{row.line}</span>
                           </div>
+
 
                           {/* Code Content with Solidity Syntax Highlighting */}
                           <div className="flex-1 whitespace-pre font-mono overflow-x-auto">
@@ -1557,29 +1653,68 @@ mitigated or verified false positives before production deployment.
                     </div>
                   )}
 
-                  {/* Auditor Notes Input */}
-                  <div className="space-y-2 pt-1 border-t border-border-hairline">
-                    <label className="text-text-muted text-[11px]">AUDITOR TRIAGE & RE-VERIFICATION NOTES:</label>
-                    <Input
-                      value={auditorNote}
-                      onChange={(e) => setAuditorNote(e.target.value)}
-                      placeholder="Add remediation notes or verification details..."
-                      className="text-xs bg-bg-void"
-                    />
-                  </div>
+                  {/* Auditor Notes Input — only visible in active review mode */}
+                  {!isCorrectionsStage && (
+                    <div className="space-y-2 pt-1 border-t border-border-hairline">
+                      <label className="text-text-muted text-[11px]">AUDITOR TRIAGE & RE-VERIFICATION NOTES:</label>
+                      <Input
+                        value={auditorNote}
+                        onChange={(e) => setAuditorNote(e.target.value)}
+                        placeholder="Add remediation notes or verification details..."
+                        className="text-xs bg-bg-void"
+                      />
+                    </div>
+                  )}
 
                   {/* TRIAGE ACTIONS TOOLBAR */}
-                  <div className="space-y-2 pt-2">
-                    {selectedFinding.falsePositive ? (
-                      <Button
-                        variant="outline"
-                        className="w-full text-accent-scan border-accent-scan/40 hover:bg-accent-scan/10 text-xs"
-                        onClick={() => handleConfirmFinding(selectedFinding.id)}
-                        leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
-                      >
-                        Re-Open Finding as Active Vulnerability
-                      </Button>
+                  <div className="space-y-2 pt-2 border-t border-border-hairline">
+                    {isCorrectionsStage ? (
+                      /* CORRECTIONS STAGE: Read-only lock banner + Edit-only access */
+                      <div className="space-y-3">
+                        <div className="p-3 rounded-[3px] bg-signal-high/10 border border-signal-high/30 flex items-start gap-2.5">
+                          <Lock className="h-4 w-4 text-signal-high shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <div className="text-[11px] font-bold text-signal-high uppercase tracking-wide">
+                              Triage Actions Locked
+                            </div>
+                            <p className="text-[11px] text-text-muted font-sans leading-relaxed">
+                              Findings have been released to the client for remediation. Triage actions (approve, flag, dismiss) are disabled while the client is applying fixes. You may only <strong className="text-text-primary">edit finding details</strong> or communicate via the Comms thread.
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-accent-scan border-accent-scan/40 hover:bg-accent-scan/10 text-xs"
+                          onClick={() => handleOpenEditFinding(selectedFinding)}
+                          leftIcon={<FileEdit className="h-3.5 w-3.5" />}
+                        >
+                          Edit Finding Details
+                        </Button>
+                      </div>
+                    ) : selectedFinding.falsePositive ? (
+                      /* FALSE POSITIVE: Offer re-open + edit */
+                      <div className="space-y-2">
+                        <Button
+                          variant="outline"
+                          className="w-full text-accent-scan border-accent-scan/40 hover:bg-accent-scan/10 text-xs"
+                          onClick={() => handleConfirmFinding(selectedFinding.id)}
+                          leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
+                        >
+                          Re-Open Finding as Active Vulnerability
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-text-muted border-border-hairline hover:text-text-primary text-xs"
+                          onClick={() => handleOpenEditFinding(selectedFinding)}
+                          leftIcon={<FileEdit className="h-3.5 w-3.5" />}
+                        >
+                          Edit Finding Details
+                        </Button>
+                      </div>
                     ) : (
+                      /* ACTIVE REVIEW MODE: Full triage actions */
                       <>
                         <div className="grid grid-cols-2 gap-2">
                           {selectedFinding.status !== "resolved" ? (
@@ -1615,18 +1750,31 @@ mitigated or verified false positives before production deployment.
                           </Button>
                         </div>
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full text-text-muted hover:text-signal-critical border-border-hairline hover:border-signal-critical/40 text-[11px]"
-                          onClick={() => handleOpenFpModal(selectedFinding)}
-                          leftIcon={<X className="h-3.5 w-3.5" />}
-                        >
-                          Mark as False Positive (Dismiss)
-                        </Button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-accent-scan border-accent-scan/40 hover:bg-accent-scan/10 text-xs"
+                            onClick={() => handleOpenEditFinding(selectedFinding)}
+                            leftIcon={<FileEdit className="h-3.5 w-3.5" />}
+                          >
+                            Edit Finding
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-text-muted hover:text-signal-critical border-border-hairline hover:border-signal-critical/40 text-[11px]"
+                            onClick={() => handleOpenFpModal(selectedFinding)}
+                            leftIcon={<X className="h-3.5 w-3.5" />}
+                          >
+                            Mark False Positive
+                          </Button>
+                        </div>
                       </>
                     )}
                   </div>
+
                 </div>
               )}
             </div>
@@ -1708,21 +1856,25 @@ mitigated or verified false positives before production deployment.
             <div className="flex items-center justify-between border-b border-border-hairline pb-3">
               <div className="space-y-0.5">
                 <Eyebrow size="xs" variant="scan" prefix="// AUDITOR_TRIAGE · ">
-                  LOG_MANUAL_FINDING
+                  {editingFindingId ? "EDIT_FINDING" : "LOG_MANUAL_FINDING"}
                 </Eyebrow>
                 <h3 className="font-display text-base font-bold text-text-primary font-sans">
-                  Create New Vulnerability Finding
+                  {editingFindingId ? "Edit Vulnerability Finding" : "Create New Vulnerability Finding"}
                 </h3>
               </div>
               <button
-                onClick={() => setShowAddFindingModal(false)}
+                onClick={() => {
+                  setShowAddFindingModal(false);
+                  setEditingFindingId(null);
+                }}
                 className="text-text-muted hover:text-text-primary p-1"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitNewFinding} className="space-y-4">
+            <form onSubmit={editingFindingId ? handleSubmitEditFinding : handleSubmitNewFinding} className="space-y-4">
+
               {/* Title */}
               <div className="space-y-1">
                 <label className="text-[11px] text-text-muted">FINDING HEADLINE / TITLE *</label>
@@ -1869,7 +2021,10 @@ mitigated or verified false positives before production deployment.
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowAddFindingModal(false)}
+                  onClick={() => {
+                    setShowAddFindingModal(false);
+                    setEditingFindingId(null);
+                  }}
                 >
                   Cancel
                 </Button>
@@ -1877,14 +2032,15 @@ mitigated or verified false positives before production deployment.
                   type="submit"
                   variant="primary"
                   size="sm"
-                  isLoading={isSubmittingFinding}
+                  isLoading={editingFindingId ? isEditingFinding : isSubmittingFinding}
                   className="bg-accent-scan text-bg-void font-bold"
                   leftIcon={<Check className="h-3.5 w-3.5" />}
                 >
-                  Log Vulnerability Finding
+                  {editingFindingId ? "Save Changes" : "Log Vulnerability Finding"}
                 </Button>
               </div>
             </form>
+
           </div>
         </div>
       )}
