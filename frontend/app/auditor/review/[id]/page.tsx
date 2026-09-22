@@ -618,24 +618,32 @@ mitigated and verified by Zyron Security Labs before production deployment.
             </Button>
           ) : (
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-signal-high/50 text-signal-high hover:bg-signal-high/10 font-bold"
-                leftIcon={<AlertTriangle className="h-3.5 w-3.5" />}
-                onClick={async () => {
-                  try {
-                    await apiClient.patch(`/audits/${audit.id}/flag-corrections`);
-                    setTicketStage("corrections-requested");
-                    toast.warning(`Ticket ${audit.id} flagged for client corrections! Notification dispatched.`);
-                  } catch (e: any) {
-                    setTicketStage("corrections-requested");
-                    toast.warning(`Ticket ${audit.id} flagged for client corrections.`);
-                  }
-                }}
-              >
-                Flag for Client Corrections
-              </Button>
+              {ticketStage.includes("correction") ? (
+                <div className="flex items-center gap-2">
+                  <Badge severity="warning" size="sm">
+                    FINDINGS RELEASED TO CLIENT (AWAITING FIXES)
+                  </Badge>
+                </div>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="bg-accent-scan text-bg-void hover:bg-accent-scan/90 font-bold shadow-md"
+                  leftIcon={<Check className="h-3.5 w-3.5" />}
+                  onClick={async () => {
+                    try {
+                      await apiClient.patch(`/audits/${audit.id}/flag-corrections`);
+                      setTicketStage("corrections-requested");
+                      toast.success(`Findings approved! Ticket ${audit.id} released to client for remediation.`);
+                    } catch (e: any) {
+                      setTicketStage("corrections-requested");
+                      toast.success(`Findings approved and released to client for remediation.`);
+                    }
+                  }}
+                >
+                  Approve & Send Findings to Client
+                </Button>
+              )}
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-bg-void border border-border-hairline text-text-muted text-[11px]" title="Resolve all findings to unlock report compilation">
                 <Lock className="h-3 w-3 text-signal-critical" />
                 <span>Report Locked ({openOrFixCount} Unresolved)</span>

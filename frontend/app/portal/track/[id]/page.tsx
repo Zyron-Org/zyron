@@ -93,8 +93,11 @@ export default function AuditStatusTrackerPage() {
           const fetchedAudit = res.data;
           setRealAudit(fetchedAudit);
 
-          // Bind real findings from backend database if present
-          if (Array.isArray(fetchedAudit.findings) && fetchedAudit.findings.length > 0) {
+          const rawStage = (fetchedAudit.stage || "").toUpperCase().replace(/-/g, "_");
+          const isReleased = rawStage === "CORRECTIONS_REQUESTED" || rawStage === "COMPLETED";
+
+          // Bind real findings from backend database only if released by auditor
+          if (isReleased && Array.isArray(fetchedAudit.findings) && fetchedAudit.findings.length > 0) {
             const mappedFindings: DetailedFinding[] = fetchedAudit.findings.map((f: any) => ({
               id: f.id || f.displayId,
               title: f.title,
@@ -106,6 +109,7 @@ export default function AuditStatusTrackerPage() {
               impact: f.impact || "POTENTIAL SECURITY RISK",
               description: f.description || "Vulnerability detected during security AST pass.",
               vulnerableCode: f.vulnerableCode || undefined,
+              vulnerableLines: f.vulnerableLines || undefined,
               remediatedCode: f.remediatedCode || undefined,
               remediationNote: f.remediationNote || undefined,
               comments: Array.isArray(f.comments)
@@ -123,6 +127,9 @@ export default function AuditStatusTrackerPage() {
             if (mappedFindings.length > 0) {
               setExpandedFindingId(mappedFindings[0].id);
             }
+          } else {
+            // Findings have not been released by the auditor yet
+            setFindings([]);
           }
 
           // If stage is SCANNING (2), poll every 3s until scan finishes and advances stage to IN_REVIEW (3)
@@ -154,6 +161,8 @@ export default function AuditStatusTrackerPage() {
   }, [ticketId]);
 
   const audit = realAudit || fallbackAudit;
+  const rawStage = (audit.stage || "").toUpperCase().replace(/-/g, "_");
+  const areFindingsReleased = rawStage === "CORRECTIONS_REQUESTED" || rawStage === "COMPLETED";
 
   const [copied, setCopied] = React.useState(false);
   const [isLogStreaming, setIsLogStreaming] = React.useState(true);
@@ -167,147 +176,8 @@ export default function AuditStatusTrackerPage() {
   // Per-finding new comment inputs
   const [commentInputs, setCommentInputs] = React.useState<Record<string, { message: string; commitRef: string }>>({});
 
-  // Full detailed mock findings for this ticket
-  const [findings, setFindings] = React.useState<DetailedFinding[]>([
-    {
-      id: "ZAM-VAULT-001",
-      title: "Reentrancy in withdrawAll() allows pool liquidation prior to balance reset",
-      severity: "critical",
-      cvss: "CVSS 9.1",
-      status: "open",
-      taxonomy: "SWC-107 · CWE-841",
-      location: "contracts/VaultCore.sol:142",
-      impact: "100% COLLATERAL DRAIN",
-      description:
-        "The contract executes an external low-level transfer (`msg.sender.call{value: amount}(\"\")`) to an untrusted recipient before zeroing internal accounting records in `userBalances[msg.sender]`. A malicious receiver fallback can re-enter `withdrawAll()` and drain the entire vault balance.",
-      vulnerableCode: `// ❌ VULNERABLE: External execution invoked before state zeroing
-(bool sent, ) = msg.sender.call{value: amount}("");
-require(sent, "Transfer failed");
-userBalances[msg.sender] = 0; // State mutated after external call`,
-      vulnerableLines: "Line 142–144",
-      remediatedCode: `// ✅ SECURED: Balance zeroed prior to external control transfer
-userBalances[msg.sender] = 0; // State zeroed first
-(bool sent, ) = msg.sender.call{value: amount}("");
-require(sent, "Transfer failed");`,
-      fuzzTestStatus: "FOUNDRY FUZZ: 10,000 RUNS PASSED",
-      remediationNote: "Zero internal userBalances state prior to executing low-level msg.sender.call or apply OpenZeppelin nonReentrant modifier on all transfer paths.",
-      comments: [
-        {
-          id: "c1",
-          sender: "0xAuditor_K4",
-          senderRole: "auditor",
-          timestamp: "2026-08-18 21:35 UTC",
-          message:
-            "Automated AST pass flagged high-risk external call on line 142. Manual trace confirms userBalances[msg.sender] is mutated after low-level call return. High exploitability.",
-        },
-      ],
-    },
-    {
-      id: "ZAM-9481-002",
-      title: "Unchecked return value on raw ERC-20 transfer in reward distribution",
-      severity: "high",
-      cvss: "CVSS 7.8",
-      status: "fix-submitted",
-      taxonomy: "SWC-104 · CWE-252",
-      location: "contracts/VaultCore.sol:146",
-      impact: "SILENT TOKEN DRAIN / REWARD THEFT",
-      description:
-        "Raw `.transfer()` call on ERC-20 tokens that do not return a boolean (e.g. USDT) will revert or fail silently without reverting the caller frame, leaving state inconsistent.",
-      vulnerableCode: `// ❌ VULNERABLE: Raw transfer ignores boolean return or missing return data
-rewardToken.transfer(msg.sender, accruedYield);`,
-      vulnerableLines: "Line 146",
-      remediatedCode: `// ✅ SECURED: Uses SafeERC20 wrapper
-using SafeERC20 for IERC20;
-rewardToken.safeTransfer(msg.sender, accruedYield);`,
-      fuzzTestStatus: "VERIFIED WITH MOCK USDT & NON-STANDARD TOKENS",
-      remediationNote: "Import OpenZeppelin SafeERC20 and replace rewardToken.transfer() with rewardToken.safeTransfer().",
-      comments: [
-        {
-          id: "c2",
-          sender: "0xAuditor_K4",
-          senderRole: "auditor",
-          timestamp: "2026-08-18 21:40 UTC",
-          message: "Standard tokens like USDT will cause silent reverts on raw .transfer(). Please apply SafeERC20.",
-        },
-        {
-          id: "c3",
-          sender: "0xClient_8f",
-          senderRole: "client",
-          timestamp: "2026-08-19 14:20 UTC",
-          message: "Applied SafeERC20 wrapper and updated tests.",
-          commitRef: "4b8f10e",
-        },
-      ],
-    },
-    {
-      id: "ZAM-9481-003",
-      title: "Missing zero-address validation for rewardToken in constructor",
-      severity: "medium",
-      cvss: "CVSS 5.3",
-      status: "resolved",
-      taxonomy: "SWC-105 · CWE-20",
-      location: "contracts/VaultCore.sol:30",
-      impact: "CONTRACT DEPLOYMENT LOCKOUT",
-      description:
-        "Constructor allows passing `address(0)` for `_rewardToken`, which would lock all subsequent yield operations permanently.",
-      vulnerableCode: `// ❌ VULNERABLE: No zero address validation
-constructor(address _rewardToken) Ownable(msg.sender) {
-    rewardToken = IERC20(_rewardToken);
-}`,
-      vulnerableLines: "Line 29–31",
-      remediatedCode: `// ✅ SECURED: Validates address parameter
-constructor(address _rewardToken) Ownable(msg.sender) {
-    require(_rewardToken != address(0), "Zero address");
-    rewardToken = IERC20(_rewardToken);
-}`,
-      fuzzTestStatus: "VERIFIED IN ROUND 1 RE-TEST",
-      remediationNote: "Add require check verifying _rewardToken != address(0).",
-      comments: [
-        {
-          id: "c4",
-          sender: "0xClient_8f",
-          senderRole: "client",
-          timestamp: "2026-08-18 22:10 UTC",
-          message: "Added require check in constructor.",
-          commitRef: "7e21a99",
-        },
-        {
-          id: "c5",
-          sender: "0xAuditor_K4",
-          senderRole: "auditor",
-          timestamp: "2026-08-19 09:15 UTC",
-          message: "Verified fix in commit 7e21a99. Zero address test passed.",
-        },
-      ],
-    },
-    {
-      id: "ZAM-9481-004",
-      title: "Floating compiler pragma statement ^0.8.20",
-      severity: "low",
-      cvss: "CVSS 3.1",
-      status: "open",
-      taxonomy: "SWC-103",
-      location: "contracts/VaultCore.sol:2",
-      impact: "UNTESTED COMPILER DRIFT",
-      description:
-        "The contract uses floating pragma `^0.8.20` instead of locking to exact version `pragma solidity 0.8.20;`.",
-      vulnerableCode: `// ❌ FLOATING PRAGMA:
-pragma solidity ^0.8.20;`,
-      vulnerableLines: "Line 2",
-      remediatedCode: `// ✅ LOCKED PRAGMA:
-pragma solidity 0.8.20;`,
-      remediationNote: "Lock the pragma version to 0.8.20 for production deployments.",
-      comments: [
-        {
-          id: "c6",
-          sender: "0xAuditor_K4",
-          senderRole: "auditor",
-          timestamp: "2026-08-18 21:45 UTC",
-          message: "Recommend locking solc version before mainnet deployment.",
-        },
-      ],
-    },
-  ]);
+  // Findings state: only populated if auditor has approved and sent them for fixes (CORRECTIONS_REQUESTED or COMPLETED)
+  const [findings, setFindings] = React.useState<DetailedFinding[]>([]);
 
   const handleCopyAddress = () => {
     navigator.clipboard?.writeText(audit.contractAddress);
@@ -349,6 +219,13 @@ pragma solidity 0.8.20;`,
         return f;
       })
     );
+
+    apiClient
+      .post(`/findings/${findingId}/comments`, {
+        message: input.message.trim(),
+        commitRef: hasCommitRef ? cleanCommit : undefined,
+      })
+      .catch((err) => console.warn("Could not save comment to API:", err.message));
 
     // If commit was provided, update pinned commit state
     if (hasCommitRef) {
@@ -800,42 +677,80 @@ pragma solidity 0.8.20;`,
               VULNERABILITY_REMEDIATION_ENGINE
             </Eyebrow>
             <span className="text-xs text-text-muted hidden md:inline">
-              · {findings.length} Triaged Items · {findings.filter((f) => f.status === "resolved").length} Resolved
+              {areFindingsReleased
+                ? `· ${findings.length} Triaged Items · ${findings.filter((f) => f.status === "resolved").length} Resolved`
+                : "· Auditor Verification in Progress (Findings Pending Approval)"}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-xs">
-            <Badge severity="critical" size="sm">
-              {findings.filter((f) => f.severity === "critical" && f.status !== "resolved").length} OPEN CRITICAL
-            </Badge>
+          {areFindingsReleased ? (
+            <div className="flex items-center gap-2 font-mono text-xs">
+              <Badge severity="critical" size="sm">
+                {findings.filter((f) => f.severity === "critical" && f.status !== "resolved").length} OPEN CRITICAL
+              </Badge>
+              <Badge severity="high" size="sm">
+                {findings.filter((f) => f.severity === "high" && f.status !== "resolved").length} OPEN HIGH
+              </Badge>
+            </div>
+          ) : (
             <Badge severity="high" size="sm">
-              {findings.filter((f) => f.severity === "high" && f.status !== "resolved").length} OPEN HIGH
+              PENDING AUDITOR APPROVAL
             </Badge>
-          </div>
+          )}
         </div>
 
-        {/* Findings Accordion List */}
-        <div className="space-y-4">
-          {findings.map((finding) => {
-            const isExpanded = expandedFindingId === finding.id;
+        {/* If findings have not been released by auditor yet */}
+        {!areFindingsReleased ? (
+          <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline space-y-4 text-center">
+            <div className="h-12 w-12 rounded-full bg-accent-scan/10 border border-accent-scan text-accent-scan mx-auto flex items-center justify-center">
+              <Clock className="h-6 w-6" />
+            </div>
+            <div className="space-y-1.5 max-w-lg mx-auto">
+              <h3 className="font-display text-base font-semibold text-text-primary">
+                Findings Under Auditor Review & Triage
+              </h3>
+              <p className="text-xs text-text-muted font-mono leading-relaxed">
+                Automated AST engine passes have executed. The preliminary vulnerability findings are currently being validated by your assigned lead auditor ({audit.assignedAuditor || "0xAuditor_K4"}).
+              </p>
+              <p className="text-xs text-text-muted font-mono leading-relaxed">
+                Verified findings, root cause traces, and remediation code will be released directly to your dashboard as soon as the auditor approves the review and sends it for client fixes.
+              </p>
+            </div>
+            <div className="pt-2">
+              <Badge severity="high" size="sm">
+                AUDITOR TRIAGE IN PROGRESS · FINDINGS WILL APPEAR UPON AUDITOR APPROVAL
+              </Badge>
+            </div>
+          </div>
+        ) : findings.length === 0 ? (
+          <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline text-center font-mono text-xs text-text-muted space-y-2">
+            <CheckCircle2 className="h-6 w-6 text-signal-resolved mx-auto" />
+            <div className="text-text-primary font-semibold">Zero Vulnerabilities Detected</div>
+            <div>The auditor verified this contract with no outstanding vulnerabilities.</div>
+          </div>
+        ) : (
+          /* Findings Accordion List */
+          <div className="space-y-4">
+            {findings.map((finding) => {
+              const isExpanded = expandedFindingId === finding.id;
 
-            return (
-              <div
-                key={finding.id}
-                className={`rounded-[4px] border transition-colors bg-bg-panel overflow-hidden ${
-                  isExpanded ? "border-accent-scan/50" : "border-border-hairline hover:border-hairline/90"
-                }`}
-              >
-                {/* Finding Header Summary Row */}
+              return (
                 <div
-                  onClick={() => toggleExpand(finding.id)}
-                  className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer select-none bg-bg-void/40 hover:bg-bg-void/70 transition-colors"
+                  key={finding.id}
+                  className={`rounded-[4px] border transition-colors bg-bg-panel overflow-hidden ${
+                    isExpanded ? "border-accent-scan/50" : "border-border-hairline hover:border-hairline/90"
+                  }`}
                 >
-                  <div className="space-y-1 flex-1">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="font-mono text-xs font-semibold text-accent-scan">
-                        {finding.id}
-                      </span>
+                  {/* Finding Header Summary Row */}
+                  <div
+                    onClick={() => toggleExpand(finding.id)}
+                    className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer select-none bg-bg-void/40 hover:bg-bg-void/70 transition-colors"
+                  >
+                    <div className="space-y-1 flex-1">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="font-mono text-xs font-semibold text-accent-scan">
+                          {finding.id}
+                        </span>
                       <Badge severity={finding.severity} size="sm">
                         {finding.severity.toUpperCase()} ({finding.cvss})
                       </Badge>
@@ -1082,7 +997,8 @@ pragma solidity 0.8.20;`,
             );
           })}
         </div>
-      </section>
+      )}
+    </section>
 
       {/* SECTION 3: TIMESTAMPED ACTIVITY TIMELINE */}
       <section className="space-y-6">

@@ -105,7 +105,8 @@ export default function ClientDashboardPage() {
     (a) =>
       normalizeStage(a.stage) === "scanning" ||
       normalizeStage(a.stage) === "in-review" ||
-      normalizeStage(a.stage) === "pending"
+      normalizeStage(a.stage) === "pending" ||
+      normalizeStage(a.stage) === "corrections-requested"
   );
   const completedAudits = audits.filter((a) => normalizeStage(a.stage) === "completed");
   const pastAudits = audits.filter(
@@ -123,7 +124,7 @@ export default function ClientDashboardPage() {
       filterStage === "past"
         ? ns === "completed" || ns === "failed"
         : filterStage === "in-flight"
-        ? ns === "scanning" || ns === "in-review" || ns === "pending"
+        ? ns === "scanning" || ns === "in-review" || ns === "pending" || ns === "corrections-requested"
         : true;
 
     const matchesSearch =
