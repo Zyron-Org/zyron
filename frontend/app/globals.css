@@ -143,3 +143,172 @@ h1, h2, h3, h4, h5, h6 {
 .animate-glow-pulse {
   animation: demoGlowPulse 5s ease-in-out infinite;
 }
+
+/* ========================================================================= */
+/* CODE EDITOR SOLIDITY SYNTAX HIGHLIGHTING TOKENS                           */
+/* Cyber-security terminal dark aesthetic with clinical light mode fallback */
+/* ========================================================================= */
+
+.solidity-code-line {
+  font-family: var(--font-mono), monospace;
+  white-space: pre;
+}
+
+/* Dark Mode Tokens (Default) */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #64748b; /* slate-500 italic */
+  font-style: italic;
+}
+
+.token.natspec-tag {
+  color: #38bdf8; /* sky-400 */
+  font-weight: 600;
+  font-style: normal;
+}
+
+.token.punctuation {
+  color: #94a3b8; /* slate-400 */
+}
+
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol {
+  color: #fb923c; /* orange-400 */
+}
+
+.token.boolean,
+.token.number {
+  color: #f97316; /* warm neon orange */
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char {
+  color: #fde047; /* bright yellow/gold */
+}
+
+.token.builtin,
+.token.solidity-type {
+  color: #2dd4bf; /* neon teal / mint for types like address, uint256 */
+  font-weight: 500;
+}
+
+.token.operator,
+.token.entity,
+.token.url {
+  color: #38bdf8; /* accent scan cyan */
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #c084fc; /* purple-400 / radiant violet for keywords */
+  font-weight: 600;
+}
+
+.token.function,
+.token.class-name {
+  color: #60a5fa; /* blue-400 for functions & contract types */
+  font-weight: 600;
+}
+
+.token.evm-variable {
+  color: #f43f5e; /* rose-500 for msg.sender, block.timestamp */
+  font-weight: 600;
+}
+
+.token.security-call {
+  color: #f87171; /* red-400 for require, assert, revert */
+  font-weight: 600;
+}
+
+.token.safe-erc20 {
+  color: #34d399; /* emerald-400 for safeTransfer */
+  font-weight: 600;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #e2e8f0;
+}
+
+/* Light Mode Overrides */
+.light .token.comment,
+[data-theme="light"] .token.comment {
+  color: #64748b;
+}
+
+.light .token.natspec-tag,
+[data-theme="light"] .token.natspec-tag {
+  color: #0284c7;
+}
+
+.light .token.punctuation,
+[data-theme="light"] .token.punctuation {
+  color: #475569;
+}
+
+.light .token.property,
+.light .token.constant,
+[data-theme="light"] .token.property,
+[data-theme="light"] .token.constant {
+  color: #d97706;
+}
+
+.light .token.boolean,
+.light .token.number,
+[data-theme="light"] .token.boolean,
+[data-theme="light"] .token.number {
+  color: #ea580c;
+}
+
+.light .token.string,
+[data-theme="light"] .token.string {
+  color: #b45309;
+}
+
+.light .token.builtin,
+.light .token.solidity-type,
+[data-theme="light"] .token.builtin,
+[data-theme="light"] .token.solidity-type {
+  color: #0d9488;
+}
+
+.light .token.operator,
+[data-theme="light"] .token.operator {
+  color: #0284c7;
+}
+
+.light .token.keyword,
+[data-theme="light"] .token.keyword {
+  color: #7c3aed;
+}
+
+.light .token.function,
+.light .token.class-name,
+[data-theme="light"] .token.function,
+[data-theme="light"] .token.class-name {
+  color: #2563eb;
+}
+
+.light .token.evm-variable,
+[data-theme="light"] .token.evm-variable {
+  color: #e11d48;
+}
+
+.light .token.security-call,
+[data-theme="light"] .token.security-call {
+  color: #dc2626;
+}
+
+.light .token.safe-erc20,
+[data-theme="light"] .token.safe-erc20 {
+  color: #059669;
+}
+

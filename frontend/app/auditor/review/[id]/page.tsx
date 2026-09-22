@@ -58,6 +58,8 @@ import { Input } from "@/components/ui/input";
 import { MOCK_AUDIT_REQUESTS, type AuditRequest } from "@/lib/mock-data";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
+import { HighlightedSolidityLine, HighlightedSolidityBlock } from "@/lib/solidity-highlighter";
+
 
 interface DiffLine {
   type: "add" | "delete" | "context" | "header";
@@ -1217,8 +1219,8 @@ mitigated or verified false positives before production deployment.
                         <span className="select-none font-bold w-3 text-center shrink-0">
                           {row.type === "add" ? "+" : row.type === "delete" ? "-" : " "}
                         </span>
-                        <div className="flex-1 whitespace-pre font-mono text-xs">
-                          {row.code}
+                        <div className="flex-1 whitespace-pre font-mono text-xs overflow-x-auto">
+                          <HighlightedSolidityLine code={row.code} />
                         </div>
                       </div>
                     );
@@ -1259,9 +1261,9 @@ mitigated or verified false positives before production deployment.
                             <span className="w-6 text-right">{row.line}</span>
                           </div>
 
-                          {/* Code Content */}
-                          <div className="flex-1 text-text-primary whitespace-pre font-mono overflow-x-auto">
-                            {row.code}
+                          {/* Code Content with Solidity Syntax Highlighting */}
+                          <div className="flex-1 whitespace-pre font-mono overflow-x-auto">
+                            <HighlightedSolidityLine code={row.code} />
                           </div>
                         </div>
 
@@ -1539,9 +1541,9 @@ mitigated or verified false positives before production deployment.
                   {selectedFinding.vulnerableCode && (
                     <div className="space-y-1">
                       <div className="text-[10px] text-text-muted uppercase">FLAGGED VULNERABLE CODE:</div>
-                      <pre className="p-2.5 rounded-[2px] bg-bg-void border border-signal-critical/30 text-signal-critical text-[11px] overflow-x-auto whitespace-pre font-mono">
-                        {selectedFinding.vulnerableCode}
-                      </pre>
+                      <div className="p-2.5 rounded-[2px] bg-bg-void border border-signal-critical/30 text-[11px] overflow-x-auto">
+                        <HighlightedSolidityBlock code={selectedFinding.vulnerableCode} />
+                      </div>
                     </div>
                   )}
 
@@ -1842,6 +1844,12 @@ mitigated or verified false positives before production deployment.
                   placeholder="Paste vulnerable code lines..."
                   className="w-full p-2.5 rounded-[4px] bg-bg-void border border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-mono"
                 />
+                {newFindingForm.vulnerableCode.trim() && (
+                  <div className="p-2 rounded-[2px] bg-bg-panel border border-border-hairline text-[11px] overflow-x-auto">
+                    <div className="text-[9px] text-text-muted font-mono uppercase pb-1">Live Syntax Preview:</div>
+                    <HighlightedSolidityBlock code={newFindingForm.vulnerableCode} />
+                  </div>
+                )}
               </div>
 
               {/* Remediation */}

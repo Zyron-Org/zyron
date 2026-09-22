@@ -40,6 +40,8 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { Input } from "@/components/ui/input";
 import { MOCK_AUDIT_REQUESTS } from "@/lib/mock-data";
 import { apiClient } from "@/lib/api-client";
+import { HighlightedSolidityBlock } from "@/lib/solidity-highlighter";
+
 
 interface CommentMessage {
   id: string;
@@ -1042,9 +1044,9 @@ export default function AuditStatusTrackerPage() {
                             </span>
                             <span className="text-[10px] text-text-muted">{finding.vulnerableLines}</span>
                           </div>
-                          <pre className="text-text-muted leading-relaxed overflow-x-auto pt-1">
-                            <code>{finding.vulnerableCode}</code>
-                          </pre>
+                          <div className="text-text-primary leading-relaxed overflow-x-auto pt-1">
+                            <HighlightedSolidityBlock code={finding.vulnerableCode} />
+                          </div>
                         </div>
 
                         {/* Remediated Block */}
@@ -1058,9 +1060,9 @@ export default function AuditStatusTrackerPage() {
                               TARGET FIX
                             </span>
                           </div>
-                          <pre className="text-text-muted leading-relaxed overflow-x-auto pt-1">
-                            <code>{finding.remediatedCode}</code>
-                          </pre>
+                          <div className="text-text-primary leading-relaxed overflow-x-auto pt-1">
+                            <HighlightedSolidityBlock code={finding.remediatedCode} />
+                          </div>
                         </div>
 
                         {finding.fuzzTestStatus && (
