@@ -98,6 +98,15 @@ interface TriageFinding {
   vulnerableCode?: string;
 }
 
+interface FindingComment {
+  id: string;
+  findingId: string;
+  sender: string;
+  role: "auditor" | "client";
+  timestamp: string;
+  message: string;
+}
+
 export default function AuditorCodeReviewPage() {
   const params = useParams();
   const router = useRouter();
@@ -123,7 +132,9 @@ export default function AuditorCodeReviewPage() {
   // View Mode: 'diff' vs 'full'
   const [viewMode, setViewMode] = React.useState<"diff" | "full">("diff");
   const [selectedFilePath, setSelectedFilePath] = React.useState<string>("contracts/VaultCore.sol");
-  const [activeRightTab, setActiveRightTab] = React.useState<"triage" | "comms">("triage");
+
+  // Right panel view: 'list' shows the findings list, 'detail' shows selected finding full view
+  const [findingView, setFindingView] = React.useState<"list" | "detail">("list");
 
   // Findings & Triage state
   const [findings, setFindings] = React.useState<TriageFinding[]>([
@@ -159,6 +170,29 @@ export default function AuditorCodeReviewPage() {
   const [findingFilter, setFindingFilter] = React.useState<"all" | "active" | "resolved" | "dismissed">("all");
   const [auditorNote, setAuditorNote] = React.useState("");
 
+  // Per-finding comment threads: findingId → comments array
+  const [findingComments, setFindingComments] = React.useState<Record<string, FindingComment[]>>({
+    "ZYR-VAULT-001": [
+      {
+        id: "fc-1",
+        findingId: "ZYR-VAULT-001",
+        sender: "0xAuditor_K4",
+        role: "auditor",
+        timestamp: "2026-08-18 21:35 UTC",
+        message: "Flagged CRITICAL on line 142 (withdrawAll). low-level call msg.sender.call executes before userBalances[msg.sender] = 0. CEI pattern violation.",
+      },
+      {
+        id: "fc-2",
+        findingId: "ZYR-VAULT-001",
+        sender: "Aura Core Protocol",
+        role: "client",
+        timestamp: "2026-08-19 14:20 UTC",
+        message: "Applied Checks-Effects-Interactions pattern. Moved userBalances[msg.sender] = 0 before the external call. Pinned commit 4b8f10e for re-verification.",
+      },
+    ],
+  });
+  const [newFindingComment, setNewFindingComment] = React.useState("");
+
   // Add Manual Finding Modal State
   const [showAddFindingModal, setShowAddFindingModal] = React.useState(false);
   const [isSubmittingFinding, setIsSubmittingFinding] = React.useState(false);
@@ -191,7 +225,6 @@ export default function AuditorCodeReviewPage() {
   // Whether audit is in "corrections requested" stage — client is applying fixes, auditor is in read-only review mode
   const isCorrectionsStage = ticketStage.includes("correction");
 
-
   // Scope Dossier Drawer
   const [showProjectDossier, setShowProjectDossier] = React.useState(false);
 
@@ -200,30 +233,8 @@ export default function AuditorCodeReviewPage() {
   const [isCompilingReport, setIsCompilingReport] = React.useState(false);
   const [compiledPdfUrl, setCompiledPdfUrl] = React.useState<string | null>(null);
 
-  // Discussion Messages Feed State
-  const [discussionMessages, setDiscussionMessages] = React.useState<
-    { id: string; sender: string; role: "auditor" | "client"; timestamp: string; message: string; commitRef?: string }[]
-  >([
-    {
-      id: "m-1",
-      sender: "0xAuditor_K4",
-      role: "auditor",
-      timestamp: "2026-08-18 21:35 UTC",
-      message:
-        "Flagged CRITICAL candidate on line 142 (withdrawAll). low-level call msg.sender.call executes before userBalances[msg.sender] = 0.",
-    },
-    {
-      id: "m-2",
-      sender: "Aura Core Protocol",
-      role: "client",
-      timestamp: "2026-08-19 14:20 UTC",
-      message:
-        "Applied SafeERC20 wrapper across VaultCore.sol and updated Foundry invariant fuzz test suite in test/VaultCore.t.sol. Pinned commit 4b8f10e for re-verification.",
-      commitRef: "4b8f10e",
-    },
-  ]);
-
   // Load audit data and findings from API
+
   React.useEffect(() => {
     if (!ticketId) return;
     Promise.all([
@@ -943,22 +954,37 @@ mitigated or verified false positives before production deployment.
     URL.revokeObjectURL(url);
   };
 
-  // Communication Thread Comment Submission
-  const [newComment, setNewComment] = React.useState("");
-  const handlePostAuditorComment = (e: React.FormEvent) => {
+  // Per-finding comment submission
+  const handlePostFindingComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newFindingComment.trim() || !selectedFindingId) return;
 
-    const msg = {
-      id: `m-${Date.now()}`,
+    const comment: FindingComment = {
+      id: `fc-${Date.now()}`,
+      findingId: selectedFindingId,
       sender: "0xAuditor_K4",
-      role: "auditor" as const,
+      role: "auditor",
       timestamp: new Date().toISOString().replace("T", " ").substring(0, 16) + " UTC",
-      message: newComment.trim(),
+      message: newFindingComment.trim(),
     };
 
-    setDiscussionMessages((prev) => [...prev, msg]);
-    setNewComment("");
+    // Optimistic local update
+    setFindingComments((prev) => ({
+      ...prev,
+      [selectedFindingId]: [...(prev[selectedFindingId] || []), comment],
+    }));
+    setNewFindingComment("");
+
+    // Attempt to persist to backend
+    try {
+      await apiClient.post(`/findings/${selectedFindingId}/comments`, {
+        message: comment.message,
+        sender: comment.sender,
+        role: comment.role,
+      });
+    } catch (e: any) {
+      // Silently accepted — local state already updated
+    }
   };
 
   return (
@@ -1369,7 +1395,7 @@ mitigated or verified false positives before production deployment.
                             key={f.id}
                             onClick={() => {
                               setSelectedFindingId(f.id);
-                              setActiveRightTab("triage");
+                              setFindingView("detail");
                             }}
                             className={`mx-2 my-1 p-2 rounded-[3px] border cursor-pointer select-none text-xs font-mono flex items-center justify-between gap-3 ${
                               f.falsePositive
@@ -1401,7 +1427,8 @@ mitigated or verified false positives before production deployment.
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedFindingId(f.id);
-                                setActiveRightTab("triage");
+                                setFindingView("detail");
+
                               }}
                             >
                               View Triage
@@ -1430,34 +1457,11 @@ mitigated or verified false positives before production deployment.
         {/* RIGHT 5 COLS: AUDITOR TRIAGE & VERIFICATION WORKBENCH                     */}
         {/* ========================================================================= */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="flex rounded-[4px] border border-border-hairline bg-bg-panel p-1 font-mono text-xs">
-            <button
-              onClick={() => setActiveRightTab("triage")}
-              className={`flex-1 py-1.5 px-2 rounded-[2px] transition-colors flex items-center justify-center gap-1.5 ${
-                activeRightTab === "triage"
-                  ? "bg-bg-panel-raised text-accent-scan font-bold border border-border-hairline"
-                  : "text-text-muted hover:text-text-primary"
-              }`}
-            >
-              <Split className="h-3.5 w-3.5" />
-              <span>Remediation Triage ({findings.length})</span>
-            </button>
 
-            <button
-              onClick={() => setActiveRightTab("comms")}
-              className={`flex-1 py-1.5 px-2 rounded-[2px] transition-colors flex items-center justify-center gap-1.5 ${
-                activeRightTab === "comms"
-                  ? "bg-bg-panel-raised text-accent-scan font-bold border border-border-hairline"
-                  : "text-text-muted hover:text-text-primary"
-              }`}
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              <span>Comms Thread ({discussionMessages.length})</span>
-            </button>
-          </div>
-
-          {/* TAB 1: TRIAGE & RESOLUTION */}
-          {activeRightTab === "triage" && (
+          {/* ------------------------------------------------------------------ */}
+          {/* VIEW A: FINDINGS LIST — shown when no finding is open in detail      */}
+          {/* ------------------------------------------------------------------ */}
+          {findingView === "list" && (
             <div className="space-y-4 font-mono text-xs">
               {/* Triage Header & Filter Tabs */}
               <div className="p-3 rounded-[4px] bg-bg-panel border border-border-hairline space-y-2.5">
@@ -1466,15 +1470,17 @@ mitigated or verified false positives before production deployment.
                     <ShieldCheck className="h-3.5 w-3.5 text-accent-scan" />
                     FINDINGS TRIAGE ({findings.length})
                   </span>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="h-6 text-[10px] px-2 bg-accent-scan text-bg-void font-bold"
-                    leftIcon={<Plus className="h-3 w-3" />}
-                    onClick={() => handleOpenAddFinding()}
-                  >
-                    + Add Finding
-                  </Button>
+                  {!isCorrectionsStage && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="h-6 text-[10px] px-2 bg-accent-scan text-bg-void font-bold"
+                      leftIcon={<Plus className="h-3 w-3" />}
+                      onClick={() => handleOpenAddFinding()}
+                    >
+                      + Add Finding
+                    </Button>
+                  )}
                 </div>
 
                 {/* Filter Pills */}
@@ -1506,179 +1512,232 @@ mitigated or verified false positives before production deployment.
                 </div>
               </div>
 
-              {/* Findings Selector List */}
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {/* Findings Card List — click to open detail view */}
+              <div className="space-y-2">
+                {filteredFindings.length === 0 && (
+                  <div className="p-8 text-center text-text-muted text-xs rounded-[4px] border border-border-hairline bg-bg-panel">
+                    No findings match this filter.
+                  </div>
+                )}
                 {filteredFindings.map((f) => {
-                  const isSelected = selectedFindingId === f.id;
+                  const commentCount = (findingComments[f.id] || []).length;
                   return (
                     <button
                       key={f.id}
                       onClick={() => {
                         setSelectedFindingId(f.id);
+                        setFindingView("detail");
                         if (f.file && f.file !== activeFile.path) {
                           const target = projectFiles.find((p) => p.path === f.file || p.name === f.file);
                           if (target) setSelectedFilePath(target.path);
                         }
                       }}
-                      className={`w-full p-2.5 rounded-[3px] border transition-colors flex items-center justify-between text-left ${
-                        isSelected
-                          ? "bg-bg-panel-raised border-accent-scan text-accent-scan shadow-sm"
-                          : "bg-bg-panel border-border-hairline text-text-muted hover:text-text-primary hover:bg-bg-panel/70"
-                      }`}
+                      className="w-full p-3.5 rounded-[4px] border transition-all text-left bg-bg-panel border-border-hairline hover:border-accent-scan/40 hover:bg-bg-panel-raised group"
                     >
-                      <div className="space-y-0.5 truncate flex-1 pr-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-xs">{f.id}</span>
-                          <Badge severity={f.severity} size="sm">
-                            {f.severity.toUpperCase()}
-                          </Badge>
-                          <span className="text-[10px] text-text-muted truncate">
-                            {f.file.split("/").pop()}:{f.line}
-                          </span>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-accent-scan font-bold text-[11px]">{f.id}</span>
+                            <Badge severity={f.severity} size="sm">
+                              {f.severity.toUpperCase()}
+                            </Badge>
+                            <span className="text-[10px] text-text-muted truncate">
+                              {f.file.split("/").pop()}:{f.line}
+                            </span>
+                          </div>
+                          <div className={`text-xs font-sans font-medium leading-snug ${f.falsePositive ? "line-through text-text-muted" : "text-text-primary"}`}>
+                            {f.title}
+                          </div>
+                          {f.description && (
+                            <p className="text-[11px] text-text-muted font-sans leading-relaxed line-clamp-2">
+                              {f.description}
+                            </p>
+                          )}
                         </div>
-                        <div className={`text-xs truncate font-sans ${f.falsePositive ? "line-through text-text-muted" : "text-text-primary"}`}>
-                          {f.title}
+
+                        <div className="shrink-0 flex flex-col items-end gap-2">
+                          {f.falsePositive ? (
+                            <span className="text-[10px] text-text-muted border border-border-hairline px-1.5 py-0.5 rounded-[2px] font-bold">
+                              FALSE POSITIVE
+                            </span>
+                          ) : f.status === "resolved" ? (
+                            <span className="text-[10px] text-signal-resolved bg-signal-resolved/10 px-1.5 py-0.5 rounded-[2px] border border-signal-resolved/30 font-bold">
+                              RESOLVED ✓
+                            </span>
+                          ) : f.status === "fix-submitted" ? (
+                            <span className="text-[10px] text-signal-high bg-signal-high/10 px-1.5 py-0.5 rounded-[2px] border border-signal-high/30 font-bold">
+                              RE-VERIFY
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-signal-critical bg-signal-critical/10 px-1.5 py-0.5 rounded-[2px] border border-signal-critical/30 font-bold">
+                              OPEN
+                            </span>
+                          )}
+                          {commentCount > 0 && (
+                            <span className="flex items-center gap-1 text-[10px] text-text-muted">
+                              <MessageSquare className="h-3 w-3" />
+                              {commentCount}
+                            </span>
+                          )}
                         </div>
                       </div>
-
-                      <div className="shrink-0 text-[10px] font-bold">
-                        {f.falsePositive ? (
-                          <span className="text-text-muted border border-border-hairline px-1.5 py-0.5 rounded-[2px]">
-                            FALSE POSITIVE
-                          </span>
-                        ) : f.status === "resolved" ? (
-                          <span className="text-signal-resolved bg-signal-resolved/10 px-1.5 py-0.5 rounded-[2px] border border-signal-resolved/30">
-                            RESOLVED ✓
-                          </span>
-                        ) : f.status === "fix-submitted" ? (
-                          <span className="text-signal-high bg-signal-high/10 px-1.5 py-0.5 rounded-[2px] border border-signal-high/30">
-                            RE-VERIFY
-                          </span>
-                        ) : (
-                          <span className="text-signal-critical bg-signal-critical/10 px-1.5 py-0.5 rounded-[2px] border border-signal-critical/30">
-                            OPEN
-                          </span>
-                        )}
+                      <div className="mt-2 pt-2 border-t border-border-hairline flex items-center justify-between text-[10px] text-text-muted">
+                        <span className="flex items-center gap-1">
+                          <FileCode2 className="h-3 w-3 text-accent-scan" />
+                          {f.swcId}
+                        </span>
+                        <span className="flex items-center gap-1 group-hover:text-accent-scan transition-colors">
+                          Open findings detail →
+                        </span>
                       </div>
                     </button>
                   );
                 })}
               </div>
+            </div>
+          )}
 
-              {/* Selected Finding Detail Card & Triage Actions */}
-              {selectedFinding && (
-                <div className="p-5 rounded-[4px] bg-bg-panel border border-border-hairline space-y-4">
-                  {/* Header */}
-                  <div className="flex items-start justify-between border-b border-border-hairline pb-3 gap-2">
+          {/* ------------------------------------------------------------------ */}
+          {/* VIEW B: FULL FINDING DETAIL — replaces list when a finding is open  */}
+          {/* ------------------------------------------------------------------ */}
+          {findingView === "detail" && selectedFinding && (
+            <div className="space-y-4 font-mono text-xs animate-in fade-in duration-150">
+              {/* Back navigation bar */}
+              <div className="flex items-center justify-between p-2.5 rounded-[4px] bg-bg-panel border border-border-hairline">
+                <button
+                  onClick={() => setFindingView("list")}
+                  className="flex items-center gap-1.5 text-text-muted hover:text-accent-scan transition-colors text-xs"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>Back to Findings</span>
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-text-muted">{filteredFindings.findIndex(f => f.id === selectedFindingId) + 1} of {filteredFindings.length}</span>
+                  {/* Prev / Next */}
+                  {filteredFindings.findIndex(f => f.id === selectedFindingId) > 0 && (
+                    <button
+                      onClick={() => {
+                        const idx = filteredFindings.findIndex(f => f.id === selectedFindingId);
+                        setSelectedFindingId(filteredFindings[idx - 1].id);
+                      }}
+                      className="text-text-muted hover:text-text-primary p-0.5"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {filteredFindings.findIndex(f => f.id === selectedFindingId) < filteredFindings.length - 1 && (
+                    <button
+                      onClick={() => {
+                        const idx = filteredFindings.findIndex(f => f.id === selectedFindingId);
+                        setSelectedFindingId(filteredFindings[idx + 1].id);
+                      }}
+                      className="text-text-muted hover:text-text-primary p-0.5"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Finding Detail Panel */}
+              <div className="rounded-[4px] bg-bg-panel border border-border-hairline overflow-hidden">
+                {/* Finding Header */}
+                <div className="p-4 border-b border-border-hairline space-y-2">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-accent-scan font-bold text-sm">{selectedFinding.id}</span>
                         <Badge severity={selectedFinding.severity} size="sm">
                           {selectedFinding.severity.toUpperCase()} ({selectedFinding.cvss})
                         </Badge>
-                        <span className="text-text-muted text-[11px]">
-                          {selectedFinding.swcId}
-                        </span>
+                        <span className="text-text-muted text-[11px]">{selectedFinding.swcId}</span>
                       </div>
-                      <h4 className="font-display text-sm font-semibold text-text-primary font-sans leading-snug">
+                      <h4 className="font-sans text-sm font-semibold text-text-primary leading-snug">
                         {selectedFinding.title}
                       </h4>
-                      <div className="text-[11px] text-text-muted flex items-center gap-2 pt-0.5">
+                      <div className="text-[11px] text-text-muted flex items-center gap-2">
                         <FileCode2 className="h-3 w-3 text-accent-scan" />
                         <span>{selectedFinding.file}:{selectedFinding.line}</span>
                       </div>
                     </div>
 
                     {selectedFinding.falsePositive ? (
-                      <Badge severity="low" size="sm">
-                        DISMISSED (FP)
-                      </Badge>
+                      <Badge severity="low" size="sm">DISMISSED (FP)</Badge>
                     ) : selectedFinding.status === "resolved" ? (
-                      <Badge severity="resolved" size="sm">
-                        RESOLVED ✓
-                      </Badge>
+                      <Badge severity="resolved" size="sm">RESOLVED ✓</Badge>
                     ) : (
                       <Badge severity={selectedFinding.severity} size="sm">
                         {selectedFinding.status.toUpperCase()}
                       </Badge>
                     )}
                   </div>
+                </div>
 
-                  {/* False Positive Banner if dismissed */}
+                {/* Scrollable detail body */}
+                <div className="divide-y divide-border-hairline">
+                  {/* False Positive Banner */}
                   {selectedFinding.falsePositive && (
-                    <div className="p-3 rounded-[3px] bg-bg-void border border-border-hairline text-text-muted space-y-1 text-xs">
-                      <div className="font-bold text-text-primary flex items-center gap-1.5">
-                        <AlertTriangle className="h-3.5 w-3.5 text-signal-low" />
-                        <span>DISMISSED AS FALSE POSITIVE</span>
+                    <div className="p-4">
+                      <div className="p-3 rounded-[3px] bg-bg-void border border-border-hairline space-y-1">
+                        <div className="font-bold text-text-primary flex items-center gap-1.5 text-xs">
+                          <AlertTriangle className="h-3.5 w-3.5 text-signal-low" />
+                          DISMISSED AS FALSE POSITIVE
+                        </div>
+                        <p className="text-[11px] text-text-muted font-sans leading-relaxed">
+                          {selectedFinding.fpJustification || "Auditor evaluated finding as non-exploitable in this codebase context."}
+                        </p>
                       </div>
-                      <p className="font-sans leading-relaxed text-[11px]">
-                        {selectedFinding.fpJustification || "Auditor evaluated finding as non-exploitable in this codebase context."}
-                      </p>
                     </div>
                   )}
 
                   {/* Impact & Description */}
-                  <div className="p-3 rounded-[2px] bg-bg-void border border-border-hairline space-y-2">
+                  <div className="p-4 space-y-3">
                     {selectedFinding.impact && (
                       <div className="space-y-0.5">
-                        <div className="text-[10px] text-text-muted uppercase">EXPLOIT IMPACT:</div>
+                        <div className="text-[10px] text-text-muted uppercase tracking-wide">EXPLOIT IMPACT</div>
                         <div className="text-xs text-signal-high font-sans font-medium">{selectedFinding.impact}</div>
                       </div>
                     )}
                     <div className="space-y-0.5">
-                      <div className="text-[10px] text-text-muted uppercase">ROOT CAUSE & ANALYSIS:</div>
+                      <div className="text-[10px] text-text-muted uppercase tracking-wide">ROOT CAUSE & ANALYSIS</div>
                       <p className="text-xs text-text-muted font-sans leading-relaxed">
-                        {selectedFinding.description}
+                        {selectedFinding.description || <span className="italic">No description provided.</span>}
                       </p>
                     </div>
                   </div>
 
-                  {/* Vulnerable Code snippet */}
+                  {/* Vulnerable Code */}
                   {selectedFinding.vulnerableCode && (
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-text-muted uppercase">FLAGGED VULNERABLE CODE:</div>
+                    <div className="p-4 space-y-1.5">
+                      <div className="text-[10px] text-text-muted uppercase tracking-wide">FLAGGED VULNERABLE CODE</div>
                       <div className="p-2.5 rounded-[2px] bg-bg-void border border-signal-critical/30 text-[11px] overflow-x-auto">
                         <HighlightedSolidityBlock code={selectedFinding.vulnerableCode} />
                       </div>
                     </div>
                   )}
 
-                  {/* Remediation guidance */}
+                  {/* Remediation */}
                   {selectedFinding.remediation && (
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-text-muted uppercase">REMEDIATION GUIDANCE:</div>
+                    <div className="p-4 space-y-1.5">
+                      <div className="text-[10px] text-text-muted uppercase tracking-wide">REMEDIATION GUIDANCE</div>
                       <p className="text-xs text-signal-resolved font-sans leading-relaxed">
                         {selectedFinding.remediation}
                       </p>
                     </div>
                   )}
 
-                  {/* Auditor Notes Input — only visible in active review mode */}
-                  {!isCorrectionsStage && (
-                    <div className="space-y-2 pt-1 border-t border-border-hairline">
-                      <label className="text-text-muted text-[11px]">AUDITOR TRIAGE & RE-VERIFICATION NOTES:</label>
-                      <Input
-                        value={auditorNote}
-                        onChange={(e) => setAuditorNote(e.target.value)}
-                        placeholder="Add remediation notes or verification details..."
-                        className="text-xs bg-bg-void"
-                      />
-                    </div>
-                  )}
+                  {/* Triage Actions */}
+                  <div className="p-4 space-y-3">
+                    <div className="text-[10px] text-text-muted uppercase tracking-wide">TRIAGE ACTIONS</div>
 
-                  {/* TRIAGE ACTIONS TOOLBAR */}
-                  <div className="space-y-2 pt-2 border-t border-border-hairline">
                     {isCorrectionsStage ? (
-                      /* CORRECTIONS STAGE: Read-only lock banner + Edit-only access */
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         <div className="p-3 rounded-[3px] bg-signal-high/10 border border-signal-high/30 flex items-start gap-2.5">
                           <Lock className="h-4 w-4 text-signal-high shrink-0 mt-0.5" />
-                          <div className="space-y-1">
-                            <div className="text-[11px] font-bold text-signal-high uppercase tracking-wide">
-                              Triage Actions Locked
-                            </div>
-                            <p className="text-[11px] text-text-muted font-sans leading-relaxed">
-                              Findings have been released to the client for remediation. Triage actions (approve, flag, dismiss) are disabled while the client is applying fixes. You may only <strong className="text-text-primary">edit finding details</strong> or communicate via the Comms thread.
+                          <div className="space-y-0.5">
+                            <div className="text-[11px] font-bold text-signal-high uppercase">Triage Actions Locked</div>
+                            <p className="text-[11px] text-text-muted font-sans">
+                              Findings are with the client for remediation. Only <strong className="text-text-primary">editing</strong> is permitted.
                             </p>
                           </div>
                         </div>
@@ -1693,7 +1752,6 @@ mitigated or verified false positives before production deployment.
                         </Button>
                       </div>
                     ) : selectedFinding.falsePositive ? (
-                      /* FALSE POSITIVE: Offer re-open + edit */
                       <div className="space-y-2">
                         <Button
                           variant="outline"
@@ -1714,8 +1772,14 @@ mitigated or verified false positives before production deployment.
                         </Button>
                       </div>
                     ) : (
-                      /* ACTIVE REVIEW MODE: Full triage actions */
                       <>
+                        {/* Auditor re-verification notes */}
+                        <Input
+                          value={auditorNote}
+                          onChange={(e) => setAuditorNote(e.target.value)}
+                          placeholder="Re-verification or triage notes (optional)..."
+                          className="text-xs bg-bg-void"
+                        />
                         <div className="grid grid-cols-2 gap-2">
                           {selectedFinding.status !== "resolved" ? (
                             <Button
@@ -1738,7 +1802,6 @@ mitigated or verified false positives before production deployment.
                               Re-Open Finding
                             </Button>
                           )}
-
                           <Button
                             variant="outline"
                             size="sm"
@@ -1749,7 +1812,6 @@ mitigated or verified false positives before production deployment.
                             Flag for Remediation
                           </Button>
                         </div>
-
                         <div className="grid grid-cols-2 gap-2">
                           <Button
                             variant="outline"
@@ -1760,7 +1822,6 @@ mitigated or verified false positives before production deployment.
                           >
                             Edit Finding
                           </Button>
-
                           <Button
                             variant="outline"
                             size="sm"
@@ -1775,76 +1836,88 @@ mitigated or verified false positives before production deployment.
                     )}
                   </div>
 
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 2: COMMS THREAD */}
-          {activeRightTab === "comms" && (
-            <div className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-5 font-mono text-xs">
-              <div className="flex items-center justify-between border-b border-border-hairline pb-3">
-                <div className="flex items-center gap-2 font-semibold text-text-primary">
-                  <MessageSquare className="h-4 w-4 text-accent-scan" />
-                  <span>Client & Auditor Communication Feed</span>
-                </div>
-                <span className="text-[10px] text-text-muted">
-                  TICKET #{audit.id}
-                </span>
-              </div>
-
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {discussionMessages.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`p-3.5 rounded-[4px] border space-y-1.5 ${
-                      item.role === "auditor"
-                        ? "bg-bg-panel-raised border-accent-scan/30"
-                        : "bg-bg-void border-border-hairline"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[11px]">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-semibold ${item.role === "auditor" ? "text-accent-scan" : "text-text-primary"}`}>
-                          {item.sender}
-                        </span>
-                        <Badge severity={item.role === "auditor" ? "informational" : "resolved"} size="sm">
-                          {item.role === "auditor" ? "LEAD AUDITOR" : "CLIENT"}
-                        </Badge>
+                  {/* ── DISCUSSION THREAD ─────────────────────────────────── */}
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] text-text-muted uppercase tracking-wide flex items-center gap-1.5">
+                        <MessageSquare className="h-3.5 w-3.5 text-accent-scan" />
+                        DISCUSSION THREAD
                       </div>
-                      <span className="text-[10px] text-text-muted">{item.timestamp}</span>
+                      <span className="text-[10px] text-text-muted">
+                        {(findingComments[selectedFinding.id] || []).length} comment{(findingComments[selectedFinding.id] || []).length !== 1 ? "s" : ""}
+                      </span>
                     </div>
-                    <p className="text-xs text-text-primary font-sans leading-relaxed">
-                      {item.message}
-                    </p>
-                  </div>
-                ))}
-              </div>
 
-              <form onSubmit={handlePostAuditorComment} className="space-y-2 pt-2 border-t border-border-hairline">
-                <Input
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Post comment to client remediation thread..."
-                  className="text-xs bg-bg-void"
-                />
-                <div className="flex justify-end">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="sm"
-                    className="bg-accent-scan text-bg-void font-bold"
-                    rightIcon={<Send className="h-3 w-3" />}
-                    disabled={!newComment.trim()}
-                  >
-                    Send to Client
-                  </Button>
+                    {/* Comment list */}
+                    <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                      {(findingComments[selectedFinding.id] || []).length === 0 && (
+                        <div className="text-center py-6 text-text-muted text-[11px] font-sans">
+                          No comments yet. Start the discussion below.
+                        </div>
+                      )}
+                      {(findingComments[selectedFinding.id] || []).map((c) => (
+                        <div
+                          key={c.id}
+                          className={`p-3 rounded-[3px] border space-y-1.5 ${
+                            c.role === "auditor"
+                              ? "bg-bg-panel-raised border-accent-scan/25"
+                              : "bg-bg-void border-border-hairline"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[11px] font-bold ${c.role === "auditor" ? "text-accent-scan" : "text-text-primary"}`}>
+                                {c.sender}
+                              </span>
+                              <Badge severity={c.role === "auditor" ? "informational" : "resolved"} size="sm">
+                                {c.role === "auditor" ? "AUDITOR" : "CLIENT"}
+                              </Badge>
+                            </div>
+                            <span className="text-[10px] text-text-muted">{c.timestamp}</span>
+                          </div>
+                          <p className="text-xs text-text-primary font-sans leading-relaxed">{c.message}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Comment input */}
+                    <form onSubmit={handlePostFindingComment} className="space-y-2 pt-1 border-t border-border-hairline">
+                      <textarea
+                        value={newFindingComment}
+                        onChange={(e) => setNewFindingComment(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                            e.preventDefault();
+                            handlePostFindingComment(e as any);
+                          }
+                        }}
+                        rows={3}
+                        placeholder="Leave a comment on this finding... (Ctrl+Enter to submit)"
+                        className="w-full p-2.5 rounded-[4px] bg-bg-void border border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-sans resize-none"
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-text-muted">Visible to both auditor and client</span>
+                        <Button
+                          type="submit"
+                          variant="primary"
+                          size="sm"
+                          className="bg-accent-scan text-bg-void font-bold text-xs"
+                          rightIcon={<Send className="h-3 w-3" />}
+                          disabled={!newFindingComment.trim()}
+                        >
+                          Post Comment
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                  {/* ───────────────────────────────────────────────────────── */}
                 </div>
-              </form>
+              </div>
             </div>
           )}
         </div>
       </div>
+
 
       {/* ========================================================================= */}
       {/* MODAL 1: ADD MANUAL FINDING FORM                                          */}
