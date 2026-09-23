@@ -322,6 +322,25 @@ export default function AuditorCodeReviewPage() {
 
         setFindings(realFindings);
         setSelectedFindingId(realFindings[0].id);
+
+        // Populate comments for each finding from backend
+        const initialComments: Record<string, FindingComment[]> = {};
+        findingsRes.data.forEach((f: any) => {
+          const fId = f.id || f.displayId;
+          if (Array.isArray(f.comments) && f.comments.length > 0) {
+            initialComments[fId] = f.comments.map((c: any) => ({
+              id: c.id,
+              findingId: fId,
+              sender: c.sender?.name || c.sender?.email || (c.sender?.role === "CLIENT" ? "Aura Core Protocol" : "0xAuditor_K4"),
+              role: c.sender?.role?.toLowerCase() === "client" ? "client" : "auditor",
+              timestamp: c.createdAt ? new Date(c.createdAt).toISOString().replace("T", " ").substring(0, 16) + " UTC" : new Date().toISOString(),
+              message: c.message,
+            }));
+          }
+        });
+        if (Object.keys(initialComments).length > 0) {
+          setFindingComments((prev) => ({ ...prev, ...initialComments }));
+        }
       }
     }).finally(() => setDataLoading(false));
   }, [ticketId]);
@@ -976,14 +995,22 @@ mitigated or verified false positives before production deployment.
     setNewFindingComment("");
 
     // Attempt to persist to backend
+    // Backend derives sender from JWT token — only send message (+ optional commitRef)
     try {
-      await apiClient.post(`/findings/${selectedFindingId}/comments`, {
+      const res = await apiClient.post(`/findings/${selectedFindingId}/comments`, {
         message: comment.message,
-        sender: comment.sender,
-        role: comment.role,
       });
+      // If backend returned the created comment, update the optimistic entry with the real id
+      if (res?.data?.id) {
+        setFindingComments((prev) => ({
+          ...prev,
+          [selectedFindingId]: (prev[selectedFindingId] || []).map((c) =>
+            c.id === comment.id ? { ...c, id: res.data.id } : c
+          ),
+        }));
+      }
     } catch (e: any) {
-      // Silently accepted — local state already updated
+      // Silently accepted — local state already updated optimistically
     }
   };
 
