@@ -348,7 +348,7 @@ export default function AccountSettingsPage() {
                 <Input
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
-                  placeholder="Aura Core Protocol"
+                  placeholder="e.g. My Protocol"
                   required
                 />
               </div>
@@ -357,7 +357,7 @@ export default function AccountSettingsPage() {
                 <Input
                   value={daoLegalName}
                   onChange={(e) => setDaoLegalName(e.target.value)}
-                  placeholder="Aura Finance DAO Ltd."
+                  placeholder="e.g. Protocol Labs Ltd."
                   required
                 />
               </div>
@@ -367,7 +367,7 @@ export default function AccountSettingsPage() {
                   type="email"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="security@auraprotocol.io"
+                  placeholder="e.g. security@protocol.io"
                   required
                 />
               </div>

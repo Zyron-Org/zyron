@@ -131,66 +131,20 @@ export default function AuditorCodeReviewPage() {
 
   // View Mode: 'diff' vs 'full' (default to full source for immediate code inspection)
   const [viewMode, setViewMode] = React.useState<"diff" | "full">("full");
-  const [selectedFilePath, setSelectedFilePath] = React.useState<string>("contracts/VaultCore.sol");
+  const [selectedFilePath, setSelectedFilePath] = React.useState<string>("contracts/Contract.sol");
 
   // Right panel view: 'list' shows the findings list, 'detail' shows selected finding full view
   const [findingView, setFindingView] = React.useState<"list" | "detail">("list");
 
   // Findings & Triage state
-  const [findings, setFindings] = React.useState<TriageFinding[]>([
-    {
-      id: "ZYR-9481-002",
-      swcId: "SWC-104",
-      severity: "high",
-      cvss: "CVSS 7.8",
-      title: "Unchecked ERC-20 Transfer in Reward Distribution",
-      file: "contracts/VaultCore.sol",
-      line: 146,
-      description: "Raw transfer ignores non-boolean returns on tokens like USDT.",
-      remediation: "Import SafeERC20 and use safeTransfer.",
-      status: "resolved",
-      falsePositive: false,
-    },
-    {
-      id: "ZYR-VAULT-001",
-      swcId: "SWC-107",
-      severity: "critical",
-      cvss: "CVSS 9.1",
-      title: "Reentrancy in withdrawAll() allows pool liquidation",
-      file: "contracts/VaultCore.sol",
-      line: 142,
-      description: "External low-level call msg.sender.call executes prior to zeroing userBalances.",
-      remediation: "Zero userBalances state before external call (Checks-Effects-Interactions).",
-      status: "fix-submitted",
-      falsePositive: false,
-    },
-  ]);
+  const [findings, setFindings] = React.useState<TriageFinding[]>([]);
 
-  const [selectedFindingId, setSelectedFindingId] = React.useState<string>("ZYR-VAULT-001");
+  const [selectedFindingId, setSelectedFindingId] = React.useState<string>("");
   const [findingFilter, setFindingFilter] = React.useState<"all" | "active" | "resolved" | "dismissed">("all");
   const [auditorNote, setAuditorNote] = React.useState("");
 
   // Per-finding comment threads: findingId → comments array
-  const [findingComments, setFindingComments] = React.useState<Record<string, FindingComment[]>>({
-    "ZYR-VAULT-001": [
-      {
-        id: "fc-1",
-        findingId: "ZYR-VAULT-001",
-        sender: "0xAuditor_K4",
-        role: "auditor",
-        timestamp: "2026-08-18 21:35 UTC",
-        message: "Flagged CRITICAL on line 142 (withdrawAll). low-level call msg.sender.call executes before userBalances[msg.sender] = 0. CEI pattern violation.",
-      },
-      {
-        id: "fc-2",
-        findingId: "ZYR-VAULT-001",
-        sender: "Aura Core Protocol",
-        role: "client",
-        timestamp: "2026-08-19 14:20 UTC",
-        message: "Applied Checks-Effects-Interactions pattern. Moved userBalances[msg.sender] = 0 before the external call. Pinned commit 4b8f10e for re-verification.",
-      },
-    ],
-  });
+  const [findingComments, setFindingComments] = React.useState<Record<string, FindingComment[]>>({});
   const [newFindingComment, setNewFindingComment] = React.useState("");
 
   // Add Manual Finding Modal State
@@ -201,8 +155,8 @@ export default function AuditorCodeReviewPage() {
     severity: "HIGH" as "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFORMATIONAL",
     cvss: "CVSS 8.5",
     taxonomy: "SWC-107 · CWE-841 (Reentrancy)",
-    file: "contracts/VaultCore.sol",
-    line: 142,
+    file: "contracts/Contract.sol",
+    line: 1,
     impact: "Potential protocol liquidity drain or unauthorized state manipulation.",
     description: "",
     vulnerableCode: "",
@@ -271,7 +225,7 @@ export default function AuditorCodeReviewPage() {
         setAuditData(auditObj);
         setTicketStage(auditObj.stage);
 
-        const targetFile = a.contractFileName || "VaultCore.sol";
+        const targetFile = a.contractFileName || "Contract.sol";
         const defaultPath = targetFile.includes("/") ? targetFile : `contracts/${targetFile}`;
         setSelectedFilePath(defaultPath);
 
@@ -332,7 +286,7 @@ export default function AuditorCodeReviewPage() {
           severity: (f.severity || "medium").toLowerCase() as any,
           cvss: f.cvss || (f.cvssScore ? `CVSS ${f.cvssScore}` : "CVSS 8.0"),
           title: f.title || "Untitled Finding",
-          file: f.location?.split(":")[0] || f.affectedFile || (auditRes?.data?.contractFileName ? `contracts/${auditRes.data.contractFileName}` : "contracts/VaultCore.sol"),
+          file: f.location?.split(":")[0] || f.affectedFile || (auditRes?.data?.contractFileName ? `contracts/${auditRes.data.contractFileName}` : "contracts/Contract.sol"),
           line: parseInt(f.location?.split(":")[1] || "142", 10) || f.lineNumber || 1,
           description: f.description || "",
           remediation: f.remediationNote || f.remediation || "",
@@ -354,7 +308,7 @@ export default function AuditorCodeReviewPage() {
             initialComments[fId] = f.comments.map((c: any) => ({
               id: c.id,
               findingId: fId,
-              sender: c.sender?.name || c.sender?.email || (c.sender?.role === "CLIENT" ? "Aura Core Protocol" : "0xAuditor_K4"),
+              sender: c.sender?.name || c.sender?.email || (c.sender?.role === "CLIENT" ? (auditRes?.data?.protocolName || "Client") : "0xAuditor_K4"),
               role: c.sender?.role?.toLowerCase() === "client" ? "client" : "auditor",
               timestamp: c.createdAt ? new Date(c.createdAt).toISOString().replace("T", " ").substring(0, 16) + " UTC" : new Date().toISOString(),
               message: c.message,
@@ -364,6 +318,9 @@ export default function AuditorCodeReviewPage() {
         if (Object.keys(initialComments).length > 0) {
           setFindingComments((prev) => ({ ...prev, ...initialComments }));
         }
+      } else {
+        setFindings([]);
+        setSelectedFindingId("");
       }
     }).finally(() => setDataLoading(false));
   }, [ticketId]);
@@ -372,7 +329,7 @@ export default function AuditorCodeReviewPage() {
     (a) => a.id.toLowerCase() === ticketId.toLowerCase()
   ) || MOCK_AUDIT_REQUESTS[0]);
 
-  const fname = auditData?.contractFileName || "VaultCore.sol";
+  const fname = auditData?.contractFileName || "Contract.sol";
   const baseName = fname.replace(/\.sol$/, "");
   const primaryPath = fname.includes("/") ? fname : `contracts/${fname}`;
 
@@ -385,8 +342,8 @@ import "./interfaces/I${baseName}.sol";
 import "./libraries/TransferHelper.sol";
 
 /**
- * @title ${auditData?.protocolName || "VaultCore"}
- * @notice Automated liquidity vault with yield routing
+ * @title ${auditData?.protocolName || baseName || "Smart Contract"}
+ * @notice Primary smart contract under audit review
  * @dev Commit SHA: ${auditData?.gitCommit?.slice(0, 7) || "8f9b2d4"}
  */
 contract ${baseName} is I${baseName} {

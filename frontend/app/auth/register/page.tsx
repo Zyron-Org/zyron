@@ -62,7 +62,7 @@ export default function RegisterPage() {
           <Input
             value={protocolName}
             onChange={(e) => setProtocolName(e.target.value)}
-            placeholder="e.g. Aura Core Protocol"
+            placeholder="e.g. Acme Protocol / DAO"
             prefix={<Building className="h-3.5 w-3.5 text-text-muted" />}
             required
           />
