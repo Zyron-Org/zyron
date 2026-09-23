@@ -55,7 +55,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Input } from "@/components/ui/input";
-import { MOCK_AUDIT_REQUESTS, type AuditRequest } from "@/lib/mock-data";
+import { MOCK_AUDIT_REQUESTS, OPEN_SOURCE_TEST_PROJECT, type AuditRequest } from "@/lib/mock-data";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
 import { HighlightedSolidityLine, HighlightedSolidityBlock } from "@/lib/solidity-highlighter";
@@ -129,8 +129,8 @@ export default function AuditorCodeReviewPage() {
     setExpandedFolders((prev) => ({ ...prev, [folder]: !prev[folder] }));
   };
 
-  // View Mode: 'diff' vs 'full'
-  const [viewMode, setViewMode] = React.useState<"diff" | "full">("diff");
+  // View Mode: 'diff' vs 'full' (default to full source for immediate code inspection)
+  const [viewMode, setViewMode] = React.useState<"diff" | "full">("full");
   const [selectedFilePath, setSelectedFilePath] = React.useState<string>("contracts/VaultCore.sol");
 
   // Right panel view: 'list' shows the findings list, 'detail' shows selected finding full view
@@ -275,25 +275,48 @@ export default function AuditorCodeReviewPage() {
         const defaultPath = targetFile.includes("/") ? targetFile : `contracts/${targetFile}`;
         setSelectedFilePath(defaultPath);
 
-        const repoStr = a.githubRepoUrl || a.protocolName;
-        if (repoStr && repoStr.includes("/")) {
-          const parts = repoStr.split("/");
-          apiClient
-            .get("/integrations/github/file-content", {
-              params: {
-                owner: parts[0],
-                repo: parts[1],
-                filePath: targetFile,
-                branch: a.githubBranch || "main",
-              },
-            })
-            .then((rawRes) => {
-              if (rawRes.data?.content) {
-                setFetchedSourceCode(rawRes.data.content);
-              }
-            })
-            .catch(() => null);
+        // 1. Direct source code from backend database
+        if (a.sourceCode && a.sourceCode.trim().length > 0) {
+          setFetchedSourceCode(a.sourceCode);
+        } else {
+          // 2. Fetch from GitHub repository via API
+          const repoStr = a.githubRepoUrl || a.protocolName || "";
+          let owner = "";
+          let repo = "";
+          if (repoStr.includes("github.com")) {
+            const match = repoStr.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+            if (match) {
+              owner = match[1];
+              repo = match[2].replace(/\.git$/, "");
+            }
+          } else if (repoStr.includes("/")) {
+            const parts = repoStr.split("/");
+            if (parts.length === 2) {
+              owner = parts[0].trim();
+              repo = parts[1].trim().replace(/\.git$/, "");
+            }
+          }
+
+          if (owner && repo) {
+            apiClient
+              .get("/integrations/github/file-content", {
+                params: {
+                  owner,
+                  repo,
+                  repoUrl: a.githubRepoUrl,
+                  filePath: targetFile,
+                  branch: a.githubBranch || "main",
+                },
+              })
+              .then((rawRes) => {
+                if (rawRes.data?.content) {
+                  setFetchedSourceCode(rawRes.data.content);
+                }
+              })
+              .catch(() => null);
+          }
         }
+
       } else {
         const fallback = MOCK_AUDIT_REQUESTS.find(
           (x) => x.id.toLowerCase() === ticketId.toLowerCase()
@@ -401,7 +424,11 @@ contract ${baseName} is I${baseName} {
     }
 }`;
 
-    const rawCode = fetchedSourceCode || defaultCode;
+    const matchingTestFile = OPEN_SOURCE_TEST_PROJECT.contractFiles.find(
+      (cf) => cf.fileName === fname || cf.path === fname || cf.path.endsWith("/" + fname)
+    );
+
+    const rawCode = fetchedSourceCode || matchingTestFile?.sourceCode || defaultCode;
     const rawLines = rawCode.split("\n");
 
     const getFileFindings = (path: string, name: string) => {
@@ -433,12 +460,13 @@ contract ${baseName} is I${baseName} {
       hasFixDiff: true,
       additions: 4,
       deletions: 1,
-      diffLines: primaryLines.slice(0, 45).map((l) => ({
+      diffLines: primaryLines.map((l) => ({
         type: "context" as const,
         oldLine: l.line,
         newLine: l.line,
         code: l.code,
       })),
+
       flags: primaryFindings.map((f) => ({
         line: f.line || 1,
         type: (f.severity.toUpperCase() as any) || "HIGH",
@@ -538,7 +566,14 @@ library TransferHelper {
     return [primaryFile, ifaceFile, libFile];
   }, [auditData, fetchedSourceCode, findings, primaryPath, fname, baseName]);
 
-  const activeFile = projectFiles.find((f) => f.path === selectedFilePath) || projectFiles[0];
+  const activeFile =
+    projectFiles.find(
+      (f) =>
+        f.path === selectedFilePath ||
+        f.name === selectedFilePath ||
+        selectedFilePath.endsWith(f.name) ||
+        f.path.endsWith(selectedFilePath)
+    ) || projectFiles[0];
 
   // Group files by folder for File Tree Explorer
   const fileTree = React.useMemo(() => {
