@@ -220,184 +220,161 @@ export interface MockRepository {
   contractFiles: SolContractFile[];
 }
 
-export const MOCK_REPOSITORIES: MockRepository[] = [
-  {
-    id: "repo-1",
-    name: "core-vaults",
-    fullName: "aura-finance/core-vaults",
-    isPrivate: true,
-    defaultBranch: "main",
-    branches: ["main", "feat/v3-collateral-fix", "staging"],
-    lastUpdated: "2 hours ago",
-    contractFiles: [
-      {
-        path: "contracts/VaultCore.sol",
-        fileName: "VaultCore.sol",
-        sloc: 1482,
-        commit: "8f9b2d4c01e9a37",
-        sourceCode: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+export const OPEN_SOURCE_TEST_PROJECT: MockRepository = {
+  id: "uniswap-v2-core",
+  name: "v2-core",
+  fullName: "Uniswap/v2-core",
+  isPrivate: false,
+  defaultBranch: "master",
+  branches: ["master", "dev", "staging"],
+  lastUpdated: "Open Source AMM",
+  contractFiles: [
+    {
+      path: "contracts/UniswapV2Pair.sol",
+      fileName: "UniswapV2Pair.sol",
+      sloc: 201,
+      commit: "6a9e7c97860676e0992f22a49665760444c1cdf5",
+      sourceCode: `pragma solidity =0.5.16;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import './interfaces/IUniswapV2Pair.sol';
+import './UniswapV2ERC20.sol';
+import './libraries/Math.sol';
+import './libraries/UQ112x112.sol';
+import './interfaces/IERC20.sol';
+import './interfaces/IUniswapV2Factory.sol';
+import './interfaces/IUniswapV2Callee.sol';
 
-/// @title VaultCore - Liquidity collateral vault
-/// @notice Manages multi-asset staking deposits and yield distributions
-contract VaultCore is ReentrancyGuard, Ownable {
-    mapping(address => uint256) public userBalances;
-    uint256 public totalVaultCollateral;
-    IERC20 public immutable rewardToken;
+contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
+    using SafeMath  for uint;
+    using UQ112x112 for uint224;
 
-    event Deposited(address indexed user, uint256 amount);
-    event Withdrawn(address indexed user, uint256 amount);
+    uint public constant MINIMUM_LIQUIDITY = 10**3;
+    bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
-    constructor(address _rewardToken) Ownable(msg.sender) {
-        rewardToken = IERC20(_rewardToken);
+    address public factory;
+    address public token0;
+    address public token1;
+
+    uint112 private reserve0;           // uses single storage slot, accessible via getReserves
+    uint112 private reserve1;           // uses single storage slot, accessible via getReserves
+    uint32  private blockTimestampLast; // uses single storage slot, accessible via getReserves
+
+    uint public price0CumulativeLast;
+    uint public price1CumulativeLast;
+    uint public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
+
+    uint private unlocked = 1;
+    modifier lock() {
+        require(unlocked == 1, 'UniswapV2: LOCKED');
+        unlocked = 0;
+        _;
+        unlocked = 1;
     }
 
-    function deposit() external payable nonReentrant {
-        require(msg.value > 0, "Zero deposit");
-        userBalances[msg.sender] += msg.value;
-        totalVaultCollateral += msg.value;
-        emit Deposited(msg.sender, msg.value);
+    function getReserves() public view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast) {
+        _reserve0 = reserve0;
+        _reserve1 = reserve1;
+        _blockTimestampLast = blockTimestampLast;
     }
 
-    function withdrawAll() external nonReentrant {
-        uint256 amount = userBalances[msg.sender];
-        require(amount > 0, "No balance");
-
-        // Checks-Effects-Interactions
-        userBalances[msg.sender] = 0;
-        totalVaultCollateral -= amount;
-
-        (bool sent, ) = msg.sender.call{value: amount}("");
-        require(sent, "Transfer failed");
-
-        emit Withdrawn(msg.sender, amount);
-    }
-}`,
-      },
-      {
-        path: "contracts/CollateralManager.sol",
-        fileName: "CollateralManager.sol",
-        sloc: 1180,
-        commit: "3c1a9f0d8e27a61",
-        sourceCode: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
-
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-/// @title CollateralManager - Multi-tier liquidation engine
-contract CollateralManager is AccessControl {
-    using SafeERC20 for IERC20;
-    bytes32 public constant LIQUIDATOR_ROLE = keccak256("LIQUIDATOR_ROLE");
-    uint256 public constant LIQUIDATION_THRESHOLD = 8000; // 80%
-
-    mapping(address => uint256) public collateralRatios;
-
-    function liquidatePosition(address borrower, uint256 debtToCover) external onlyRole(LIQUIDATOR_ROLE) {
-        require(collateralRatios[borrower] < LIQUIDATION_THRESHOLD, "Position healthy");
-        // Liquidation logic executed
-    }
-}`,
-      },
-    ],
-  },
-  {
-    id: "repo-2",
-    name: "staking-rewards",
-    fullName: "aura-finance/staking-rewards",
-    isPrivate: false,
-    defaultBranch: "main",
-    branches: ["main", "audit-remediation"],
-    lastUpdated: "1 day ago",
-    contractFiles: [
-      {
-        path: "contracts/StakingPool.sol",
-        fileName: "StakingPool.sol",
-        sloc: 640,
-        commit: "7a8e2b9c5d10f34",
-        sourceCode: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
-contract StakingPool is ReentrancyGuard {
-    IERC20 public immutable stakingToken;
-    uint256 public rewardRate = 100;
-    mapping(address => uint256) public stakedBalance;
-
-    constructor(address _token) {
-        stakingToken = IERC20(_token);
+    function _safeTransfer(address token, address to, uint value) private {
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
+        require(success && (data.length == 0 || abi.decode(data, (bool))), 'UniswapV2: TRANSFER_FAILED');
     }
 
-    function stake(uint256 amount) external nonReentrant {
-        require(amount > 0, "Cannot stake 0");
-        stakedBalance[msg.sender] += amount;
+    event Mint(address indexed sender, uint amount0, uint amount1);
+    event Burn(address indexed sender, uint amount0, uint amount1, address indexed to);
+    event Swap(
+        address indexed sender,
+        uint amount0In,
+        uint amount1In,
+        uint amount0Out,
+        uint amount1Out,
+        address indexed to
+    );
+    event Sync(uint112 reserve0, uint112 reserve1);
+
+    constructor() public {
+        factory = msg.sender;
     }
-}`,
-      },
-    ],
-  },
-  {
-    id: "repo-3",
-    name: "yield-strategies",
-    fullName: "aura-finance/yield-strategies",
-    isPrivate: true,
-    defaultBranch: "master",
-    branches: ["master", "v2-balancer-pool"],
-    lastUpdated: "3 days ago",
-    contractFiles: [
-      {
-        path: "contracts/StrategyRouter.sol",
-        fileName: "StrategyRouter.sol",
-        sloc: 1890,
-        commit: "1b4c9e8f7a2d309",
-        sourceCode: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-contract StrategyRouter is Ownable {
-    address[] public activeStrategies;
-    uint256 public totalAllocatedCapital;
-
-    function rebalanceAll() external onlyOwner {
-        // Multi-dex router execution
+    // called once by the factory at time of deployment
+    function initialize(address _token0, address _token1) external {
+        require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
+        token0 = _token0;
+        token1 = _token1;
     }
-}`,
-      },
-    ],
-  },
-  {
-    id: "repo-4",
-    name: "cross-chain-router",
-    fullName: "aura-finance/cross-chain-router",
-    isPrivate: false,
-    defaultBranch: "main",
-    branches: ["main", "develop"],
-    lastUpdated: "5 days ago",
-    contractFiles: [
-      {
-        path: "contracts/BridgeEndpoint.sol",
-        fileName: "BridgeEndpoint.sol",
-        sloc: 1450,
-        commit: "9c3d4f1a2b8e7c0",
-        sourceCode: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
 
-contract BridgeEndpoint {
-    mapping(bytes32 => bool) public processedPayloads;
-    event CrossChainMessage(address indexed sender, uint256 dstChainId, bytes payload);
+    // update reserves and, on the first call per block, price accumulators
+    function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
+        require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
+        uint32 blockTimestamp = uint32(block.timestamp % 2**32);
+        uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
+        if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
+            price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
+            price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
+        }
+        reserve0 = uint112(balance0);
+        reserve1 = uint112(balance1);
+        blockTimestampLast = blockTimestamp;
+        emit Sync(reserve0, reserve1);
+    }
 
-    function sendMessage(uint256 dstChainId, bytes calldata payload) external payable {
-        emit CrossChainMessage(msg.sender, dstChainId, payload);
+    // this low-level function should be called from a contract which performs important safety checks
+    function mint(address to) external lock returns (uint liquidity) {
+        (uint112 _reserve0, uint112 _reserve1,) = getReserves();
+        uint balance0 = IERC20(token0).balanceOf(address(this));
+        uint balance1 = IERC20(token1).balanceOf(address(this));
+        uint amount0 = balance0.sub(_reserve0);
+        uint amount1 = balance1.sub(_reserve1);
+
+        bool feeOn = false;
+        uint _totalSupply = totalSupply;
+        if (_totalSupply == 0) {
+            liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
+           _mint(address(0), MINIMUM_LIQUIDITY);
+        } else {
+            liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
+        }
+        require(liquidity > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED');
+        _mint(to, liquidity);
+
+        _update(balance0, balance1, _reserve0, _reserve1);
+        emit Mint(msg.sender, amount0, amount1);
+    }
+
+    // this low-level function should be called from a contract which performs important safety checks
+    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external lock {
+        require(amount0Out > 0 || amount1Out > 0, 'UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT');
+        (uint112 _reserve0, uint112 _reserve1,) = getReserves();
+        require(amount0Out < _reserve0 && amount1Out < _reserve1, 'UniswapV2: INSUFFICIENT_LIQUIDITY');
+
+        uint balance0;
+        uint balance1;
+        {
+        address _token0 = token0;
+        address _token1 = token1;
+        require(to != _token0 && to != _token1, 'UniswapV2: INVALID_TO');
+        if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out);
+        if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out);
+        balance0 = IERC20(_token0).balanceOf(address(this));
+        balance1 = IERC20(_token1).balanceOf(address(this));
+        }
+        uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+        uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+        require(amount0In > 0 || amount1In > 0, 'UniswapV2: INSUFFICIENT_INPUT_AMOUNT');
+
+        _update(balance0, balance1, _reserve0, _reserve1);
+        emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+    }
+
+    function sync() external lock {
+        _update(IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), reserve0, reserve1);
     }
 }`,
-      },
-    ],
-  },
-];
+    },
+  ],
+};
+
+export const MOCK_REPOSITORIES: MockRepository[] = [OPEN_SOURCE_TEST_PROJECT];
+

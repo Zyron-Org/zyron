@@ -28,15 +28,17 @@ export default function GitHubCallbackPage() {
       return;
     }
 
-    // Store the JWT and redirect to the right dashboard
+    // Store the JWT and redirect to the right dashboard or requested page
     try {
       loginWithToken(token, role ?? "CLIENT");
-      const dest =
+      const redirectParam = params.get("redirect");
+      const defaultDest =
         role === "AUDITOR"
           ? "/auditor"
           : role === "ADMIN"
           ? "/auditor"
           : "/portal";
+      const dest = redirectParam && redirectParam.startsWith("/") ? redirectParam : defaultDest;
       router.replace(dest);
     } catch {
       setErrorMsg("Failed to complete GitHub login. Please try again.");

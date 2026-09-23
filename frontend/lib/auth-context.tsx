@@ -33,6 +33,7 @@ export interface AuthUser {
   specialization?: string;
   githubLogin?: string;
   githubAvatarUrl?: string;
+  githubAccessToken?: string;
 }
 
 export function getDashboardForRole(role?: string | null): string {
