@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api-client";
+import { FindingCodeViewer } from "@/components/finding-code-viewer";
 import { toast } from "sonner";
 
 interface CommentMessage {
@@ -54,6 +55,7 @@ interface AggregatedFinding {
   vulnerableCode?: string;
   vulnerableLines?: string;
   remediatedCode?: string;
+  sourceCode?: string;
   fuzzTestStatus?: string;
   remediationNote?: string;
   comments: CommentMessage[];
@@ -66,9 +68,12 @@ export default function OpenFindingsPage() {
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [expandedFindingId, setExpandedFindingId] = React.useState<string | null>(null);
 
-  // Per-finding new comment inputs
-  const [commentInputs, setCommentInputs] = React.useState<Record<string, { message: string; commitRef: string }>>({});
-  const [postingComment, setPostingComment] = React.useState<Record<string, boolean>>({});
+  // Separate states for normal inquiries vs distinct re-verification submissions
+  const [inquiryInputs, setInquiryInputs] = React.useState<Record<string, string>>({});
+  const [submittingInquiry, setSubmittingInquiry] = React.useState<Record<string, boolean>>({});
+
+  const [commitInputs, setCommitInputs] = React.useState<Record<string, { commitSha: string; summary: string }>>({});
+  const [submittingFix, setSubmittingFix] = React.useState<Record<string, boolean>>({});
 
   // Real data state
   const [findings, setFindings] = React.useState<AggregatedFinding[]>([]);
@@ -87,7 +92,6 @@ export default function OpenFindingsPage() {
       fetchedAudits.forEach((audit) => {
         if (Array.isArray(audit.findings)) {
           audit.findings.forEach((f: any) => {
-            // Include findings that are not resolved yet (open or fix-submitted)
             const rawStatus = (f.status || "OPEN").toUpperCase();
             const statusMapped = rawStatus === "FIX_SUBMITTED" ? "fix-submitted" : rawStatus === "RESOLVED" ? "resolved" : "open";
 
@@ -108,6 +112,7 @@ export default function OpenFindingsPage() {
               vulnerableCode: f.vulnerableCode || undefined,
               vulnerableLines: f.vulnerableLines || undefined,
               remediatedCode: f.remediatedCode || undefined,
+              sourceCode: audit.sourceCode || undefined,
               fuzzTestStatus: f.fuzzTestStatus || undefined,
               remediationNote: f.remediationNote || undefined,
               comments: Array.isArray(f.comments)
@@ -142,19 +147,15 @@ export default function OpenFindingsPage() {
     fetchAuditsAndFindings();
   }, []);
 
-  // Handle posting a comment + commit reference flip
-  const handlePostComment = async (findingId: string) => {
-    const input = commentInputs[findingId];
-    if (!input || !input.message.trim()) return;
-
-    const hasCommitRef = input.commitRef && input.commitRef.trim().length > 0;
-    const cleanCommit = hasCommitRef ? input.commitRef.trim().replace(/^0x/, "") : undefined;
+  // 1. Send normal comment / inquiry (does NOT trigger re-verification)
+  const handleSendInquiry = async (findingId: string) => {
+    const message = inquiryInputs[findingId]?.trim();
+    if (!message) return;
 
     try {
-      setPostingComment((prev) => ({ ...prev, [findingId]: true }));
+      setSubmittingInquiry((prev) => ({ ...prev, [findingId]: true }));
       const res = await apiClient.post(`/findings/${findingId}/comments`, {
-        message: input.message.trim(),
-        commitRef: cleanCommit,
+        message,
       });
 
       const newComment: CommentMessage = {
@@ -162,8 +163,7 @@ export default function OpenFindingsPage() {
         sender: res.data?.sender?.name || res.data?.sender?.email || "You",
         senderRole: res.data?.sender?.role?.toLowerCase() === "auditor" ? "auditor" : "client",
         timestamp: new Date(res.data?.createdAt || Date.now()).toISOString().replace("T", " ").substring(0, 16) + " UTC",
-        message: res.data?.message || input.message.trim(),
-        commitRef: res.data?.commitRef || cleanCommit,
+        message: res.data?.message || message,
       };
 
       setFindings((prev) =>
@@ -171,7 +171,6 @@ export default function OpenFindingsPage() {
           if (f.id === findingId) {
             return {
               ...f,
-              status: cleanCommit ? "fix-submitted" : f.status,
               comments: [...f.comments, newComment],
             };
           }
@@ -179,23 +178,69 @@ export default function OpenFindingsPage() {
         })
       );
 
-      // Reset input for this finding
-      setCommentInputs((prev) => ({
-        ...prev,
-        [findingId]: { message: "", commitRef: "" },
-      }));
-
-      toast.success(
-        cleanCommit
-          ? "Comment posted and fix submitted for re-verification!"
-          : "Comment posted to finding thread."
-      );
+      setInquiryInputs((prev) => ({ ...prev, [findingId]: "" }));
+      toast.success("Comment sent to auditor thread");
     } catch (err: any) {
-      console.error("Failed to post comment:", err);
+      console.error("Failed to post inquiry:", err);
       const msg = err?.response?.data?.message || err?.message || "Failed to post comment";
       toast.error(`Comment Error: ${msg}`);
     } finally {
-      setPostingComment((prev) => ({ ...prev, [findingId]: false }));
+      setSubmittingInquiry((prev) => ({ ...prev, [findingId]: false }));
+    }
+  };
+
+  // 2. Submit remediation commit for re-verification
+  const handleSubmitFix = async (findingId: string) => {
+    const input = commitInputs[findingId];
+    const commitSha = input?.commitSha?.trim().replace(/^0x/, "");
+    if (!commitSha) {
+      toast.error("Please enter a valid Commit SHA for the remediation fix");
+      return;
+    }
+
+    const fixSummary = input?.summary?.trim() || `Remediation fix committed in ${commitSha}`;
+
+    try {
+      setSubmittingFix((prev) => ({ ...prev, [findingId]: true }));
+      const res = await apiClient.post(`/findings/${findingId}/comments`, {
+        message: fixSummary,
+        commitRef: commitSha,
+      });
+
+      const newComment: CommentMessage = {
+        id: res.data?.id || `c-${Date.now()}`,
+        sender: res.data?.sender?.name || res.data?.sender?.email || "You",
+        senderRole: res.data?.sender?.role?.toLowerCase() === "auditor" ? "auditor" : "client",
+        timestamp: new Date(res.data?.createdAt || Date.now()).toISOString().replace("T", " ").substring(0, 16) + " UTC",
+        message: res.data?.message || fixSummary,
+        commitRef: res.data?.commitRef || commitSha,
+      };
+
+      setFindings((prev) =>
+        prev.map((f) => {
+          if (f.id === findingId) {
+            return {
+              ...f,
+              status: "fix-submitted",
+              comments: [...f.comments, newComment],
+            };
+          }
+          return f;
+        })
+      );
+
+      setCommitInputs((prev) => ({
+        ...prev,
+        [findingId]: { commitSha: "", summary: "" },
+      }));
+
+      toast.success("Fix submitted! Finding queued for auditor re-verification.");
+    } catch (err: any) {
+      console.error("Failed to submit fix:", err);
+      const msg = err?.response?.data?.message || err?.message || "Failed to submit fix";
+      toast.error(`Submission Error: ${msg}`);
+    } finally {
+      setSubmittingFix((prev) => ({ ...prev, [findingId]: false }));
     }
   };
 
@@ -531,7 +576,7 @@ export default function OpenFindingsPage() {
                   {/* EXPANDED FINDING DETAIL */}
                   {isExpanded && (
                     <div className="p-6 border-t border-border-hairline space-y-8 bg-bg-panel">
-                      {/* Asymmetric Diagnostics & Code Diff Grid */}
+                      {/* Asymmetric Diagnostics & Code Section Grid */}
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                         {/* Left 5 cols: Diagnostics Box */}
                         <div className="lg:col-span-5 p-5 rounded-[4px] bg-bg-void border border-border-hairline space-y-4">
@@ -580,62 +625,25 @@ export default function OpenFindingsPage() {
                           )}
                         </div>
 
-                        {/* Right 7 cols: Vulnerable vs Remediated Code Blocks */}
+                        {/* Right 7 cols: Code Section Showing the Issue */}
                         <div className="lg:col-span-7 space-y-4">
-                          {/* Vulnerable Block */}
-                          {finding.vulnerableCode ? (
-                            <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline space-y-2 font-mono text-xs">
-                              <div className="flex items-center justify-between text-signal-critical border-b border-border-hairline pb-2">
-                                <span className="font-semibold flex items-center gap-1.5">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-signal-critical" />
-                                  VULNERABLE STATE PATTERN
-                                </span>
-                                {finding.vulnerableLines && (
-                                  <span className="text-[10px] text-text-muted">{finding.vulnerableLines}</span>
-                                )}
-                              </div>
-                              <pre className="text-text-muted leading-relaxed overflow-x-auto pt-1 font-mono text-xs">
-                                <code>{finding.vulnerableCode}</code>
-                              </pre>
-                            </div>
-                          ) : (
-                            <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline text-xs font-mono text-text-muted">
-                              Referenced location: <span className="text-accent-scan">{finding.location}</span>
-                            </div>
-                          )}
-
-                          {/* Remediated Block */}
-                          {finding.remediatedCode && (
-                            <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline space-y-2 font-mono text-xs">
-                              <div className="flex items-center justify-between text-signal-resolved border-b border-border-hairline pb-2">
-                                <span className="font-semibold flex items-center gap-1.5">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-signal-resolved" />
-                                  VERIFIED REMEDIATION DIFF
-                                </span>
-                                <span className="text-[10px] text-signal-resolved font-medium">
-                                  TARGET FIX
-                                </span>
-                              </div>
-                              <pre className="text-text-muted leading-relaxed overflow-x-auto pt-1 font-mono text-xs">
-                                <code>{finding.remediatedCode}</code>
-                              </pre>
-                            </div>
-                          )}
-
-                          {finding.fuzzTestStatus && (
-                            <div className="p-2.5 rounded-[4px] bg-bg-void border border-border-hairline flex items-center justify-between text-xs font-mono text-text-muted">
-                              <span className="text-signal-resolved">✓ {finding.fuzzTestStatus}</span>
-                            </div>
-                          )}
+                          <FindingCodeViewer
+                            vulnerableCode={finding.vulnerableCode}
+                            vulnerableLines={finding.vulnerableLines}
+                            remediatedCode={finding.remediatedCode}
+                            location={finding.location}
+                            sourceCode={finding.sourceCode}
+                            fuzzTestStatus={finding.fuzzTestStatus}
+                          />
                         </div>
                       </div>
 
-                      {/* PER-FINDING DISCUSSION & COMMIT VERIFICATION THREAD */}
+                      {/* PER-FINDING DISCUSSION & ENQUIRIES THREAD */}
                       <div className="p-5 rounded-[4px] bg-bg-void border border-border-hairline space-y-5">
                         <div className="flex items-center justify-between border-b border-border-hairline pb-3">
                           <div className="flex items-center gap-2 font-mono text-xs font-semibold text-text-primary">
                             <MessageSquare className="h-3.5 w-3.5 text-accent-scan" />
-                            <span>Remediation Discussion & Commit Verification Thread</span>
+                            <span>Discussion & Audit Enquiries Thread</span>
                           </div>
                           <span className="font-mono text-[11px] text-text-muted">
                             {finding.comments.length} message{finding.comments.length === 1 ? "" : "s"}
@@ -646,7 +654,7 @@ export default function OpenFindingsPage() {
                         <div className="space-y-3">
                           {finding.comments.length === 0 ? (
                             <p className="text-xs text-text-muted font-mono py-2">
-                              No discussion messages yet. Start a discussion or submit a fix commit reference below.
+                              No discussion messages yet. You can ask a question, request clarification, or discuss fix approaches below.
                             </p>
                           ) : (
                             finding.comments.map((comment) => (
@@ -696,45 +704,102 @@ export default function OpenFindingsPage() {
                           )}
                         </div>
 
-                        {/* Client Reply Form with Commit Reference */}
-                        <div className="pt-3 border-t border-border-hairline space-y-3">
-                          <div className="font-mono text-xs text-text-muted">
-                            POST REMEDIATION UPDATE // REFERENCING A COMMIT FLIPS STATUS TO RE-VERIFY:
+                        {/* 1. Normal Comment / Inquiry Input */}
+                        <div className="pt-3 border-t border-border-hairline space-y-2">
+                          <div className="flex items-center justify-between font-mono text-[11px] text-text-muted">
+                            <span>POST AUDIT ENQUIRY / QUESTION:</span>
+                            <span className="text-[10px]">Direct auditor channel · Does not trigger re-verification</span>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                            <div className="sm:col-span-8">
-                              <Input
-                                placeholder="Describe remediation fix applied (e.g. Applied Checks-Effects-Interactions)..."
-                                value={commentInputs[finding.id]?.message || ""}
-                                onChange={(e) =>
-                                  setCommentInputs((prev) => ({
-                                    ...prev,
-                                    [finding.id]: {
-                                      message: e.target.value,
-                                      commitRef: prev[finding.id]?.commitRef || "",
-                                    },
-                                  }))
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Ask a question, request clarification, or discuss remediation approach with the auditor..."
+                              value={inquiryInputs[finding.id] || ""}
+                              onChange={(e) =>
+                                setInquiryInputs((prev) => ({
+                                  ...prev,
+                                  [finding.id]: e.target.value,
+                                }))
+                              }
+                              className="text-xs flex-1"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleSendInquiry(finding.id);
                                 }
-                                className="text-xs"
-                              />
-                            </div>
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="primary"
+                              size="sm"
+                              isLoading={submittingInquiry[finding.id]}
+                              rightIcon={<Send className="h-3.5 w-3.5" />}
+                              onClick={() => handleSendInquiry(finding.id)}
+                              disabled={!inquiryInputs[finding.id]?.trim()}
+                            >
+                              Send Comment
+                            </Button>
+                          </div>
+                        </div>
 
+                        {/* 2. DISTINCT FEATURE: SUBMIT REMEDIATION COMMIT FOR RE-VERIFICATION */}
+                        <div className="p-4 rounded-[4px] bg-bg-panel border border-border-hairline space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-hairline pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <GitCommit className="h-4 w-4 text-signal-resolved" />
+                              <span className="font-mono text-xs font-semibold text-text-primary">
+                                Submit Remediation Fix for Re-Verification
+                              </span>
+                            </div>
+                            {finding.status === "fix-submitted" ? (
+                              <Badge severity="resolved" size="sm">
+                                AWAITING AUDITOR RE-VERIFICATION
+                              </Badge>
+                            ) : (
+                              <Badge severity="critical" size="sm">
+                                FIX PENDING IN CODEBASE
+                              </Badge>
+                            )}
+                          </div>
+
+                          <p className="text-xs text-text-muted leading-relaxed">
+                            When your engineering team has committed the patch to your repository, input the commit SHA below to notify the auditor and queue this finding for re-verification.
+                          </p>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
                             <div className="sm:col-span-4">
                               <Input
                                 isMono
-                                placeholder="Commit SHA (e.g. 9f8e7d6)"
-                                value={commentInputs[finding.id]?.commitRef || ""}
+                                placeholder="Commit SHA (e.g. 4b8f10e)"
+                                value={commitInputs[finding.id]?.commitSha || ""}
                                 onChange={(e) =>
-                                  setCommentInputs((prev) => ({
+                                  setCommitInputs((prev) => ({
                                     ...prev,
                                     [finding.id]: {
-                                      message: prev[finding.id]?.message || "",
-                                      commitRef: e.target.value,
+                                      commitSha: e.target.value,
+                                      summary: prev[finding.id]?.summary || "",
                                     },
                                   }))
                                 }
                                 prefix={<GitCommit className="h-3.5 w-3.5 text-accent-scan" />}
+                                className="text-xs"
+                              />
+                            </div>
+
+                            <div className="sm:col-span-8">
+                              <Input
+                                placeholder="Remediation summary (e.g. Applied Checks-Effects-Interactions pattern)..."
+                                value={commitInputs[finding.id]?.summary || ""}
+                                onChange={(e) =>
+                                  setCommitInputs((prev) => ({
+                                    ...prev,
+                                    [finding.id]: {
+                                      commitSha: prev[finding.id]?.commitSha || "",
+                                      summary: e.target.value,
+                                    },
+                                  }))
+                                }
                                 className="text-xs"
                               />
                             </div>
@@ -743,14 +808,15 @@ export default function OpenFindingsPage() {
                           <div className="flex justify-end pt-1">
                             <Button
                               type="button"
-                              variant="primary"
+                              variant="secondary"
+                              className="border-signal-resolved/40 text-signal-resolved hover:bg-signal-resolved/10 font-bold"
                               size="sm"
-                              isLoading={postingComment[finding.id]}
-                              rightIcon={<Send className="h-3.5 w-3.5" />}
-                              onClick={() => handlePostComment(finding.id)}
-                              disabled={!commentInputs[finding.id]?.message?.trim()}
+                              isLoading={submittingFix[finding.id]}
+                              rightIcon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                              onClick={() => handleSubmitFix(finding.id)}
+                              disabled={!commitInputs[finding.id]?.commitSha?.trim()}
                             >
-                              Submit Comment & Trigger Re-Verification
+                              Submit Fix for Re-Verification
                             </Button>
                           </div>
                         </div>
