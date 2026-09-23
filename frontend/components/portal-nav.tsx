@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import { Terminal, Plus, ShieldCheck, FileText, Settings, LayoutDashboard, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { StatusPill } from "@/components/ui/status-pill";
-import { MOCK_CLIENT_PROFILE } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth-context";
 
 export function PortalNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   const navItems = [
     { href: "/portal", label: "DASHBOARD", icon: LayoutDashboard },
@@ -17,6 +17,13 @@ export function PortalNav() {
     { href: "/portal/vault", label: "DOCUMENT VAULT", icon: FileText },
     { href: "/portal/settings", label: "SETTINGS", icon: Settings },
   ];
+
+  const displayName = user?.organization?.name || user?.name || "Client Portal";
+  const displayAddress = user?.walletAddress
+    ? `// ${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`
+    : user?.email
+    ? `// ${user.email}`
+    : "";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border-hairline bg-bg-void/95 backdrop-blur-md">
@@ -36,11 +43,13 @@ export function PortalNav() {
 
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs font-semibold text-text-primary">
-              {MOCK_CLIENT_PROFILE.name}
+              {displayName}
             </span>
-            <span className="hidden sm:inline font-mono text-[11px] text-text-muted">
-              // {MOCK_CLIENT_PROFILE.address.slice(0, 6)}...{MOCK_CLIENT_PROFILE.address.slice(-4)}
-            </span>
+            {displayAddress && (
+              <span className="hidden sm:inline font-mono text-[11px] text-text-muted">
+                {displayAddress}
+              </span>
+            )}
           </div>
         </div>
 

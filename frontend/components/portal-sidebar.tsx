@@ -27,25 +27,67 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { Badge } from "@/components/ui/badge";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import { useAuth } from "@/lib/auth-context";
-import { MOCK_CLIENT_PROFILE, MOCK_AUDIT_REQUESTS } from "@/lib/mock-data";
+import { apiClient } from "@/lib/api-client";
 
 export function PortalSidebar() {
   const pathname = usePathname();
   const { isOpen, close } = useSidebar();
   const { user, logout } = useAuth();
   const [copied, setCopied] = React.useState(false);
+  const [audits, setAudits] = React.useState<any[]>([]);
 
+  React.useEffect(() => {
+    let isMounted = true;
+    apiClient
+      .get("/audits")
+      .then((res) => {
+        if (isMounted && Array.isArray(res.data)) {
+          setAudits(res.data);
+        }
+      })
+      .catch((e) => console.warn("PortalSidebar fetch error:", e.message));
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-  const activeCount = MOCK_AUDIT_REQUESTS.filter(
-    (a) => a.stage === "scanning" || a.stage === "in-review" || a.stage === "pending"
-  ).length;
+  const normalize = (stage: string) => {
+    const s = stage?.toUpperCase();
+    if (s === "PENDING") return "pending";
+    if (s === "SCANNING") return "scanning";
+    if (s === "IN_REVIEW") return "in-review";
+    if (s === "CORRECTIONS_REQUESTED") return "corrections-requested";
+    if (s === "COMPLETED") return "completed";
+    return (stage || "").toLowerCase();
+  };
 
-  const completedCount = MOCK_AUDIT_REQUESTS.filter((a) => a.stage === "completed").length;
+  const inFlightAudits = audits.filter((a) =>
+    ["pending", "scanning", "in-review", "corrections-requested"].includes(normalize(a.stage))
+  );
+  const completedAudits = audits.filter((a) => normalize(a.stage) === "completed");
+
+  const openFindingsCount = audits.reduce((acc, a) => {
+    if (Array.isArray(a.findings)) {
+      return (
+        acc +
+        a.findings.filter((f: any) => {
+          const st = (f.status || "OPEN").toUpperCase();
+          return st === "OPEN" || st === "FIX_SUBMITTED";
+        }).length
+      );
+    }
+    return acc;
+  }, 0);
+
+  const latestActiveAuditId = inFlightAudits[0]?.id || audits[0]?.id || "ZYR-9481";
 
   const handleCopy = () => {
-    navigator.clipboard?.writeText(MOCK_CLIENT_PROFILE.address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const textToCopy = user?.walletAddress || user?.email || "";
+    if (textToCopy) {
+      navigator.clipboard?.writeText(textToCopy);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const navLinks = [
@@ -66,24 +108,24 @@ export function PortalSidebar() {
           badgeColor: "scan" as const,
         },
         {
-          href: "/portal/track/ZYR-9481",
+          href: `/portal/track/${latestActiveAuditId}`,
           label: "Active Trackers",
           icon: Radio,
-          badge: `${activeCount} LIVE`,
+          badge: inFlightAudits.length > 0 ? `${inFlightAudits.length} LIVE` : null,
           badgeColor: "pulse" as const,
         },
         {
           href: "/portal/vault",
           label: "Document Vault",
           icon: FileCheck2,
-          badge: `${completedCount}`,
+          badge: completedAudits.length > 0 ? `${completedAudits.length}` : null,
           badgeColor: "muted" as const,
         },
         {
           href: "/portal/findings",
           label: "Open Findings",
           icon: ShieldAlert,
-          badge: "6 OPEN",
+          badge: openFindingsCount > 0 ? `${openFindingsCount} OPEN` : null,
           badgeColor: "scan" as const,
         },
       ],
@@ -180,7 +222,7 @@ export function PortalSidebar() {
           <div className="p-3 rounded-[4px] bg-bg-void border border-border-hairline space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-display text-xs font-semibold text-text-primary truncate">
-                {user?.name || user?.organization?.name || MOCK_CLIENT_PROFILE.name}
+                {user?.organization?.name || user?.name || "Client Workspace"}
               </span>
               <span className="font-mono text-[9px] text-accent-scan bg-accent-scan/10 px-1 py-0.5 rounded-[2px] border border-accent-scan/20">
                 {user?.role || "CLIENT"}
@@ -191,7 +233,7 @@ export function PortalSidebar() {
               <span className="truncate max-w-[140px]">
                 {user?.walletAddress
                   ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`
-                  : user?.email || MOCK_CLIENT_PROFILE.address.slice(0, 6) + "..." + MOCK_CLIENT_PROFILE.address.slice(-4)}
+                  : user?.email || "Connected"}
               </span>
               <button
                 onClick={handleCopy}
@@ -262,7 +304,7 @@ export function PortalSidebar() {
             </span>
           </div>
           <p className="text-[10px] text-text-muted leading-tight">
-            Direct communication channel with assigned auditor 0xAuditor_K4.
+            Direct communication channel with {audits[0]?.leadAuditor?.name || audits[0]?.leadAuditor?.email || "assigned lead auditor"}.
           </p>
         </div>
 

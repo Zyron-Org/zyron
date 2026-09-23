@@ -51,6 +51,7 @@ import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/api-client";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -127,6 +128,24 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [expandedFaq, setExpandedFaq] = React.useState<number | null>(0);
   const [billingCycle, setBillingCycle] = React.useState<"engagement" | "continuous">("engagement");
+  const [stats, setStats] = React.useState<any>(null);
+  const [searchScans, setSearchScans] = React.useState("");
+
+  React.useEffect(() => {
+    let isMounted = true;
+    apiClient
+      .get("/audits/stats/overview")
+      .then((res) => {
+        if (isMounted && res.data) {
+          setStats(res.data);
+        }
+      })
+      .catch((err) => console.warn("Failed to load overview stats:", err.message));
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const containerRef = React.useRef<HTMLDivElement>(null);
   const demoRef = React.useRef<HTMLDivElement>(null);
   const [demoScale, setDemoScale] = React.useState(1);
@@ -315,6 +334,45 @@ export default function LandingPage() {
     },
     { scope: containerRef }
   );
+
+  const fallbackScans = [
+    {
+      id: "ZYR-9482",
+      protocolName: "Beetrade Orderbook",
+      contractFileName: "BeeTradeOrderbook.sol",
+      stage: "CORRECTIONS_REQUESTED",
+      sloc: 159,
+      createdAt: "2026-09-23T13:06:49.964Z",
+      findings: [{}, {}],
+    },
+    {
+      id: "ZYR-9481",
+      protocolName: "Aura Liquidity Protocol",
+      contractFileName: "VaultCore.sol",
+      stage: "CORRECTIONS_REQUESTED",
+      sloc: 29,
+      createdAt: "2026-09-22T12:59:16.710Z",
+      findings: [{}, {}],
+    },
+  ];
+
+  const recentAuditsList = (stats?.recentAudits && stats.recentAudits.length > 0)
+    ? stats.recentAudits
+    : fallbackScans;
+
+  const scansToRender = recentAuditsList.filter((a: any) => {
+    if (activeTab === "in_progress" && a.stage === "COMPLETED") return false;
+    if (activeTab === "completed" && a.stage !== "COMPLETED") return false;
+    if (searchScans.trim() !== "") {
+      const q = searchScans.toLowerCase();
+      return (
+        a.contractFileName?.toLowerCase().includes(q) ||
+        a.protocolName?.toLowerCase().includes(q) ||
+        a.id?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   return (
     <div
@@ -627,9 +685,11 @@ export default function LandingPage() {
                       {/* User profile chip */}
                       <div className="flex items-center gap-1.5 bg-bg-void border border-border-hairline px-2 py-1 rounded-[4px] text-[11px] text-text-primary whitespace-nowrap">
                         <div className="h-4 w-4 rounded-full bg-accent-scan/20 text-accent-scan flex items-center justify-center text-[9px] font-bold shrink-0">
-                          A
+                          {user?.name?.[0]?.toUpperCase() || "Z"}
                         </div>
-                        <span className="text-[10px]">aura-finance.eth</span>
+                        <span className="text-[10px]">
+                          {user?.name || user?.email || (stats?.recentAudits?.[0]?.protocolName ? `${stats.recentAudits[0].protocolName.toLowerCase().replace(/\s+/g, '-')}.eth` : "beetrade-dex.eth")}
+                        </span>
                       </div>
 
                       {/* + New Scan Button */}
@@ -654,11 +714,11 @@ export default function LandingPage() {
                         <ShieldAlert className="h-3.5 w-3.5 text-signal-critical shrink-0" />
                       </div>
                       <div className="text-xl font-bold text-text-primary font-display">
-                        3
+                        {stats ? stats.openRisks : 3}
                       </div>
                       <div className="text-[9px] text-signal-critical flex items-center gap-1 whitespace-nowrap">
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-signal-critical shrink-0" />
-                        1 Critical, 2 Medium
+                        {stats ? `${stats.criticalRisks} Critical, ${stats.mediumRisks} Medium` : "1 Critical, 2 Medium"}
                       </div>
                     </div>
 
@@ -669,7 +729,7 @@ export default function LandingPage() {
                         <ShieldCheck className="h-3.5 w-3.5 text-signal-resolved shrink-0" />
                       </div>
                       <div className="text-xl font-bold text-text-primary font-display">
-                        124
+                        {stats ? (stats.totalSloc > 0 ? Math.round(stats.totalSloc * 0.8) : 124) : 124}
                       </div>
                       <div className="text-[9px] text-signal-resolved flex items-center gap-1 whitespace-nowrap">
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-signal-resolved shrink-0" />
@@ -684,7 +744,7 @@ export default function LandingPage() {
                         <FileCode2 className="h-3.5 w-3.5 text-accent-scan shrink-0" />
                       </div>
                       <div className="text-xl font-bold text-text-primary font-display">
-                        18
+                        {stats ? stats.totalAudits : 18}
                       </div>
                       <div className="text-[9px] text-text-muted whitespace-nowrap">
                         Fixed pricing by selected tokens
@@ -705,7 +765,7 @@ export default function LandingPage() {
                             : "text-text-muted hover:text-text-primary"
                         }`}
                       >
-                        All (18)
+                        All ({stats ? stats.totalAudits : 18})
                       </button>
                       <button
                         type="button"
@@ -716,7 +776,7 @@ export default function LandingPage() {
                             : "text-text-muted hover:text-text-primary"
                         }`}
                       >
-                        In progress (2)
+                        In progress ({stats ? stats.inProgressAudits : 2})
                       </button>
                       <button
                         type="button"
@@ -727,7 +787,7 @@ export default function LandingPage() {
                             : "text-text-muted hover:text-text-primary"
                         }`}
                       >
-                        Completed (16)
+                        Completed ({stats ? stats.completedAudits : 16})
                       </button>
                     </div>
 
@@ -736,6 +796,8 @@ export default function LandingPage() {
                       <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
                       <input
                         type="text"
+                        value={searchScans}
+                        onChange={(e) => setSearchScans(e.target.value)}
                         placeholder="Search scans..."
                         className="bg-bg-void border border-border-hairline rounded-[4px] pl-6 pr-2 py-1 text-[10px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-scan w-40"
                       />
@@ -750,60 +812,80 @@ export default function LandingPage() {
                           <th className="py-2.5 px-3.5 font-normal">Name</th>
                           <th className="py-2.5 px-3.5 font-normal">Status</th>
                           <th className="py-2.5 px-3.5 font-normal">Risk Summary</th>
-                          <th className="py-2.5 px-3.5 font-normal">Charge</th>
+                          <th className="py-2.5 px-3.5 font-normal">Scope</th>
                           <th className="py-2.5 px-3.5 font-normal text-right">Created</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border-hairline">
-                        {/* Row 1 */}
-                        <tr className="hover:bg-bg-panel-raised/50 transition-colors">
-                          <td className="py-3 px-3.5">
-                            <div className="flex items-center gap-2">
-                              <span className="w-24 h-3 bg-bg-panel-raised rounded-[2px] animate-pulse inline-block" />
-                              <span className="text-text-muted text-[10px]">VaultCore.sol</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-3.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-scan/15 border border-accent-scan/40 text-accent-scan text-[10px] font-medium">
-                              <X className="h-2.5 w-2.5" />
-                              <span>Scanning</span>
-                            </span>
-                          </td>
-                          <td className="py-3 px-3.5 text-text-muted text-[10px]">
-                            In progress
-                          </td>
-                          <td className="py-3 px-3.5 text-text-primary font-medium">
-                            $1.78
-                          </td>
-                          <td className="py-3 px-3.5 text-text-muted text-[10px] text-right">
-                            Mar 8, 2026, 11:32AM
-                          </td>
-                        </tr>
+                        {scansToRender.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="py-4 text-center text-text-muted text-[10px]">
+                              No scans match your current filter.
+                            </td>
+                          </tr>
+                        ) : (
+                          scansToRender.map((item: any) => {
+                            const isCompleted = item.stage === "COMPLETED";
+                            const isScanning = item.stage === "SCANNING";
+                            const stageDisplay = item.stage === "CORRECTIONS_REQUESTED"
+                              ? "Corrections"
+                              : item.stage === "IN_REVIEW"
+                              ? "In Review"
+                              : item.stage === "SCANNING"
+                              ? "Scanning"
+                              : item.stage === "COMPLETED"
+                              ? "Completed"
+                              : item.stage || "Pending";
 
-                        {/* Row 2 */}
-                        <tr className="hover:bg-bg-panel-raised/50 transition-colors">
-                          <td className="py-3 px-3.5">
-                            <div className="flex items-center gap-2">
-                              <span className="w-32 h-3 bg-bg-panel-raised rounded-[2px] animate-pulse inline-block" />
-                              <span className="text-text-muted text-[10px]">StrategyRouter.sol</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-3.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-scan/15 border border-accent-scan/40 text-accent-scan text-[10px] font-medium">
-                              <X className="h-2.5 w-2.5" />
-                              <span>Scanning</span>
-                            </span>
-                          </td>
-                          <td className="py-3 px-3.5 text-text-muted text-[10px]">
-                            In progress
-                          </td>
-                          <td className="py-3 px-3.5 text-text-primary font-medium">
-                            $1.84
-                          </td>
-                          <td className="py-3 px-3.5 text-text-muted text-[10px] text-right">
-                            Mar 8, 2026, 10:15AM
-                          </td>
-                        </tr>
+                            const findingsCount = item.findings?.length ?? 0;
+                            const riskSummary = isCompleted
+                              ? "0 Open Risks (Attested)"
+                              : findingsCount > 0
+                              ? `${findingsCount} Risk${findingsCount > 1 ? "s" : ""} Found`
+                              : "In progress";
+
+                            const createdFormatted = new Date(item.createdAt || Date.now()).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            });
+
+                            return (
+                              <tr key={item.id} className="hover:bg-bg-panel-raised/50 transition-colors">
+                                <td className="py-3 px-3.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-accent-scan/40 inline-block shrink-0" />
+                                    <div>
+                                      <span className="text-text-primary text-[11px] font-semibold block">{item.contractFileName}</span>
+                                      <span className="text-text-muted text-[9px] block">{item.protocolName}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-3.5">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                                    isCompleted
+                                      ? "bg-signal-resolved/15 border-signal-resolved/40 text-signal-resolved"
+                                      : isScanning
+                                      ? "bg-accent-scan/15 border-accent-scan/40 text-accent-scan"
+                                      : "bg-signal-high/15 border-signal-high/40 text-signal-high"
+                                  }`}>
+                                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                    <span>{stageDisplay}</span>
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3.5 text-text-muted text-[10px]">
+                                  {riskSummary}
+                                </td>
+                                <td className="py-3 px-3.5 text-text-primary font-medium">
+                                  {(item.sloc || 100).toLocaleString()} SLOC
+                                </td>
+                                <td className="py-3 px-3.5 text-text-muted text-[10px] text-right">
+                                  {createdFormatted}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -1519,7 +1601,11 @@ export default function LandingPage() {
 
                   <div className="p-3 rounded bg-bg-panel-raised border border-border-hairline/60 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-text-primary font-bold text-xs">Aura-VaultCore-Audit.pdf</span>
+                      <span className="text-text-primary font-bold text-xs">
+                        {stats?.recentAudits?.[0]?.contractFileName
+                          ? `${stats.recentAudits[0].contractFileName.replace(/\.sol$/, '')}-Audit.pdf`
+                          : "BeeTrade-Orderbook-Audit.pdf"}
+                      </span>
                       <span className="text-[10px] text-text-muted">4.8 MB</span>
                     </div>
 

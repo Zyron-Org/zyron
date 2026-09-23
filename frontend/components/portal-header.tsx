@@ -27,7 +27,6 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { MOCK_CLIENT_PROFILE } from "@/lib/mock-data";
 
 interface NotificationItem {
   id: string;
@@ -122,7 +121,7 @@ export function PortalHeader() {
 
         {/* Breadcrumb Path */}
         <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-xs text-text-muted truncate">
-          <span className="text-text-primary font-medium truncate">{MOCK_CLIENT_PROFILE.name}</span>
+          <span className="text-text-primary font-medium truncate">{user?.organization?.name || user?.name || "Client Portal"}</span>
           <span>/</span>
           <span className="text-accent-scan truncate">Dashboard</span>
         </div>

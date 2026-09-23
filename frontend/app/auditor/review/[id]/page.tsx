@@ -49,6 +49,7 @@ import {
   History,
   Trash2,
   Filter,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1005,6 +1006,17 @@ mitigated or verified false positives before production deployment.
       // Silently accepted — local state already updated optimistically
     }
   };
+
+  if (dataLoading && !auditData) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="h-6 w-6 text-accent-scan animate-spin" />
+        <span className="ml-3 font-mono text-xs text-text-muted">
+          Loading auditor workspace for ticket {ticketId}…
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

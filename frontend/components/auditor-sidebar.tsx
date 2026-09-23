@@ -18,12 +18,53 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { useSidebar } from "@/components/ui/sidebar-context";
+import { apiClient } from "@/lib/api-client";
 import { X } from "lucide-react";
 
 export function AuditorSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { isOpen, close } = useSidebar();
+  const [audits, setAudits] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    apiClient
+      .get("/audits")
+      .then((res) => {
+        if (isMounted && Array.isArray(res.data)) {
+          setAudits(res.data);
+        }
+      })
+      .catch((e) => console.warn("AuditorSidebar fetch error:", e.message));
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const reverifyCount = audits.filter(
+    (a) => a.stage === "CORRECTIONS_REQUESTED" || a.stage === "corrections_requested"
+  ).length;
+
+  const pendingQueueCount = audits.filter(
+    (a) => !a.leadAuditorId || a.stage === "PENDING"
+  ).length;
+
+  const completedCount = audits.filter(
+    (a) => a.stage?.toUpperCase() === "COMPLETED"
+  ).length;
+
+  const activeReviewAudit = audits.find(
+    (a) => a.stage !== "COMPLETED" && a.stage !== "FAILED"
+  ) || audits[0];
+
+  const activeReviewId = activeReviewAudit?.id || "ZYR-9481";
+
+  const queueBadge = reverifyCount > 0 
+    ? `${reverifyCount} RE-VERIFY` 
+    : pendingQueueCount > 0 
+    ? `${pendingQueueCount} QUEUE` 
+    : null;
 
   const navLinks = [
     {
@@ -33,21 +74,21 @@ export function AuditorSidebar() {
           href: "/auditor/queue",
           label: "Ticket Queue",
           icon: Inbox,
-          badge: "2 RE-VERIFY",
-          badgeType: "reverify" as const,
+          badge: queueBadge,
+          badgeType: reverifyCount > 0 ? ("reverify" as const) : ("scan" as const),
         },
         {
-          href: "/auditor/review/ZYR-9481",
+          href: `/auditor/review/${activeReviewId}`,
           label: "Dual-Pane Review",
           icon: Split,
-          badge: "ZYR-9481",
+          badge: activeReviewAudit ? activeReviewAudit.id : null,
           badgeType: "scan" as const,
         },
         {
           href: "/auditor/reports",
           label: "Reports Vault",
           icon: FileCheck,
-          badge: "SHA-256",
+          badge: completedCount > 0 ? `${completedCount} SEALED` : "VAULT",
           badgeType: "resolved" as const,
         },
         {
