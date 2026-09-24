@@ -94,8 +94,7 @@ function ResetPasswordContent() {
   // -------------------------------------------------------------
   if (token) {
     return (
-      <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 overflow-hidden">
-        <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
+      <div className="w-full space-y-6">
 
         <div className="space-y-1.5 text-center">
           <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary">
@@ -204,8 +203,7 @@ function ResetPasswordContent() {
   // RENDER MODE B: FORGOT PASSWORD (NO TOKEN PRESENT)
   // -------------------------------------------------------------
   return (
-    <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 overflow-hidden">
-      <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
+    <div className="w-full space-y-6">
 
       <div className="space-y-1.5 text-center">
         <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary">

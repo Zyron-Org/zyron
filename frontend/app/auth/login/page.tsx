@@ -149,9 +149,7 @@ export default function LoginPage() {
   const githubAuthUrl = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://144.91.110.133:4000'}/api/v1/auth/github`;
 
   return (
-    <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 overflow-hidden">
-      {/* Top subtle specular reflection line */}
-      <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
+    <div className="w-full space-y-6">
 
       {/* Header */}
       <div className="space-y-1.5 text-center">
@@ -229,11 +227,15 @@ export default function LoginPage() {
       </div>
 
       {/* Divider */}
-      <div className="relative flex items-center justify-center my-2">
-        <div className="w-full border-t border-border-hairline" />
-        <span className="bg-bg-panel px-3 text-xs text-text-muted select-none">
-          or sign in with email
-        </span>
+      <div className="relative my-3">
+        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+          <div className="w-full border-t border-border-hairline" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-bg-void px-3 text-text-muted select-none">
+            or sign in with email
+          </span>
+        </div>
       </div>
 
       {/* Email / Password Form */}

@@ -103,8 +103,7 @@ function VerifyEmailContent() {
   if (token) {
     if (isVerifying) {
       return (
-        <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 text-center overflow-hidden">
-          <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
+        <div className="w-full space-y-6 text-center">
           <div className="flex justify-center">
             <div className="h-12 w-12 rounded-full bg-accent-scan/10 border border-accent-scan/30 flex items-center justify-center text-accent-scan">
               <RefreshCw className="h-5 w-5 animate-spin" />
@@ -124,8 +123,7 @@ function VerifyEmailContent() {
 
     if (verifySuccess) {
       return (
-        <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 text-center overflow-hidden">
-          <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
+        <div className="w-full space-y-6 text-center">
           <div className="flex justify-center">
             <div className="h-12 w-12 rounded-full bg-signal-resolved/10 border border-signal-resolved/30 flex items-center justify-center text-signal-resolved">
               <CheckCircle2 className="h-6 w-6" />
@@ -161,8 +159,7 @@ function VerifyEmailContent() {
 
     // Token verification failed
     return (
-      <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 overflow-hidden">
-        <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
+      <div className="w-full space-y-6">
         <div className="flex justify-center">
           <div className="h-12 w-12 rounded-full bg-signal-critical/10 border border-signal-critical/30 flex items-center justify-center text-signal-critical">
             <AlertCircle className="h-6 w-6" />
@@ -226,8 +223,7 @@ function VerifyEmailContent() {
   // -------------------------------------------------------------
   if (status === "pending") {
     return (
-      <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 text-center overflow-hidden">
-        <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
+      <div className="w-full space-y-6 text-center">
         <div className="flex justify-center">
           <div className="h-12 w-12 rounded-full bg-accent-scan/10 border border-accent-scan/30 flex items-center justify-center text-accent-scan">
             <Mail className="h-6 w-6" />
@@ -303,8 +299,7 @@ function VerifyEmailContent() {
   // RENDER CASE 3: GENERAL RESEND VERIFICATION FORM
   // -------------------------------------------------------------
   return (
-    <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 overflow-hidden">
-      <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
+    <div className="w-full space-y-6">
 
       <div className="space-y-1.5 text-center">
         <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary">
