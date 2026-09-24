@@ -10,12 +10,10 @@ import {
   AlertCircle,
   RefreshCw,
   ArrowLeft,
-  ShieldCheck,
   Clock,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eyebrow } from "@/components/ui/eyebrow";
+import { ExpandingButton } from "@/components/ui/expanding-button";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
 
@@ -86,7 +84,7 @@ function VerifyEmailContent() {
     try {
       const res = await apiClient.post("/auth/resend-verification", { email });
       setResendSuccess(true);
-      toast.success(res.data?.message || "Verification email dispatched!");
+      toast.success(res.data?.message || "Verification email sent!");
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -105,21 +103,19 @@ function VerifyEmailContent() {
   if (token) {
     if (isVerifying) {
       return (
-        <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6 text-center">
+        <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 text-center overflow-hidden">
+          <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
           <div className="flex justify-center">
-            <div className="h-12 w-12 rounded-full bg-accent-scan/10 border border-accent-scan/30 flex items-center justify-center text-accent-scan animate-pulse">
-              <RefreshCw className="h-6 w-6 animate-spin" />
+            <div className="h-12 w-12 rounded-full bg-accent-scan/10 border border-accent-scan/30 flex items-center justify-center text-accent-scan">
+              <RefreshCw className="h-5 w-5 animate-spin" />
             </div>
           </div>
-          <div className="space-y-2">
-            <Eyebrow size="xs" variant="scan" prefix="// SECURITY_VALIDATION · ">
-              TOKEN_VERIFICATION
-            </Eyebrow>
-            <h1 className="font-display text-lg font-semibold text-text-primary">
-              Verifying Your Email Address
+          <div className="space-y-1.5">
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary">
+              Verifying your email
             </h1>
-            <p className="text-xs text-text-muted font-mono">
-              Validating single-use cryptographic token against Zyron security protocol...
+            <p className="text-sm text-text-muted">
+              Confirming your security credentials with the platform...
             </p>
           </div>
         </div>
@@ -128,33 +124,36 @@ function VerifyEmailContent() {
 
     if (verifySuccess) {
       return (
-        <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
+        <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 text-center overflow-hidden">
+          <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
           <div className="flex justify-center">
-            <div className="h-12 w-12 rounded-full bg-signal-success/10 border border-signal-success/30 flex items-center justify-center text-signal-success">
+            <div className="h-12 w-12 rounded-full bg-signal-resolved/10 border border-signal-resolved/30 flex items-center justify-center text-signal-resolved">
               <CheckCircle2 className="h-6 w-6" />
             </div>
           </div>
 
-          <div className="space-y-1.5 text-center">
-            <Eyebrow size="xs" variant="scan" prefix="// PROTOCOL_ACTIVATED · ">
-              VERIFICATION_COMPLETE
-            </Eyebrow>
-            <h1 className="font-display text-xl font-semibold tracking-tight text-text-primary">
-              Account Successfully Verified
+          <div className="space-y-1.5">
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary">
+              Email verified
             </h1>
-            <p className="text-xs text-text-muted font-mono">
-              Your email address has been confirmed. You now have full access to Zyron Protocol Security.
+            <p className="text-sm text-text-muted">
+              Your email has been confirmed. You now have full access to your workspace.
             </p>
           </div>
 
           <div className="pt-2">
-            <Button
-              className="w-full h-10 font-mono text-xs font-semibold uppercase tracking-wider bg-accent-scan text-bg-void hover:bg-accent-scan/90"
-              onClick={() => router.push("/auth/login")}
-            >
-              <span>Proceed to Sign In</span>
-              <ArrowRight className="h-3.5 w-3.5 ml-2" />
-            </Button>
+            <Link href="/auth/login" className="block w-full">
+              <ExpandingButton
+                type="button"
+                variant="light"
+                size="md"
+                rounded="xl"
+                className="w-full cursor-pointer"
+                icon={<ArrowRight className="h-4 w-4 stroke-[2.5]" />}
+              >
+                Proceed to Sign In
+              </ExpandingButton>
+            </Link>
           </div>
         </div>
       );
@@ -162,7 +161,8 @@ function VerifyEmailContent() {
 
     // Token verification failed
     return (
-      <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
+      <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 overflow-hidden">
+        <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
         <div className="flex justify-center">
           <div className="h-12 w-12 rounded-full bg-signal-critical/10 border border-signal-critical/30 flex items-center justify-center text-signal-critical">
             <AlertCircle className="h-6 w-6" />
@@ -170,46 +170,48 @@ function VerifyEmailContent() {
         </div>
 
         <div className="space-y-1.5 text-center">
-          <Eyebrow size="xs" variant="scan" prefix="// VERIFICATION_ERROR · ">
-            INVALID_OR_EXPIRED
-          </Eyebrow>
-          <h1 className="font-display text-xl font-semibold tracking-tight text-text-primary">
-            Verification Failed
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary">
+            Verification failed
           </h1>
-          <p className="text-xs text-signal-critical font-mono">
+          <p className="text-sm text-signal-critical">
             {verifyError || "This verification link is invalid, expired, or has already been used."}
           </p>
         </div>
 
-        <div className="p-3.5 rounded-[4px] bg-bg-void border border-border-hairline space-y-2">
-          <p className="text-[11px] font-mono text-text-muted leading-relaxed">
-            Verification tokens expire after 24 hours. Request a new verification link below to activate your account.
-          </p>
-        </div>
+        <p className="text-xs text-text-muted leading-relaxed text-center">
+          Links expire after 24 hours. Request a new link below to activate your account.
+        </p>
 
         <form onSubmit={handleResend} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="font-mono text-xs text-text-muted">ACCOUNT EMAIL</label>
+            <label className="text-xs font-medium text-text-muted">Email address</label>
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="security@protocol.io"
-              prefix={<Mail className="h-3.5 w-3.5 text-text-muted" />}
+              placeholder="name@company.com"
+              prefix={<Mail className="h-4 w-4 text-text-muted" />}
+              className="rounded-xl h-11 border-border-hairline focus-within:border-accent-scan"
               required
             />
           </div>
 
-          <Button
-            type="submit"
-            disabled={isResending}
-            className="w-full h-10 font-mono text-xs font-semibold uppercase tracking-wider bg-accent-scan text-bg-void hover:bg-accent-scan/90"
-          >
-            {isResending ? "Dispatching New Link..." : "Resend Verification Link"}
-          </Button>
+          <div className="pt-1">
+            <ExpandingButton
+              type="submit"
+              variant="light"
+              size="md"
+              rounded="xl"
+              disabled={isResending}
+              className="w-full cursor-pointer"
+              icon={<ArrowRight className="h-4 w-4 stroke-[2.5]" />}
+            >
+              {isResending ? "Sending link..." : "Resend Verification Link"}
+            </ExpandingButton>
+          </div>
 
-          <div className="text-center font-mono text-xs text-text-muted pt-2">
-            <Link href="/auth/login" className="text-accent-scan hover:underline inline-flex items-center gap-1">
+          <div className="text-center text-xs text-text-muted pt-2">
+            <Link href="/auth/login" className="text-accent-scan hover:underline inline-flex items-center gap-1 font-medium">
               <ArrowLeft className="h-3 w-3" />
               <span>Back to Sign In</span>
             </Link>
@@ -224,43 +226,41 @@ function VerifyEmailContent() {
   // -------------------------------------------------------------
   if (status === "pending") {
     return (
-      <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
+      <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 text-center overflow-hidden">
+        <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
         <div className="flex justify-center">
           <div className="h-12 w-12 rounded-full bg-accent-scan/10 border border-accent-scan/30 flex items-center justify-center text-accent-scan">
             <Mail className="h-6 w-6" />
           </div>
         </div>
 
-        <div className="space-y-1.5 text-center">
-          <Eyebrow size="xs" variant="scan" prefix="// ACTIVATION_PENDING · ">
-            INBOX_VERIFICATION
-          </Eyebrow>
-          <h1 className="font-display text-xl font-semibold tracking-tight text-text-primary">
-            Check Your Email
+        <div className="space-y-1.5">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-text-primary">
+            Check your email
           </h1>
-          <p className="text-xs text-text-muted font-mono">
-            We sent a single-use verification link to:
+          <p className="text-sm text-text-muted">
+            We sent a verification link to:
           </p>
           {initialEmail && (
-            <div className="inline-block mt-1 px-3 py-1 rounded-[4px] bg-bg-void border border-border-hairline text-accent-scan font-mono text-xs font-semibold">
+            <div className="inline-block mt-1 px-3 py-1 rounded-lg bg-bg-void border border-border-hairline text-accent-scan font-medium text-xs">
               {initialEmail}
             </div>
           )}
         </div>
 
-        <div className="p-3.5 rounded-[4px] bg-bg-void border border-border-hairline space-y-2">
-          <div className="flex items-center gap-2 text-text-primary font-mono text-xs font-semibold">
-            <Clock className="h-3.5 w-3.5 text-accent-scan" />
-            <span>24-Hour Link Validity</span>
+        <div className="p-3.5 rounded-xl bg-bg-void border border-border-hairline space-y-1.5 text-left">
+          <div className="flex items-center gap-2 text-text-primary text-xs font-semibold">
+            <Clock className="h-4 w-4 text-accent-scan" />
+            <span>Link valid for 24 hours</span>
           </div>
-          <p className="text-[11px] font-mono text-text-muted leading-relaxed">
-            Click the activation button in the email to unlock your workspace. If you do not see it within a few minutes, check your spam folder.
+          <p className="text-xs text-text-muted leading-relaxed">
+            Click the activation button in the email to unlock your workspace. If you do not see it within a few minutes, please check your spam folder.
           </p>
         </div>
 
         {resendSuccess ? (
-          <div className="p-3 rounded-[4px] bg-signal-success/10 border border-signal-success/30 text-signal-success font-mono text-xs text-center">
-            A fresh verification link has been dispatched to your inbox.
+          <div className="p-3 rounded-xl bg-signal-resolved/10 border border-signal-resolved/30 text-signal-resolved text-xs text-center font-medium">
+            A new verification email has been sent!
           </div>
         ) : (
           <form onSubmit={handleResend} className="space-y-3 pt-2">
@@ -269,25 +269,28 @@ function VerifyEmailContent() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="security@protocol.io"
-                prefix={<Mail className="h-3.5 w-3.5 text-text-muted" />}
+                placeholder="name@company.com"
+                prefix={<Mail className="h-4 w-4 text-text-muted" />}
+                className="rounded-xl h-11 border-border-hairline focus-within:border-accent-scan"
                 required
               />
             )}
-            <Button
+            <ExpandingButton
               type="submit"
+              variant="dark"
+              size="md"
+              rounded="xl"
               disabled={isResending}
-              variant="outline"
-              className="w-full h-9 font-mono text-xs border-border-hairline hover:bg-bg-void hover:text-text-primary"
+              className="w-full cursor-pointer"
+              icon={<RefreshCw className={`h-4 w-4 ${isResending ? "animate-spin text-accent-scan" : ""}`} />}
             >
-              <RefreshCw className={`h-3.5 w-3.5 mr-2 ${isResending ? "animate-spin" : ""}`} />
-              <span>{isResending ? "Resending..." : "Didn't receive it? Resend Email"}</span>
-            </Button>
+              <span>{isResending ? "Sending..." : "Resend Email"}</span>
+            </ExpandingButton>
           </form>
         )}
 
-        <div className="pt-2 text-center font-mono text-xs text-text-muted border-t border-border-hairline">
-          <Link href="/auth/login" className="text-accent-scan hover:underline inline-flex items-center gap-1">
+        <div className="pt-2 text-center text-xs text-text-muted border-t border-border-hairline/60">
+          <Link href="/auth/login" className="text-accent-scan hover:underline inline-flex items-center gap-1 font-medium">
             <ArrowLeft className="h-3 w-3" />
             <span>Return to Sign In</span>
           </Link>
@@ -300,62 +303,73 @@ function VerifyEmailContent() {
   // RENDER CASE 3: GENERAL RESEND VERIFICATION FORM
   // -------------------------------------------------------------
   return (
-    <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
-      <div className="space-y-1.5 border-b border-border-hairline pb-4">
-        <Eyebrow size="xs" variant="scan" prefix="// ACCOUNT_ACTIVATION · ">
-          RESEND_VERIFICATION
-        </Eyebrow>
-        <h1 className="font-display text-xl font-semibold tracking-tight text-text-primary">
-          Verify Email Address
+    <div className="relative rounded-2xl bg-bg-panel/95 backdrop-blur-xl border border-border-hairline p-7 sm:p-9 shadow-xl space-y-6 overflow-hidden">
+      <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/25 to-transparent pointer-events-none" />
+
+      <div className="space-y-1.5 text-center">
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary">
+          Verify email address
         </h1>
-        <p className="text-xs text-text-muted font-mono">
-          Enter your registered work email to receive a new verification link.
+        <p className="text-sm text-text-muted">
+          Enter your registered email to receive an activation link.
         </p>
       </div>
 
       {resendSuccess ? (
-        <div className="space-y-4">
-          <div className="p-3.5 rounded-[4px] bg-signal-success/10 border border-signal-success/30 text-signal-success font-mono text-xs space-y-1">
-            <div className="font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>Request Processed</span>
+        <div className="space-y-4 text-center">
+          <div className="p-4 rounded-xl bg-signal-resolved/10 border border-signal-resolved/30 text-signal-resolved text-xs space-y-1">
+            <div className="font-semibold flex items-center justify-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Verification email sent</span>
             </div>
-            <p className="text-[11px] text-text-muted">
-              If an account with this email exists and is pending verification, a link has been dispatched.
+            <p className="text-text-muted text-xs">
+              If an account with this email exists, a link has been dispatched to your inbox.
             </p>
           </div>
-          <Button
-            className="w-full h-10 font-mono text-xs font-semibold uppercase tracking-wider bg-accent-scan text-bg-void hover:bg-accent-scan/90"
-            onClick={() => router.push("/auth/login")}
-          >
-            <span>Return to Sign In</span>
-            <ArrowRight className="h-3.5 w-3.5 ml-2" />
-          </Button>
+          <Link href="/auth/login" className="block w-full">
+            <ExpandingButton
+              type="button"
+              variant="light"
+              size="md"
+              rounded="xl"
+              className="w-full cursor-pointer"
+              icon={<ArrowRight className="h-4 w-4 stroke-[2.5]" />}
+            >
+              Return to Sign In
+            </ExpandingButton>
+          </Link>
         </div>
       ) : (
         <form onSubmit={handleResend} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="font-mono text-xs text-text-muted">REGISTERED WORK EMAIL</label>
+            <label className="text-xs font-medium text-text-muted">Email address</label>
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="security@protocol.io"
-              prefix={<Mail className="h-3.5 w-3.5 text-text-muted" />}
+              placeholder="name@company.com"
+              prefix={<Mail className="h-4 w-4 text-text-muted" />}
+              className="rounded-xl h-11 border-border-hairline focus-within:border-accent-scan"
               required
             />
           </div>
 
-          <Button
-            type="submit"
-            disabled={isResending}
-            className="w-full h-10 font-mono text-xs font-semibold uppercase tracking-wider bg-accent-scan text-bg-void hover:bg-accent-scan/90"
-          >
-            {isResending ? "Sending Verification Link..." : "Send Verification Link"}
-          </Button>
+          <div className="pt-1">
+            <ExpandingButton
+              type="submit"
+              variant="light"
+              size="md"
+              rounded="xl"
+              disabled={isResending}
+              className="w-full cursor-pointer"
+              icon={<ArrowRight className="h-4 w-4 stroke-[2.5]" />}
+            >
+              {isResending ? "Sending..." : "Send Verification Link"}
+            </ExpandingButton>
+          </div>
 
-          <div className="pt-2 text-center font-mono text-xs text-text-muted">
-            <Link href="/auth/login" className="text-accent-scan hover:underline inline-flex items-center gap-1">
+          <div className="pt-2 text-center text-xs text-text-muted">
+            <Link href="/auth/login" className="text-accent-scan hover:underline inline-flex items-center gap-1 font-medium">
               <ArrowLeft className="h-3 w-3" />
               <span>Back to Sign In</span>
             </Link>
@@ -370,8 +384,8 @@ export default function VerifyEmailPage() {
   return (
     <React.Suspense
       fallback={
-        <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline text-center font-mono text-xs text-text-muted">
-          Loading verification protocol...
+        <div className="p-8 rounded-2xl bg-bg-panel border border-border-hairline text-center text-xs text-text-muted">
+          Loading verification...
         </div>
       }
     >
