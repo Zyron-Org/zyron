@@ -80,10 +80,6 @@ export function PortalNav() {
             <span>PIPELINE ONLINE</span>
           </div>
 
-          <Link href="/kitchen-sink" className="text-text-muted hover:text-accent-scan font-mono text-xs hidden sm:inline">
-            /kitchen-sink
-          </Link>
-
           <Link href="/portal/new-request">
             <Button variant="primary" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />}>
               New Request

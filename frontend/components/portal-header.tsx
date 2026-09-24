@@ -27,6 +27,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { UserProfileDropdown } from "@/components/user-profile-dropdown";
 
 interface NotificationItem {
   id: string;
@@ -106,24 +107,24 @@ export function PortalHeader() {
   }, []);
 
   return (
-    <header className="h-14 px-4 sm:px-6 border-b border-border-hairline bg-bg-panel/40 backdrop-blur-md flex items-center justify-between sticky top-0 z-40">
+    <header className="h-14 px-4 sm:px-6 border-b border-border-hairline/60 bg-white/95 dark:bg-bg-panel/95 backdrop-blur-md flex items-center justify-between sticky top-0 z-40 shrink-0">
       {/* Left: Mobile Menu Trigger + Context Breadcrumb */}
       <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
         {/* Mobile Hamburger Toggle Button */}
         <button
           type="button"
           onClick={toggle}
-          className="lg:hidden p-1.5 rounded-[4px] bg-bg-panel border border-border-hairline text-text-muted hover:text-text-primary hover:border-accent-scan/50 transition-colors shrink-0"
+          className="lg:hidden p-1.5 rounded-lg bg-bg-void border border-border-hairline text-text-muted hover:text-text-primary hover:border-accent-scan/50 transition-colors shrink-0"
           aria-label="Toggle navigation drawer"
         >
           {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </button>
 
         {/* Breadcrumb Path */}
-        <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-xs text-text-muted truncate">
-          <span className="text-text-primary font-medium truncate">{user?.organization?.name || user?.name || "Client Portal"}</span>
-          <span>/</span>
-          <span className="text-accent-scan truncate">Dashboard</span>
+        <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-text-muted truncate">
+          <span className="text-text-primary font-semibold truncate">{user?.organization?.name || user?.name || "Client Portal"}</span>
+          <span className="text-text-muted/60">/</span>
+          <span className="text-accent-scan font-medium truncate">Dashboard</span>
         </div>
       </div>
 
@@ -132,26 +133,21 @@ export function PortalHeader() {
         <Input
           placeholder="Filter contracts, tickets (⌘K)..."
           prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
-          className="h-8 text-xs bg-bg-void/70"
+          className="h-8 text-xs bg-bg-void/60 rounded-lg border-border-hairline/60"
         />
       </div>
 
-      {/* Right: Engine Telemetry + User Actions */}
-      <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
-        {/* Engine Telemetry (Desktop Only) */}
-        <div className="hidden lg:flex items-center gap-2 font-mono text-[11px] text-text-muted bg-bg-void px-2.5 py-1 rounded-[2px] border border-border-hairline">
-          <Activity className="h-3 w-3 text-signal-resolved animate-pulse" />
-          <span>ENGINE: 14 AST PASSES READY</span>
-        </div>
-
-        {/* Notification Bell & Dropdown Container */}
+      {/* Right: Actions & User Profile */}
+      <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+        {/* Notification Bell & Dropdown Container (Commented out for now) */}
+        {/*
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`relative h-8 w-8 rounded-[4px] border flex items-center justify-center transition-colors ${
+            className={`relative h-8 w-8 rounded-lg border flex items-center justify-center transition-colors ${
               isOpen
                 ? "bg-bg-panel-raised border-accent-scan text-accent-scan"
-                : "bg-bg-panel border-border-hairline text-text-muted hover:text-text-primary"
+                : "bg-bg-void/60 border-border-hairline/60 text-text-muted hover:text-text-primary"
             }`}
             title="Notifications"
           >
@@ -161,10 +157,8 @@ export function PortalHeader() {
             )}
           </button>
 
-          {/* NOTIFICATION FLYOUT DROPDOWN (Responsive width & placement) */}
           {isOpen && (
             <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-sm rounded-[4px] bg-bg-panel-raised border border-border-hairline shadow-2xl z-50 overflow-hidden font-mono text-xs animate-in fade-in slide-in-from-top-2 duration-150">
-              {/* Header */}
               <div className="p-3.5 border-b border-border-hairline bg-bg-void/80 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-text-primary text-xs">
@@ -187,7 +181,6 @@ export function PortalHeader() {
                 )}
               </div>
 
-              {/* Notification List */}
               <div className="max-h-80 overflow-y-auto divide-y divide-border-hairline">
                 {notifications.map((item) => (
                   <Link
@@ -228,7 +221,6 @@ export function PortalHeader() {
                 ))}
               </div>
 
-              {/* Footer Action */}
               <div className="p-2.5 border-t border-border-hairline bg-bg-void/80 text-center">
                 <Link
                   href="/portal/findings"
@@ -242,6 +234,7 @@ export function PortalHeader() {
             </div>
           )}
         </div>
+        */}
 
         {/* Theme Mode Switcher */}
         <ThemeToggle size="sm" />
@@ -253,26 +246,10 @@ export function PortalHeader() {
           </Button>
         </Link>
 
-        {/* User Profile Chip */}
-        <div className="flex items-center gap-2 pl-2 border-l border-border-hairline font-mono text-xs">
-          <div className="h-7 w-7 rounded-[4px] bg-accent-scan/10 border border-accent-scan/30 flex items-center justify-center text-accent-scan font-bold text-[11px]">
-            {user?.name ? user.name.slice(0, 2).toUpperCase() : "AF"}
-          </div>
-          <span className="hidden xl:inline text-text-primary text-xs font-medium truncate max-w-[120px]">
-            {user?.name || (user?.walletAddress ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}` : user?.email || "0x8920...43e7")}
-          </span>
+        {/* Profile Picture with Dropdown Menu & Sign Out */}
+        <div className="pl-1 sm:pl-2 border-l border-border-hairline/60">
+          <UserProfileDropdown align="right" />
         </div>
-
-        {/* Sign Out Action Button */}
-        <button
-          type="button"
-          onClick={() => logout()}
-          className="h-8 px-2.5 rounded-[4px] bg-bg-panel border border-border-hairline hover:border-signal-critical/50 hover:text-signal-critical text-text-muted transition-colors flex items-center gap-1.5 font-mono text-xs cursor-pointer shrink-0"
-          title="Sign Out"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Sign Out</span>
-        </button>
       </div>
     </header>
   );
