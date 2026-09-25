@@ -3,127 +3,103 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  UploadCloud,
   FileCode,
-  FileCheck,
   Check,
   ArrowRight,
-  AlertCircle,
-  Hash,
-  ShieldCheck,
-  Terminal,
-  Layers,
-  Clock,
-  Sparkles,
-  Info,
-  ChevronRight,
-  RefreshCw,
   GitBranch,
-  GitPullRequest,
-  Search,
+  Code2,
+  Sparkles,
   Lock,
   Globe,
+  RefreshCw,
+  Search,
+  Building2,
+  User,
   ExternalLink,
-  Code2,
+  ChevronRight,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { StatusPill } from "@/components/ui/status-pill";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { MOCK_REPOSITORIES, type MockRepository, type SolContractFile } from "@/lib/mock-data";
+import { OPEN_SOURCE_TEST_PROJECT, type MockRepository } from "@/lib/mock-data";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+interface GithubRepoItem {
+  id: number | string;
+  fullName: string;
+  name: string;
+  private: boolean;
+  defaultBranch: string;
+  htmlUrl: string;
+  language?: string;
+  description?: string;
+  updatedAt?: string;
+  owner?: {
+    login: string;
+    avatarUrl?: string;
+    type?: string;
+  };
+}
+
+interface GithubOrgItem {
+  login: string;
+  avatarUrl?: string;
+  repos: GithubRepoItem[];
+}
+
 export default function NewAuditRequestPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  // Auth Guard: redirect unauthenticated users only after session initialization finishes
+  // Auth Guard
   React.useEffect(() => {
     if (!loading && !user) {
       toast.error("Authentication Required: Please sign in to submit an audit request.");
       router.push("/auth/login");
     }
   }, [user, loading, router]);
-  // Method Toggle: "upload" | "github"
-  const [sourceMode, setSourceMode] = React.useState<"upload" | "github">("upload");
 
-  const handleSwitchSourceMode = (mode: "upload" | "github") => {
-    setSourceMode(mode);
-    if (mode === "github" && !fetchedGithubData) {
-      setSourceCode("");
-      setContractFileName("");
-      setFileName("");
-      setFileSize("0 KB");
-    }
-  };
+  const isGithubConnected = Boolean(user?.githubLogin || (user as any)?.githubAccessToken);
 
-  // GitHub State
-  const [isGithubConnected, setIsGithubConnected] = React.useState(false);
-  const [repoSearch, setRepoSearch] = React.useState("");
-  const [selectedRepoId, setSelectedRepoId] = React.useState<string>("repo-1");
-  const [selectedBranch, setSelectedBranch] = React.useState<string>("main");
-  const [customGithubUrl, setCustomGithubUrl] = React.useState("https://github.com/aura-finance/core-vaults");
-  const [isFetchingGithub, setIsFetchingGithub] = React.useState(false);
-  const [fetchedGithubData, setFetchedGithubData] = React.useState<any>(null);
+  // Intake Mode: 'personal' | 'org' | 'test' | 'custom'
+  const [scopeMode, setScopeMode] = React.useState<"personal" | "org" | "test" | "custom">(
+    isGithubConnected ? "personal" : "test"
+  );
 
-  const handleSelectGithubFile = async (owner: string, repo: string, filePath: string, branch = "main") => {
-    const fname = filePath.split("/").pop() || filePath;
-    setContractFileName(fname);
-    setFileName(fname);
+  // GitHub Ingestion State
+  const [userRepos, setUserRepos] = React.useState<GithubRepoItem[]>([]);
+  const [userOrgs, setUserOrgs] = React.useState<GithubOrgItem[]>([]);
+  const [selectedOrgLogin, setSelectedOrgLogin] = React.useState<string>("");
+  const [isLoadingGithubData, setIsLoadingGithubData] = React.useState<boolean>(false);
+  const [repoSearch, setRepoSearch] = React.useState<string>("");
+  const [visibilityFilter, setVisibilityFilter] = React.useState<"all" | "private" | "public">("all");
 
-    try {
-      const res = await apiClient.get("/integrations/github/file-content", {
-        params: { owner, repo, filePath, branch },
-      });
-      if (res.data?.content) {
-        setSourceCode(res.data.content);
-        setFileSize(`${(res.data.content.length / 1024).toFixed(1)} KB`);
-        toast.success(`Loaded real source code for ${fname} from GitHub!`);
-      }
-    } catch (e: any) {
-      toast.error(`Could not fetch raw source for ${fname}: ${e.message}`);
-    }
-  };
+  // Selected Repository State
+  const [selectedRepo, setSelectedRepo] = React.useState<GithubRepoItem | null>(null);
+  const [customGithubUrl, setCustomGithubUrl] = React.useState<string>("https://github.com/Uniswap/v2-core");
+  const [availableBranches, setAvailableBranches] = React.useState<string[]>(["master", "main", "dev"]);
+  const [selectedBranch, setSelectedBranch] = React.useState<string>("master");
+  const [isLoadingBranches, setIsLoadingBranches] = React.useState<boolean>(false);
 
-  const handleFetchRealGithubRepo = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!customGithubUrl.trim()) return;
-
-    setIsFetchingGithub(true);
-    try {
-      const res = await apiClient.get(`/integrations/github/contracts`, {
-        params: { repoUrl: customGithubUrl, branch: selectedBranch || "main" },
-      });
-      const data = res.data;
-      setFetchedGithubData(data);
-      setIsGithubConnected(true);
-      if (data.commitSha) setGitCommit(data.commitSha);
-      if (data.contracts && data.contracts.length > 0) {
-        setProtocolName(`${data.owner}/${data.repo}`);
-        const firstFile = typeof data.contracts[0] === "string" ? data.contracts[0] : (data.contracts[0]?.path || data.contracts[0]);
-        handleSelectGithubFile(data.owner, data.repo, firstFile, data.branch || "main");
-      }
-      toast.success(`Fetched ${data.contracts?.length || 0} contract files from GitHub (${data.owner}/${data.repo})!`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || "Failed to fetch GitHub repo";
-      toast.error(`GitHub API Notice: ${msg}`);
-    } finally {
-      setIsFetchingGithub(false);
-    }
-  };
+  // Contracts Scope State
+  const [availableContracts, setAvailableContracts] = React.useState<string[]>([]);
+  const [isLoadingContracts, setIsLoadingContracts] = React.useState<boolean>(false);
 
   // Form State
-  const [protocolName, setProtocolName] = React.useState("Aura Liquidity Protocol");
-  const [contractFileName, setContractFileName] = React.useState("");
-  const [contractAddress, setContractAddress] = React.useState("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48");
-  const [compilerVersion, setCompilerVersion] = React.useState("v0.8.20");
-  const [network, setNetwork] = React.useState("Ethereum Mainnet (1)");
-  const [gitCommit, setGitCommit] = React.useState("8f9b2d4c01e9a37");
+  const defaultTestContract = OPEN_SOURCE_TEST_PROJECT.contractFiles[0];
+  const [protocolName, setProtocolName] = React.useState<string>("Uniswap V2 Core");
+  const [contractFileName, setContractFileName] = React.useState<string>(defaultTestContract.fileName);
+  const [contractAddress, setContractAddress] = React.useState<string>("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f");
+  const [compilerVersion, setCompilerVersion] = React.useState<string>("v0.8.20");
+  const [network, setNetwork] = React.useState<string>("Ethereum Mainnet (1)");
+  const [gitCommit, setGitCommit] = React.useState<string>(defaultTestContract.commit);
+  const [sourceCode, setSourceCode] = React.useState<string>(defaultTestContract.sourceCode);
 
   // Invariant checkboxes
   const [invariants, setInvariants] = React.useState<Record<string, boolean>>({
@@ -134,24 +110,9 @@ export default function NewAuditRequestPage() {
     crosschain: false,
   });
 
-  // Source code state
-  const [sourceCode, setSourceCode] = React.useState<string>("");
-
-  const [fileName, setFileName] = React.useState<string>("No file uploaded yet");
-  const [fileSize, setFileSize] = React.useState<string>("0 KB");
-  const [isDragOver, setIsDragOver] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSubmitted, setIsSubmitted] = React.useState(false);
-
-  // Selected repo object
-  const selectedRepo = MOCK_REPOSITORIES.find((r) => r.id === selectedRepoId) || MOCK_REPOSITORIES[0];
-
-  // Filtered repos list
-  const filteredRepos = MOCK_REPOSITORIES.filter(
-    (repo) =>
-      repo.name.toLowerCase().includes(repoSearch.toLowerCase()) ||
-      repo.fullName.toLowerCase().includes(repoSearch.toLowerCase())
-  );
+  const [submittedTicketId, setSubmittedTicketId] = React.useState<string>("#ZYR-9486");
 
   // Dynamic SLOC count based on source code lines
   const calculatedSloc = React.useMemo(() => {
@@ -167,43 +128,194 @@ export default function NewAuditRequestPage() {
     return "48–72 Hours";
   }, [calculatedSloc]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      setContractFileName(file.name);
-      setFileSize(`${(file.size / 1024).toFixed(1)} KB`);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setSourceCode(event.target.result as string);
-        }
-      };
-      reader.readAsText(file);
+  // Load user repositories and organizations on mount if connected
+  const loadGithubReposAndOrgs = React.useCallback(async () => {
+    if (!isGithubConnected) return;
+
+    setIsLoadingGithubData(true);
+    try {
+      const [reposRes, orgsRes] = await Promise.all([
+        apiClient.get("/auth/github/repos", { params: { per_page: 100 } }),
+        apiClient.get("/auth/github/orgs").catch(() => ({ data: { orgs: [] } })),
+      ]);
+
+      const repos: GithubRepoItem[] = reposRes.data?.repos || [];
+      const orgs: GithubOrgItem[] = orgsRes.data?.orgs || [];
+
+      setUserRepos(repos);
+      setUserOrgs(orgs);
+      if (orgs.length > 0 && !selectedOrgLogin) {
+        setSelectedOrgLogin(orgs[0].login);
+      }
+    } catch (err: any) {
+      console.warn("Failed to load GitHub repositories:", err);
+    } finally {
+      setIsLoadingGithubData(false);
+    }
+  }, [isGithubConnected, selectedOrgLogin]);
+
+  React.useEffect(() => {
+    if (isGithubConnected) {
+      loadGithubReposAndOrgs();
+      setScopeMode("personal");
+    }
+  }, [isGithubConnected, loadGithubReposAndOrgs]);
+
+  // Fetch branches for a repository
+  const fetchBranchesForRepo = async (repoUrl: string) => {
+    setIsLoadingBranches(true);
+    try {
+      const res = await apiClient.get("/integrations/github/branches", {
+        params: { repoUrl },
+      });
+      const branches: string[] = res.data?.branches || [];
+      if (branches.length > 0) {
+        setAvailableBranches(branches);
+        return branches;
+      }
+    } catch {
+      // Fallback branches
+      setAvailableBranches(["main", "master", "dev"]);
+    } finally {
+      setIsLoadingBranches(false);
+    }
+    return ["main", "master"];
+  };
+
+  // Fetch contract files for a repository and branch
+  const fetchContractsForRepo = async (repoUrl: string, branch: string) => {
+    setIsLoadingContracts(true);
+    try {
+      const res = await apiClient.get("/integrations/github/contracts", {
+        params: { repoUrl, branch },
+      });
+      const data = res.data;
+      if (data?.commitSha) {
+        setGitCommit(data.commitSha);
+      }
+      const contractFiles: string[] = data?.contracts || [];
+      setAvailableContracts(contractFiles);
+
+      // Auto-select primary contract if found
+      if (contractFiles.length > 0) {
+        const primary = contractFiles.find((c) => c.toLowerCase().includes("pair") || c.toLowerCase().includes("core") || c.toLowerCase().includes("vault")) || contractFiles[0];
+        await fetchFileContent(data.owner, data.repo, primary, branch);
+      }
+    } catch (err: any) {
+      toast.error(`Could not inspect contract files: ${err.message || "Failed to scan repo"}`);
+    } finally {
+      setIsLoadingContracts(false);
     }
   };
 
-  const handleLoadSample = () => {
-    setFileName("VaultCore.sol");
-    setFileSize("14.8 KB");
-    setContractFileName("VaultCore.sol");
-    setProtocolName("Aura Liquidity Protocol");
-    setContractAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48");
+  // Fetch raw file content
+  const fetchFileContent = async (owner: string, repo: string, filePath: string, branch: string) => {
+    const fname = filePath.split("/").pop() || filePath;
+    setContractFileName(fname);
+
+    try {
+      const res = await apiClient.get("/integrations/github/file-content", {
+        params: { owner, repo, filePath, branch },
+      });
+      if (res.data?.content) {
+        setSourceCode(res.data.content);
+        toast.success(`Loaded ${fname} (${branch})`);
+      }
+    } catch (e: any) {
+      toast.error(`Could not fetch file content for ${fname}: ${e.message}`);
+    }
   };
 
-  const handleSelectRepoContract = (file: SolContractFile) => {
-    setFileName(file.fileName);
-    setContractFileName(file.fileName);
-    setSourceCode(file.sourceCode);
-    setGitCommit(file.commit);
-    setFileSize(`${(file.sloc * 0.038).toFixed(1)} KB`);
+  // Select a repository from the user's GitHub list
+  const handleSelectGithubRepo = async (repo: GithubRepoItem) => {
+    setSelectedRepo(repo);
+    setCustomGithubUrl(repo.htmlUrl || `https://github.com/${repo.fullName}`);
+    setProtocolName(repo.name.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()));
+    const branchToUse = repo.defaultBranch || "main";
+    setSelectedBranch(branchToUse);
+
+    toast.info(`Inspecting ${repo.fullName}...`);
+    const fetchedBranches = await fetchBranchesForRepo(repo.fullName);
+    const activeBranch = fetchedBranches.includes(branchToUse) ? branchToUse : fetchedBranches[0] || "main";
+    setSelectedBranch(activeBranch);
+    await fetchContractsForRepo(repo.fullName, activeBranch);
+  };
+
+  // Change branch handler
+  const handleBranchSelect = async (newBranch: string) => {
+    setSelectedBranch(newBranch);
+    const targetUrl = selectedRepo ? selectedRepo.fullName : customGithubUrl;
+    if (targetUrl) {
+      toast.info(`Switching branch to ${newBranch}...`);
+      await fetchContractsForRepo(targetUrl, newBranch);
+    }
+  };
+
+  // Select a contract file from the found list
+  const handleContractFileSelect = async (filePath: string) => {
+    let owner = "Uniswap";
+    let repo = "v2-core";
+
     if (selectedRepo) {
-      setProtocolName(`Aura ${selectedRepo.name}`);
+      const parts = selectedRepo.fullName.split("/");
+      owner = parts[0];
+      repo = parts[1];
+    } else if (customGithubUrl) {
+      const match = customGithubUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+      if (match) {
+        owner = match[1];
+        repo = match[2].replace(/\.git$/, "");
+      }
     }
+
+    await fetchFileContent(owner, repo, filePath, selectedBranch);
   };
 
-  const [submittedTicketId, setSubmittedTicketId] = React.useState<string>("#ZYR-9486");
+  // 1-Click Load Open Source Test Project (Uniswap V2 Core)
+  const handleLoadTestProject = async () => {
+    setScopeMode("test");
+    setSelectedRepo(null);
+    setCustomGithubUrl("https://github.com/Uniswap/v2-core");
+    setSelectedBranch("master");
+    setAvailableBranches(["master", "dev", "staging"]);
+    setProtocolName("Uniswap V2 Core");
+    setContractFileName(defaultTestContract.fileName);
+    setContractAddress("0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f");
+    setCompilerVersion("v0.8.20");
+    setNetwork("Ethereum Mainnet (1)");
+    setGitCommit(defaultTestContract.commit);
+    setSourceCode(defaultTestContract.sourceCode);
+    setAvailableContracts(["contracts/UniswapV2Pair.sol", "contracts/UniswapV2Factory.sol", "contracts/UniswapV2ERC20.sol"]);
 
+    toast.success("Loaded open-source test project: Uniswap V2 Core");
+
+    // Also fetch live tree from GitHub in background if network available
+    try {
+      await fetchContractsForRepo("https://github.com/Uniswap/v2-core", "master");
+    } catch {}
+  };
+
+  // Manual Fetch GitHub URL
+  const handleManualFetch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const url = customGithubUrl.trim();
+    if (!url) return;
+
+    toast.info(`Fetching repository scope for ${url}...`);
+    setSelectedRepo(null);
+    const branches = await fetchBranchesForRepo(url);
+    const branchToUse = branches.includes(selectedBranch) ? selectedBranch : branches[0] || "main";
+    setSelectedBranch(branchToUse);
+    await fetchContractsForRepo(url, branchToUse);
+  };
+
+  // Connect GitHub OAuth Action
+  const handleConnectGithub = () => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "http://144.91.110.133:4000";
+    window.location.href = `${apiBase}/api/v1/auth/github?redirect=/portal/new-request`;
+  };
+
+  // Submit Audit Request
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -216,19 +328,22 @@ export default function NewAuditRequestPage() {
     try {
       const res = await apiClient.post("/audits", {
         protocolName,
-        contractFileName: contractFileName || fileName || "Contract.sol",
+        contractFileName: contractFileName || "UniswapV2Pair.sol",
         contractAddress: contractAddress || undefined,
         compilerVersion,
         network,
         sloc: calculatedSloc,
         gitCommit,
+        sourceCode: sourceCode || undefined,
+        githubRepoUrl: customGithubUrl || undefined,
+        githubBranch: selectedBranch || "main",
+        invariants,
       });
 
       const auditId = res.data?.id || "ZYR-9486";
       const createdTicket = auditId.startsWith("#") ? auditId : `#${auditId}`;
       setSubmittedTicketId(createdTicket);
 
-      // Note: AST scan is triggered automatically by the backend on audit creation.
       toast.success(`Audit Request ${createdTicket} created successfully! AST scan queue initialized.`);
       setIsSubmitted(true);
     } catch (err: any) {
@@ -244,10 +359,45 @@ export default function NewAuditRequestPage() {
     setInvariants((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  // Filtered repositories based on search and visibility
+  const displayedRepos = React.useMemo(() => {
+    let sourceList: GithubRepoItem[] = [];
+
+    if (scopeMode === "personal") {
+      sourceList = userRepos.filter((r) => {
+        // If repo owner matches user login or user is owner
+        if (user?.githubLogin) {
+          return r.owner?.login.toLowerCase() === user.githubLogin.toLowerCase();
+        }
+        return true;
+      });
+    } else if (scopeMode === "org") {
+      const currentOrg = userOrgs.find((o) => o.login === selectedOrgLogin);
+      sourceList = currentOrg ? currentOrg.repos : [];
+    }
+
+    return sourceList.filter((repo) => {
+      const matchesSearch =
+        !repoSearch ||
+        repo.name.toLowerCase().includes(repoSearch.toLowerCase()) ||
+        repo.fullName.toLowerCase().includes(repoSearch.toLowerCase()) ||
+        (repo.language && repo.language.toLowerCase().includes(repoSearch.toLowerCase()));
+
+      const matchesVisibility =
+        visibilityFilter === "all" ||
+        (visibilityFilter === "private" && repo.private) ||
+        (visibilityFilter === "public" && !repo.private);
+
+      return matchesSearch && matchesVisibility;
+    });
+  }, [scopeMode, userRepos, userOrgs, selectedOrgLogin, repoSearch, visibilityFilter, user]);
+
   if (isSubmitted) {
-    const activeInvariantsList = Object.keys(invariants)
-      .filter((k) => invariants[k])
-      .join(", ") || "reentrancy, access_control, erc20_compliance";
+    const activeInvariantsList =
+      Object.keys(invariants)
+        .filter((k) => invariants[k])
+        .join(", ") || "reentrancy, access_control, erc20_compliance";
+
     const mappedOpcodes = Math.max(120, calculatedSloc * 4);
 
     return (
@@ -271,7 +421,7 @@ export default function NewAuditRequestPage() {
           </div>
 
           <p className="text-sm text-text-muted leading-relaxed">
-            Your contract <code className="text-text-primary font-mono text-xs">{contractFileName || fileName || "Contract.sol"}</code> ({calculatedSloc} SLOC) has been pinned to commit <code className="text-accent-scan font-mono text-xs">{gitCommit.slice(0, 7)}</code>. The automated AST symbolic scanner is executing.
+            Your contract <code className="text-text-primary font-mono text-xs">{contractFileName || "Contract.sol"}</code> ({calculatedSloc} SLOC) has been pinned to commit <code className="text-accent-scan font-mono text-xs">{gitCommit.slice(0, 7)}</code> on branch <code className="text-text-primary font-mono text-xs">{selectedBranch}</code>. The automated AST symbolic scanner is executing.
           </p>
 
           {/* Submission Details Grid */}
@@ -297,11 +447,12 @@ export default function NewAuditRequestPage() {
           {/* Dynamic AST Scanner Real-Time Log Console */}
           <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline font-mono text-xs space-y-3">
             <div className="flex items-center justify-between text-accent-scan font-bold border-b border-border-hairline pb-2">
-              <span>ZYR-ENGINE-AST-SCANNER // v2.4.0 · PID: 81924</span>
+              <span>ZYR-ENGINE-AST-SCANNER // v3.0.0 · PID: 81924</span>
               <span className="text-signal-resolved text-[11px]">ACTIVE SYMBOLIC TAINT PASS</span>
             </div>
             <div className="space-y-1.5 text-[11px] font-mono leading-relaxed text-text-muted">
-              <div>[INFO] Ingesting target contract: <span className="text-text-primary font-bold">{contractFileName || fileName || "Contract.sol"}</span> ({calculatedSloc} SLOC)</div>
+              <div>[INFO] Target Repository: <span className="text-text-primary font-bold">{customGithubUrl}</span> ({selectedBranch})</div>
+              <div>[INFO] Ingesting target contract: <span className="text-text-primary font-bold">{contractFileName || "Contract.sol"}</span> ({calculatedSloc} SLOC)</div>
               <div>[INFO] Locking Git commit SHA: <span className="text-accent-scan">{gitCommit}</span></div>
               <div>[INFO] Compiler target verified: <span className="text-text-primary">solc {compilerVersion} --via-ir --optimize</span></div>
               <div>[INFO] Target Deployment Network: <span className="text-text-primary">{network}</span></div>
@@ -309,11 +460,11 @@ export default function NewAuditRequestPage() {
               <div className="text-text-primary">[OK] AST compilation successful: {mappedOpcodes} EVM opcodes mapped across contract methods</div>
               <div className="text-signal-resolved">[PASS] AST Taint Pass 01/14: Access Control & Ownable invariants... PASSED</div>
               <div className="text-signal-resolved">[PASS] AST Taint Pass 02/14: Arithmetic overflow/underflow (Solidity 0.8+)... PASSED</div>
-              {sourceCode.includes("transfer") && (
-                <div className="text-signal-warning">[FLAG] AST Taint Pass 04/14: ERC-20 return value compliance check... VERIFYING</div>
+              {sourceCode.includes("swap") && (
+                <div className="text-signal-warning">[FLAG] AST Taint Pass 03/14: Constant-product AMM invariant & price cumulative check... ANALYZING</div>
               )}
               {sourceCode.includes("call") && (
-                <div className="text-signal-critical">[CRITICAL] AST Taint Pass 08/14: Low-level call execution order & reentrancy graph... VERIFYING</div>
+                <div className="text-signal-critical">[CRITICAL] AST Taint Pass 08/14: Low-level call execution order & mutex lock... VERIFYING</div>
               )}
               <div className="text-accent-scan">[ANALYSIS] AST Taint Pass 11/14: Symbolic Reentrancy Graph & Invariant Proofs... IN PROGRESS</div>
             </div>
@@ -325,9 +476,9 @@ export default function NewAuditRequestPage() {
                 Return to Dashboard
               </Button>
             </Link>
-            <Link href="/portal">
+            <Link href="/portal/track">
               <Button variant="outline" size="md">
-                View Live Pipeline Rail
+                Track Live Pipeline
               </Button>
             </Link>
           </div>
@@ -372,13 +523,13 @@ export default function NewAuditRequestPage() {
             {/* Protocol Name */}
             <div className="space-y-1.5">
               <label className="font-mono text-xs text-text-muted flex items-center justify-between">
-                <span>PROTOCOL / REPOSITORY NAME</span>
+                <span>PROTOCOL / ENGAGEMENT NAME</span>
                 <span className="text-accent-scan text-[10px]">REQUIRED</span>
               </label>
               <Input
                 value={protocolName}
                 onChange={(e) => setProtocolName(e.target.value)}
-                placeholder="e.g. Aura Liquidity Pool V3"
+                placeholder="e.g. Uniswap V2 Core"
                 required
               />
             </div>
@@ -392,16 +543,16 @@ export default function NewAuditRequestPage() {
               <Input
                 value={contractFileName}
                 onChange={(e) => setContractFileName(e.target.value)}
-                placeholder="e.g. VaultCore.sol"
+                placeholder="e.g. UniswapV2Pair.sol"
                 required
               />
             </div>
 
-            {/* Deployed / Target Contract Address (with Input mono variant) */}
+            {/* Deployed / Target Contract Address */}
             <div className="space-y-1.5 md:col-span-2">
               <label className="font-mono text-xs text-text-muted flex items-center justify-between">
-                <span>TARGET CONTRACT ADDRESS (MONOSPACE)</span>
-                <span className="text-text-muted text-[10px]">OPTIONAL FOR PRE-DEPLOYMENT</span>
+                <span>TARGET CONTRACT ADDRESS (OPTIONAL FOR PRE-DEPLOYMENT)</span>
+                <span className="text-text-muted text-[10px]">VERIFIED DEPLOYMENT</span>
               </label>
               <Input
                 isMono
@@ -427,6 +578,7 @@ export default function NewAuditRequestPage() {
                 <option value="v0.8.19">v0.8.19</option>
                 <option value="v0.8.18">v0.8.18</option>
                 <option value="v0.8.17">v0.8.17</option>
+                <option value="v0.5.16">v0.5.16 (Classic Uniswap V2)</option>
               </select>
             </div>
 
@@ -442,6 +594,7 @@ export default function NewAuditRequestPage() {
               >
                 <option value="Ethereum Mainnet (1)">Ethereum Mainnet (ChainID: 1)</option>
                 <option value="Arbitrum One (42161)">Arbitrum One (ChainID: 42161)</option>
+                <option value="Arbitrum Sepolia (421614)">Arbitrum Sepolia (ChainID: 421614)</option>
                 <option value="Optimism (10)">Optimism Mainnet (ChainID: 10)</option>
                 <option value="Base (8453)">Base (ChainID: 8453)</option>
                 <option value="Polygon (137)">Polygon POS (ChainID: 137)</option>
@@ -450,297 +603,489 @@ export default function NewAuditRequestPage() {
           </div>
         </section>
 
-        {/* STEP 2: SOLIDITY SOURCE INGESTION (File Upload vs GitHub Repository) */}
+        {/* STEP 2: GIT REPOSITORY INGESTION & SCOPE */}
         <section className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
-          <div className="border-b border-border-hairline pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="border-b border-border-hairline pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="h-5 w-5 rounded-full bg-accent-scan text-bg-void font-mono text-[11px] font-bold flex items-center justify-center">
                 02
               </span>
               <h2 className="font-display text-base font-semibold text-text-primary">
-                Contract Source Ingestion
+                Git Repository Ingestion & Scope Lock
               </h2>
             </div>
-
-            {/* Segmented Method Toggle */}
-            <div className="flex items-center rounded-[4px] border border-border-hairline bg-bg-void p-0.5 font-mono text-xs">
-              <button
-                type="button"
-                onClick={() => handleSwitchSourceMode("upload")}
-                className={`px-3 py-1 rounded-[2px] transition-colors ${
-                  sourceMode === "upload"
-                    ? "bg-bg-panel-raised text-accent-scan font-semibold border border-border-hairline"
-                    : "text-text-muted hover:text-text-primary"
-                }`}
-              >
-                Upload File
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSwitchSourceMode("github")}
-                className={`px-3 py-1 rounded-[2px] transition-colors ${
-                  sourceMode === "github"
-                    ? "bg-bg-panel-raised text-accent-scan font-semibold border border-border-hairline"
-                    : "text-text-muted hover:text-text-primary"
-                }`}
-              >
-                Connect GitHub Repository
-              </button>
+            <div className="flex items-center gap-2">
+              {isGithubConnected ? (
+                <div className="flex items-center gap-2 font-mono text-xs text-signal-resolved">
+                  <span className="h-2 w-2 rounded-full bg-signal-resolved animate-pulse" />
+                  <span>GITHUB CONNECTED (@{user?.githubLogin || "user"})</span>
+                </div>
+              ) : (
+                <Badge severity="medium" size="sm">
+                  GITHUB NOT CONNECTED
+                </Badge>
+              )}
             </div>
           </div>
 
-          {/* PATH A: UPLOAD FILE DRAG AND DROP */}
-          {sourceMode === "upload" && (
-            <div className="space-y-4">
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragOver(true);
-                }}
-                onDragLeave={() => setIsDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragOver(false);
-                  const file = e.dataTransfer.files?.[0];
-                  if (file) {
-                    setFileName(file.name);
-                    setContractFileName(file.name);
-                    setFileSize(`${(file.size / 1024).toFixed(1)} KB`);
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      if (event.target?.result) {
-                        setSourceCode(event.target.result as string);
-                      }
-                    };
-                    reader.readAsText(file);
-                  }
-                }}
-                className={`border-2 border-dashed rounded-[4px] p-8 text-center transition-colors relative ${
-                  isDragOver
-                    ? "border-accent-scan bg-accent-scan/5"
-                    : "border-border-hairline hover:border-hairline/80 bg-bg-void/40"
-                }`}
-              >
-                <input
-                  type="file"
-                  accept=".sol,.zip,.tar,.gz"
-                  onChange={handleFileUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-                <div className="flex flex-col items-center space-y-2 pointer-events-none">
-                  <div className="h-10 w-10 rounded-[4px] bg-bg-panel-raised border border-border-hairline flex items-center justify-center text-accent-scan">
-                    <UploadCloud className="h-5 w-5" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="font-display text-sm font-semibold text-text-primary">
-                      Drag and drop <code className="text-accent-scan font-mono">.sol</code> contract file or repository archive
-                    </div>
-                    <div className="font-mono text-xs text-text-muted">
-                      Supports single Solidity files (.sol) or zipped multi-file projects up to 25MB
-                    </div>
-                  </div>
+          {/* GITHUB NOT CONNECTED BANNER */}
+          {!isGithubConnected && (
+            <div className="p-4 rounded-[4px] bg-bg-void border border-accent-scan/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-text-primary font-semibold text-sm">
+                  {/* GitHub SVG */}
+                  <svg className="h-4 w-4 text-accent-scan" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                  </svg>
+                  <span>Connect your GitHub Account</span>
                 </div>
+                <p className="text-xs text-text-muted font-mono leading-relaxed">
+                  Connect to access your private and organization repositories directly with zero-disk ingestion.
+                </p>
               </div>
 
-              {/* Preset Sample Quick-Load */}
-              <div className="flex items-center justify-between text-xs font-mono text-text-muted pt-1">
-                <span>QUICK LOAD FOR TESTING:</span>
-                <button
+              <div className="flex items-center gap-2.5 shrink-0">
+                <Button
                   type="button"
-                  onClick={handleLoadSample}
-                  className="text-accent-scan hover:underline flex items-center gap-1"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleConnectGithub}
+                  rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
                 >
-                  <RefreshCw className="h-3 w-3" />
-                  Load Sample VaultCore.sol (1,482 SLOC)
-                </button>
+                  Connect GitHub
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLoadTestProject}
+                  leftIcon={<Sparkles className="h-3.5 w-3.5 text-accent-scan" />}
+                >
+                  Load Test Project
+                </Button>
               </div>
             </div>
           )}
 
-          {/* PATH B: CONNECT GITHUB REPOSITORY */}
-          {sourceMode === "github" && (
-            <div className="space-y-6">
-              {/* Live GitHub Repository URL Fetch Component */}
-              <div className="p-6 rounded-[4px] bg-bg-void border border-border-hairline space-y-4 font-mono text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-text-primary font-semibold">
-                    <GitBranch className="h-4 w-4 text-accent-scan" />
-                    <span>Connect GitHub Repository via REST API</span>
+          {/* INTAKE MODE SELECTOR TABS */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-border-hairline pb-3">
+            {isGithubConnected && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setScopeMode("personal")}
+                  className={`px-3 py-1.5 rounded-[4px] font-mono text-xs font-medium flex items-center gap-2 transition-colors ${
+                    scopeMode === "personal"
+                      ? "bg-accent-scan text-bg-void font-bold shadow-sm"
+                      : "bg-bg-void text-text-muted hover:text-text-primary border border-border-hairline"
+                  }`}
+                >
+                  <User className="h-3.5 w-3.5" />
+                  <span>Personal Repos ({userRepos.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setScopeMode("org")}
+                  className={`px-3 py-1.5 rounded-[4px] font-mono text-xs font-medium flex items-center gap-2 transition-colors ${
+                    scopeMode === "org"
+                      ? "bg-accent-scan text-bg-void font-bold shadow-sm"
+                      : "bg-bg-void text-text-muted hover:text-text-primary border border-border-hairline"
+                  }`}
+                >
+                  <Building2 className="h-3.5 w-3.5" />
+                  <span>Organizations ({userOrgs.length})</span>
+                </button>
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={handleLoadTestProject}
+              className={`px-3 py-1.5 rounded-[4px] font-mono text-xs font-medium flex items-center gap-2 transition-colors ${
+                scopeMode === "test"
+                  ? "bg-accent-scan text-bg-void font-bold shadow-sm"
+                  : "bg-bg-void text-text-muted hover:text-text-primary border border-border-hairline"
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-accent-scan" />
+              <span>Test Project (Uniswap V2 Core)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setScopeMode("custom")}
+              className={`px-3 py-1.5 rounded-[4px] font-mono text-xs font-medium flex items-center gap-2 transition-colors ${
+                scopeMode === "custom"
+                  ? "bg-accent-scan text-bg-void font-bold shadow-sm"
+                  : "bg-bg-void text-text-muted hover:text-text-primary border border-border-hairline"
+              }`}
+            >
+              <Code2 className="h-3.5 w-3.5" />
+              <span>Manual URL</span>
+            </button>
+
+            {isGithubConnected && (
+              <button
+                type="button"
+                onClick={loadGithubReposAndOrgs}
+                disabled={isLoadingGithubData}
+                title="Refresh Repositories"
+                className="ml-auto p-1.5 rounded-[4px] border border-border-hairline text-text-muted hover:text-text-primary transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isLoadingGithubData ? "animate-spin text-accent-scan" : ""}`} />
+              </button>
+            )}
+          </div>
+
+          {/* REPOSITORY BROWSER (PERSONAL OR ORG) */}
+          {(scopeMode === "personal" || scopeMode === "org") && (
+            <div className="space-y-4">
+              {/* Org Selector Dropdown (if in Org mode) */}
+              {scopeMode === "org" && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-[4px] bg-bg-void border border-border-hairline">
+                  <div className="flex items-center gap-2 font-mono text-xs">
+                    <Building2 className="h-4 w-4 text-accent-scan" />
+                    <span className="text-text-muted">SELECT ORGANIZATION:</span>
                   </div>
-                  <Badge severity="resolved" size="sm">LIVE API CONNECTED</Badge>
+
+                  {userOrgs.length > 0 ? (
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedOrgLogin}
+                        onChange={(e) => setSelectedOrgLogin(e.target.value)}
+                        className="h-8 px-2.5 rounded-[4px] bg-bg-panel border border-border-hairline font-mono text-xs text-text-primary focus:outline-none focus:border-accent-scan"
+                      >
+                        {userOrgs.map((org) => (
+                          <option key={org.login} value={org.login}>
+                            {org.login} ({org.repos?.length || 0} repos)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="text-xs font-mono text-text-muted flex items-center gap-2">
+                      <span>No organizations connected yet.</span>
+                      <a
+                        href="https://github.com/settings/connections/applications/Ov23libBtgxvVZzyUBh5"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-accent-scan hover:underline inline-flex items-center gap-1"
+                      >
+                        Grant org permissions on GitHub <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Search & Filter Toolbar */}
+              <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                <div className="relative flex-1 w-full">
+                  <Input
+                    value={repoSearch}
+                    onChange={(e) => setRepoSearch(e.target.value)}
+                    placeholder="Filter repositories by name or language..."
+                    prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
+                    className="h-9 text-xs"
+                  />
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <div className="flex-1 w-full">
-                    <Input
-                      value={customGithubUrl}
-                      onChange={(e) => setCustomGithubUrl(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleFetchRealGithubRepo();
-                        }
-                      }}
-                      placeholder="https://github.com/owner/repository or owner/repo"
-                      prefix={<Code2 className="h-3.5 w-3.5 text-text-muted" />}
-                      className="h-9 text-xs"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    onClick={handleFetchRealGithubRepo}
-                    isLoading={isFetchingGithub}
-                    rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
-                  >
-                    Fetch Repository
-                  </Button>
-                </div>
-
-                {/* Popular Repository Suggestion Chips */}
-                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-text-muted">
-                  <span className="text-text-muted">QUICK REPO PRESETS:</span>
+                <div className="flex items-center gap-1.5 w-full sm:w-auto font-mono text-xs">
                   <button
                     type="button"
-                    onClick={() => {
-                      setCustomGithubUrl("https://github.com/Vasakee/GhostFI");
-                    }}
-                    className="px-2 py-0.5 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-accent-scan text-[10px] font-mono transition-colors"
+                    onClick={() => setVisibilityFilter("all")}
+                    className={`px-2.5 py-1.5 rounded-[4px] border ${
+                      visibilityFilter === "all"
+                        ? "bg-bg-panel-raised border-accent-scan text-text-primary"
+                        : "border-border-hairline text-text-muted hover:text-text-primary"
+                    }`}
                   >
-                    Vasakee/GhostFI
+                    All
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setCustomGithubUrl("https://github.com/OpenZeppelin/openzeppelin-contracts");
-                    }}
-                    className="px-2 py-0.5 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-accent-scan text-[10px] font-mono transition-colors"
+                    onClick={() => setVisibilityFilter("private")}
+                    className={`px-2.5 py-1.5 rounded-[4px] border flex items-center gap-1 ${
+                      visibilityFilter === "private"
+                        ? "bg-bg-panel-raised border-accent-scan text-text-primary"
+                        : "border-border-hairline text-text-muted hover:text-text-primary"
+                    }`}
                   >
-                    OpenZeppelin/openzeppelin-contracts
+                    <Lock className="h-3 w-3 text-signal-critical" />
+                    <span>Private</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setCustomGithubUrl("https://github.com/aura-finance/core-vaults");
-                    }}
-                    className="px-2 py-0.5 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-accent-scan text-[10px] font-mono transition-colors"
+                    onClick={() => setVisibilityFilter("public")}
+                    className={`px-2.5 py-1.5 rounded-[4px] border flex items-center gap-1 ${
+                      visibilityFilter === "public"
+                        ? "bg-bg-panel-raised border-accent-scan text-text-primary"
+                        : "border-border-hairline text-text-muted hover:text-text-primary"
+                    }`}
                   >
-                    aura-finance/core-vaults
+                    <Globe className="h-3 w-3 text-signal-resolved" />
+                    <span>Public</span>
                   </button>
                 </div>
               </div>
 
-              {/* State 1: Not Connected */}
-              {!isGithubConnected ? (
-                <div className="p-8 rounded-[4px] bg-bg-void border border-border-hairline text-center space-y-4">
-                  <div className="h-12 w-12 rounded-[4px] bg-bg-panel border border-border-hairline mx-auto flex items-center justify-center text-accent-scan">
-                    <GitBranch className="h-6 w-6" />
-                  </div>
-                  <div className="space-y-1 max-w-md mx-auto">
-                    <div className="font-display text-base font-semibold text-text-primary">
-                      No Repository Scope Ingested
-                    </div>
-                    <p className="text-xs text-text-muted font-mono leading-relaxed">
-                      Enter any public or private GitHub repository URL above and click <strong>Fetch Repository</strong> to extract live source tree and commit SHA.
-                    </p>
-                  </div>
+              {/* Repositories Grid */}
+              {isLoadingGithubData ? (
+                <div className="p-8 rounded-[4px] bg-bg-void border border-border-hairline flex flex-col items-center justify-center gap-3">
+                  <RefreshCw className="h-5 w-5 animate-spin text-accent-scan" />
+                  <p className="font-mono text-xs text-text-muted">Importing GitHub repositories and permissions...</p>
+                </div>
+              ) : displayedRepos.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1">
+                  {displayedRepos.map((repo) => {
+                    const isSelected = selectedRepo?.fullName === repo.fullName;
+                    return (
+                      <div
+                        key={repo.id}
+                        onClick={() => handleSelectGithubRepo(repo)}
+                        className={`p-3.5 rounded-[4px] border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          isSelected
+                            ? "bg-bg-panel-raised border-accent-scan ring-1 ring-accent-scan/50"
+                            : "bg-bg-void border-border-hairline hover:border-accent-scan/60 hover:bg-bg-panel"
+                        }`}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-mono text-[10px] text-text-muted flex items-center gap-1 truncate">
+                              <GitBranch className="h-3 w-3 text-accent-scan shrink-0" />
+                              {repo.defaultBranch || "main"}
+                            </span>
+                            <span
+                              className={`h-4 px-1.5 rounded font-mono text-[9px] font-bold flex items-center gap-1 ${
+                                repo.private
+                                  ? "bg-signal-critical/10 text-signal-critical border border-signal-critical/30"
+                                  : "bg-signal-resolved/10 text-signal-resolved border border-signal-resolved/30"
+                              }`}
+                            >
+                              {repo.private ? <Lock className="h-2.5 w-2.5" /> : <Globe className="h-2.5 w-2.5" />}
+                              <span>{repo.private ? "PRIVATE" : "PUBLIC"}</span>
+                            </span>
+                          </div>
+
+                          <div className="font-display text-xs font-semibold text-text-primary truncate">
+                            {repo.name}
+                          </div>
+                          <div className="font-mono text-[10px] text-text-muted truncate">
+                            {repo.fullName}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 pt-2 border-t border-border-hairline flex items-center justify-between font-mono text-[10px] text-text-muted">
+                          <span>{repo.language || "Solidity"}</span>
+                          <span className={isSelected ? "text-accent-scan font-bold" : "text-text-muted"}>
+                            {isSelected ? "SELECTED ✓" : "SELECT →"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
-                /* State 2: Connected Real GitHub Repository Scope */
-                <div className="space-y-6">
-                  {/* Connected Status Toolbar */}
-                  <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-signal-resolved animate-pulse" />
-                      <span className="text-text-primary font-semibold">LIVE GITHUB CONNECTED:</span>
-                      <span className="text-accent-scan font-bold">
-                        {fetchedGithubData ? `${fetchedGithubData.owner}/${fetchedGithubData.repo}` : customGithubUrl}
-                      </span>
-                      <span className="text-text-muted text-[11px]">
-                        ({fetchedGithubData?.contracts?.length || 0} source files detected)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsGithubConnected(false);
-                          setFetchedGithubData(null);
-                        }}
-                        className="text-text-muted hover:text-signal-critical text-[11px] underline"
-                      >
-                        Disconnect
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Render Live Extracted GitHub Contracts List */}
-                  {fetchedGithubData && (
-                    <div className="p-5 rounded-[4px] bg-bg-void border border-accent-scan/30 space-y-4 font-mono text-xs">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline pb-3">
-                        <div className="space-y-0.5">
-                          <div className="text-accent-scan font-bold flex items-center gap-2">
-                            <Code2 className="h-4 w-4" />
-                            <span>LIVE REPOSITORY SCOPE: {fetchedGithubData.owner}/{fetchedGithubData.repo}</span>
-                          </div>
-                          <div className="text-text-muted text-[11px]">
-                            COMMIT SHA: <code className="text-accent-scan font-bold">{fetchedGithubData.commitSha || gitCommit.slice(0, 7)}</code>
-                          </div>
-                        </div>
-                        <Badge severity="resolved" size="sm">FETCHED VIA GITHUB API</Badge>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-text-muted text-[11px] font-semibold flex items-center justify-between">
-                          <span>DETECTED FILES ({fetchedGithubData.contracts?.length || 0})</span>
-                          <span className="text-accent-scan">CLICK FILE TO INGEST SOURCE</span>
-                        </div>
-
-                        <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                          {fetchedGithubData.contracts?.map((c: any, i: number) => {
-                            const filePath = typeof c === "string" ? c : (c?.path || c);
-                            const isCurrentFile = contractFileName === (filePath.split("/").pop() || filePath);
-                            return (
-                              <div
-                                key={i}
-                                onClick={() => handleSelectGithubFile(fetchedGithubData.owner, fetchedGithubData.repo, filePath, fetchedGithubData.branch || "main")}
-                                className={`p-3 rounded-[4px] border flex items-center justify-between transition-colors cursor-pointer ${
-                                  isCurrentFile
-                                    ? "bg-bg-panel-raised border-accent-scan"
-                                    : "bg-bg-panel border-border-hairline hover:border-accent-scan/70"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2.5 overflow-hidden">
-                                  <FileCode className={`h-4 w-4 shrink-0 ${isCurrentFile ? "text-accent-scan" : "text-text-muted"}`} />
-                                  <span className={`font-bold truncate ${isCurrentFile ? "text-accent-scan" : "text-text-primary"}`}>
-                                    {filePath}
-                                  </span>
-                                  {isCurrentFile && (
-                                    <Badge severity="resolved" size="sm">INGESTED</Badge>
-                                  )}
-                                </div>
-                                <span className={`text-[11px] font-mono shrink-0 ml-2 ${isCurrentFile ? "text-accent-scan font-bold" : "text-text-muted"}`}>
-                                  {isCurrentFile ? "ACTIVE SOURCE ✓" : "SELECT FILE →"}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                <div className="p-8 rounded-[4px] bg-bg-void border border-border-hairline text-center space-y-2">
+                  <p className="font-mono text-xs text-text-muted">
+                    No repositories found matching &ldquo;{repoSearch}&rdquo;.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRepoSearch("");
+                      setVisibilityFilter("all");
+                    }}
+                    className="font-mono text-xs text-accent-scan hover:underline"
+                  >
+                    Clear filters
+                  </button>
                 </div>
               )}
             </div>
           )}
 
-          {/* CONVERGED INGESTION STATISTICS STRIP (Appears for both Upload & GitHub methods) */}
+          {/* TEST PROJECT CARD VIEW (UNISWAP V2 CORE) */}
+          {scopeMode === "test" && (
+            <div className="p-4 rounded-[4px] bg-bg-void border border-accent-scan/40 space-y-3 font-mono text-xs">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-text-primary font-semibold">
+                  <Sparkles className="h-4 w-4 text-accent-scan" />
+                  <span>OPEN SOURCE TEST BENCHMARK — UNISWAP V2 CORE</span>
+                </span>
+                <Badge severity="resolved" size="sm">
+                  ACTIVE BENCHMARK
+                </Badge>
+              </div>
+
+              <p className="text-xs text-text-muted leading-relaxed">
+                Canonical open-source constant-product AMM repository (<code className="text-accent-scan">Uniswap/v2-core</code>). Contains the iconic 201-line <code className="text-text-primary">UniswapV2Pair.sol</code> pool contract with reentrancy mutex locks, TWAP price oracles, and constant product math.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-text-muted">
+                <span className="bg-bg-panel px-2 py-1 rounded border border-border-hairline">Repo: Uniswap/v2-core</span>
+                <span className="bg-bg-panel px-2 py-1 rounded border border-border-hairline">Default Branch: master</span>
+                <span className="bg-bg-panel px-2 py-1 rounded border border-border-hairline">Target: UniswapV2Pair.sol</span>
+                <span className="bg-bg-panel px-2 py-1 rounded border border-border-hairline">Commit: 6a9e7c9</span>
+              </div>
+            </div>
+          )}
+
+          {/* CUSTOM REPOSITORY URL INPUT BAR */}
+          {scopeMode === "custom" && (
+            <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline space-y-3 font-mono text-xs">
+              <div className="flex items-center justify-between text-text-muted text-[11px]">
+                <span className="flex items-center gap-1.5 text-text-primary font-semibold">
+                  <Code2 className="h-3.5 w-3.5 text-accent-scan" />
+                  <span>INGEST ANY PUBLIC OR PRIVATE REPOSITORY</span>
+                </span>
+                <span>REST API ZERO-DISK</span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                <div className="flex-1 w-full">
+                  <Input
+                    value={customGithubUrl}
+                    onChange={(e) => setCustomGithubUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleManualFetch();
+                      }
+                    }}
+                    placeholder="https://github.com/owner/repository or owner/repo"
+                    prefix={<GitBranch className="h-3.5 w-3.5 text-text-muted" />}
+                    className="h-9 text-xs"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleManualFetch}
+                  rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
+                  className="w-full sm:w-auto h-9"
+                >
+                  Fetch Repo
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* BRANCH SELECTION BAR */}
+          <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline space-y-3 font-mono text-xs">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1.5 text-text-primary font-semibold">
+                <GitBranch className="h-3.5 w-3.5 text-accent-scan" />
+                <span>REPOSITORY BRANCH SPECIFICATION</span>
+              </span>
+              <span className="text-text-muted">
+                Target Repo: <code className="text-accent-scan">{selectedRepo ? selectedRepo.fullName : customGithubUrl.replace("https://github.com/", "")}</code>
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="flex-1 w-full">
+                <label className="text-[10px] text-text-muted block mb-1">SELECT AUDIT BRANCH:</label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedBranch}
+                    onChange={(e) => handleBranchSelect(e.target.value)}
+                    disabled={isLoadingBranches}
+                    className="w-full h-9 px-3 rounded-[4px] bg-bg-panel border border-border-hairline font-mono text-xs text-text-primary focus:outline-none focus:border-accent-scan transition-colors"
+                  >
+                    {availableBranches.map((branch) => (
+                      <option key={branch} value={branch}>
+                        branch: {branch} {branch === (selectedRepo?.defaultBranch || "master") ? "(default)" : ""}
+                      </option>
+                    ))}
+                  </select>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBranchSelect(selectedBranch)}
+                    disabled={isLoadingContracts}
+                    className="h-9 px-3 shrink-0"
+                    title="Refresh contracts for this branch"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${isLoadingContracts ? "animate-spin text-accent-scan" : ""}`} />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="w-full sm:w-64">
+                <label className="text-[10px] text-text-muted block mb-1">OR SPECIFY CUSTOM BRANCH / TAG:</label>
+                <Input
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  onBlur={() => handleBranchSelect(selectedBranch)}
+                  placeholder="e.g. audit-remediation or v2.1.0"
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* CONTRACT SCOPE PICKER */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between font-mono text-xs text-text-muted">
+              <span className="flex items-center gap-1.5">
+                <FileCode className="h-3.5 w-3.5 text-accent-scan" />
+                <span>CONTRACT FILES IN SCOPE ({availableContracts.length})</span>
+              </span>
+              <span className="text-[11px] text-accent-scan">CLICK A FILE TO DESIGNATE AS PRIMARY TARGET</span>
+            </div>
+
+            {isLoadingContracts ? (
+              <div className="p-6 rounded-[4px] bg-bg-void border border-border-hairline flex items-center justify-center gap-3 font-mono text-xs text-text-muted">
+                <RefreshCw className="h-4 w-4 animate-spin text-accent-scan" />
+                <span>Scanning repository tree on branch &ldquo;{selectedBranch}&rdquo;...</span>
+              </div>
+            ) : availableContracts.length > 0 ? (
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 font-mono text-xs">
+                {availableContracts.map((filePath, i) => {
+                  const fname = filePath.split("/").pop() || filePath;
+                  const isCurrentFile = contractFileName === fname;
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => handleContractFileSelect(filePath)}
+                      className={`p-3 rounded-[4px] border flex items-center justify-between transition-colors cursor-pointer ${
+                        isCurrentFile
+                          ? "bg-bg-panel-raised border-accent-scan"
+                          : "bg-bg-void border-border-hairline hover:border-accent-scan/70"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 overflow-hidden">
+                        <FileCode className={`h-4 w-4 shrink-0 ${isCurrentFile ? "text-accent-scan" : "text-text-muted"}`} />
+                        <span className={`font-bold truncate ${isCurrentFile ? "text-accent-scan" : "text-text-primary"}`}>
+                          {filePath}
+                        </span>
+                        {isCurrentFile && <Badge severity="resolved" size="sm">ACTIVE TARGET</Badge>}
+                      </div>
+                      <span className={`text-[11px] font-mono shrink-0 ml-2 ${isCurrentFile ? "text-accent-scan font-bold" : "text-text-muted"}`}>
+                        {isCurrentFile ? "ACTIVE SOURCE ✓" : "SELECT FILE →"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline font-mono text-xs text-text-muted flex items-center justify-between">
+                <span>Active Target Contract: <code className="text-text-primary">{contractFileName}</code></span>
+                <span className="text-signal-resolved font-bold">READY FOR SCAN</span>
+              </div>
+            )}
+          </div>
+
+          {/* CONVERGED INGESTION STATISTICS STRIP */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-[4px] bg-bg-void border border-border-hairline font-mono text-xs">
             <div>
-              <div className="text-text-muted text-[10px]">INGESTED FILE</div>
-              <div className="text-text-primary font-medium truncate">{fileName}</div>
+              <div className="text-text-muted text-[10px]">INGESTED TARGET CONTRACT</div>
+              <div className="text-text-primary font-medium truncate">{contractFileName || "Contract.sol"}</div>
             </div>
             <div>
               <div className="text-text-muted text-[10px]">SOURCE LINES (SLOC)</div>
@@ -748,7 +1093,7 @@ export default function NewAuditRequestPage() {
             </div>
             <div>
               <div className="text-text-muted text-[10px]">PINNED COMMIT</div>
-              <div className="text-text-primary">{gitCommit.slice(0, 7)}</div>
+              <div className="text-text-primary font-mono">{gitCommit.slice(0, 7)}</div>
             </div>
             <div>
               <div className="text-text-muted text-[10px]">ESTIMATED TURNAROUND</div>
@@ -768,7 +1113,7 @@ export default function NewAuditRequestPage() {
             <div className="rounded-[4px] border border-border-hairline bg-bg-void/90 p-4 font-mono text-xs leading-relaxed max-h-48 overflow-y-auto text-text-muted">
               <pre>
                 <code>
-                  {sourceCode || "// Connect a GitHub repository above or select a contract file to load raw source code..."}
+                  {sourceCode || "// Source code will be parsed upon repository ingestion..."}
                 </code>
               </pre>
             </div>
@@ -800,17 +1145,17 @@ export default function NewAuditRequestPage() {
                   key: "reentrancy",
                   label: "Reentrancy & State Ordering",
                   swc: "SWC-107",
-                  desc: "External low-level calls before state decrement",
+                  desc: "External low-level calls before state decrement & mutex checks",
                 },
                 {
                   key: "oracle",
                   label: "Oracle Manipulation & Flash Loans",
                   swc: "SWC-120",
-                  desc: "Spot price dependency and arithmetic slippage",
+                  desc: "Spot price dependency, TWAP accumulators, and arithmetic slippage",
                 },
                 {
                   key: "access",
-                  label: "Access Control & Upgradeability",
+                  label: "Access Control & Initialization",
                   swc: "SWC-105",
                   desc: "Privilege escalation and initialization front-running",
                 },
@@ -818,7 +1163,7 @@ export default function NewAuditRequestPage() {
                   key: "erc20",
                   label: "ERC-20 Return Value Handling",
                   swc: "SWC-104",
-                  desc: "Non-standard tokens (USDT/BNB) silent failure modes",
+                  desc: "Non-standard tokens silent failure modes and allowance front-running",
                 },
               ].map((item) => (
                 <div
@@ -861,7 +1206,7 @@ export default function NewAuditRequestPage() {
           <div className="space-y-1 font-mono text-xs">
             <div className="text-text-primary font-semibold flex items-center gap-2">
               <span>SCOPED REVIEW SUMMARY:</span>
-              <span className="text-accent-scan">#ZAM-9486</span>
+              <span className="text-accent-scan">#{protocolName.slice(0, 3).toUpperCase()}-9486</span>
             </div>
             <div className="text-text-muted text-[11px]">
               {calculatedSloc} SLOC · 14 AST Passes · 2 Senior Auditors · {turnaroundSla} ETA

@@ -180,3 +180,10 @@ zyron-revamped/
 
 - **Commit Immutability**: Once an audit ticket is signed and set to `COMPLETED`, its findings and bytecode hash are sealed. Modifications are strictly rejected by `FindingsService`.
 - **Role-Based Guards**: NestJS `@Roles(UserRole.AUDITOR, UserRole.ADMIN)` strictly decodes JWT claims to protect sensitive auditor routes.
+
+---
+
+## 📋 Engineering Roadmap & Architecture TODOs
+
+Detailed technical specifications for planned system refactors (including Multi-Organization membership, decoupled personal accounts, and Owner-controlled Dev RBAC permissions) are documented in [`TODO.md`](./TODO.md).
+

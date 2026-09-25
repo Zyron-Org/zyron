@@ -12,7 +12,7 @@ datasource db {
 model User {
   id              String        @id @default(cuid())
   email           String        @unique
-  passwordHash    String?       // null for wallet-only users
+  passwordHash    String?       // null for wallet-only or GitHub-only users
   walletAddress   String?       @unique
   name            String
   role            String        @default("CLIENT") // CLIENT, AUDITOR, ADMIN
@@ -22,8 +22,17 @@ model User {
   isAvailable     Boolean       @default(true)
   maxConcurrentAudits Int       @default(3)
   onboardingStatus String       @default("ACTIVE") // APPLICANT, BENCHMARK_PASSED, ACTIVE, SUSPENDED
+  emailVerified   Boolean       @default(false)
+  emailVerifiedAt DateTime?
   organizationId  String?
   organization    Organization? @relation(fields: [organizationId], references: [id])
+
+  // GitHub OAuth
+  githubId          String?   @unique  // GitHub numeric user ID
+  githubLogin       String?             // GitHub username e.g. "vasakee"
+  githubAccessToken String?             // OAuth token for private repo access (store encrypted in prod)
+  githubAvatarUrl   String?             // GitHub avatar URL
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -33,6 +42,8 @@ model User {
   peerAudits      AuditRequest[] @relation("PeerAuditor")
   comments        Comment[]
   apiKeys         ApiKey[]
+  passwordResetTokens PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@index([email])
   @@index([walletAddress])
@@ -60,6 +71,32 @@ model ApiKey {
   expiresAt  DateTime?
 }
 
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
 // ─── AUDIT LIFECYCLE ────────────────────────────────────
 
 model AuditRequest {
@@ -75,8 +112,10 @@ model AuditRequest {
   stageNumber      Int        @default(1)
 
   // Source
+  sourceCode       String? // Ingested or uploaded raw Solidity contract source code
   sourceCodeUrl    String? // S3 key for uploaded .sol
   githubRepoUrl    String?
+
   githubBranch     String?
   sourceHash       String?   // SHA-256 of all source files concatenated
   compilerSettings String?   // JSON: { version, optimizer, runs }

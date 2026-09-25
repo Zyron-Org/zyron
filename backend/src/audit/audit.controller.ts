@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@ne
 import { AuditService } from './audit.service';
 import { CreateAuditDto, AdvanceStageDto, CreateFindingDto, UpdateFindingDto, CreateCommentDto } from './dto/audit.dto';
 import { JwtAuthGuard, RolesGuard } from '../common/guards';
-import { CurrentUser, CurrentUserPayload, Roles } from '../common/decorators';
+import { CurrentUser, CurrentUserPayload, Roles, Public } from '../common/decorators';
 import { AuditStage, UserRole } from '../common/enum';
 
 @ApiTags('Audit Engagements')
@@ -28,6 +28,13 @@ export class AuditController {
     @Query('stage') stage?: AuditStage,
   ) {
     return this.auditService.findAllAudits(user.id, user.role, user.organizationId, stage);
+  }
+
+  @Get('stats/overview')
+  @Public()
+  @ApiOperation({ summary: 'Get aggregate platform statistics and recent audit telemetry' })
+  async getOverviewStats() {
+    return this.auditService.getOverviewStats();
   }
 
   @Get(':id')
@@ -61,7 +68,7 @@ export class AuditController {
   @Roles(UserRole.CLIENT, UserRole.ADMIN, UserRole.AUDITOR)
   @ApiOperation({ summary: 'Client submits fix commit SHA and requests Round 2 re-verification' })
   async submitFixes(@Param('id') id: string, @Body() body: { gitCommit?: string }) {
-    return this.auditService.advanceStage(id, { stage: AuditStage.IN_REVIEW });
+    return this.auditService.advanceStage(id, { stage: AuditStage.IN_REVIEW, gitCommit: body.gitCommit });
   }
 
   @Patch(':id/stage')
@@ -80,8 +87,11 @@ export class AuditController {
 
   @Get(':id/findings')
   @ApiOperation({ summary: 'List all findings for an audit engagement' })
-  async findFindingsByAudit(@Param('id') auditId: string) {
-    return this.auditService.findFindingsByAudit(auditId);
+  async findFindingsByAudit(
+    @Param('id') auditId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.auditService.findFindingsByAudit(auditId, user.role);
   }
 }
 

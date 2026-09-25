@@ -4,38 +4,83 @@
 
 :root {
   --font-sans-display: 'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --bg-void: #0B0D10;
-  --bg-panel: #14171C;
-  --bg-panel-raised: #1B1F26;
-  --border-hairline: #262B33;
-  --text-primary: #E8EAED;
-  --text-muted: #8B93A1;
-  --accent-scan: #5EC8FF;
-  --signal-critical: #FF5468;
-  --signal-high: #FF9F43;
-  --signal-medium: #FFD166;
-  --signal-low: #6C9EFF;
-  --signal-resolved: #3DDC97;
+
+  /* Default Flagship Dark Mode Tokens (space-separated RGB numbers) */
+  --bg-void: 11 13 16;          /* #0B0D10 */
+  --bg-panel: 20 23 28;         /* #14171C */
+  --bg-panel-raised: 27 31 38;  /* #1B1F26 */
+  --border-hairline: 38 43 51;  /* #262B33 */
+  --text-primary: 232 234 237;  /* #E8EAED */
+  --text-muted: 139 147 161;    /* #8B93A1 */
+  --accent-scan: 94 200 255;    /* #5EC8FF */
+  --signal-critical: 255 84 104; /* #FF5468 */
+  --signal-high: 255 159 67;    /* #FF9F43 */
+  --signal-medium: 255 209 102; /* #FFD166 */
+  --signal-low: 108 158 255;    /* #6C9EFF */
+  --signal-resolved: 61 220 151;/* #3DDC97 */
+
+  /* Structural hairline grid */
+  --grid-line-color: rgba(38, 43, 51, 0.2);
+  --radial-dot-color: rgba(94, 200, 255, 0.04);
+}
+
+.dark {
+  --bg-void: 11 13 16;
+  --bg-panel: 20 23 28;
+  --bg-panel-raised: 27 31 38;
+  --border-hairline: 38 43 51;
+  --text-primary: 232 234 237;
+  --text-muted: 139 147 161;
+  --accent-scan: 94 200 255;
+  --signal-critical: 255 84 104;
+  --signal-high: 255 159 67;
+  --signal-medium: 255 209 102;
+  --signal-low: 108 158 255;
+  --signal-resolved: 61 220 151;
+
+  --grid-line-color: rgba(38, 43, 51, 0.2);
+  --radial-dot-color: rgba(94, 200, 255, 0.04);
+}
+
+.light,
+[data-theme="light"] {
+  /* Clinical Laboratory Light Paper Aesthetic */
+  --bg-void: 246 247 249;         /* #F6F7F9 */
+  --bg-panel: 255 255 255;        /* #FFFFFF */
+  --bg-panel-raised: 240 243 246; /* #F0F3F6 */
+  --border-hairline: 220 225 232; /* #DCE1E8 */
+  --text-primary: 15 20 25;       /* #0F1419 */
+  --text-muted: 90 100 115;       /* #5A6473 */
+  --accent-scan: 2 132 199;       /* #0284C7 */
+  --signal-critical: 225 29 72;   /* #E11D48 */
+  --signal-high: 217 119 6;       /* #D97706 */
+  --signal-medium: 180 83 9;      /* #B45309 */
+  --signal-low: 37 99 235;        /* #2563EB */
+  --signal-resolved: 5 150 105;   /* #059669 */
+
+  --grid-line-color: rgba(220, 225, 232, 0.7);
+  --radial-dot-color: rgba(2, 132, 199, 0.05);
 }
 
 * {
   box-sizing: border-box;
-  border-color: #262B33;
+  border-color: rgb(var(--border-hairline));
 }
 
 html,
 body {
-  background-color: #0B0D10;
+  background-color: rgb(var(--bg-void));
   background-image: 
-    radial-gradient(rgba(94, 200, 255, 0.04) 1px, transparent 0),
-    linear-gradient(to right, rgba(38, 43, 51, 0.2) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(38, 43, 51, 0.2) 1px, transparent 1px);
+    radial-gradient(var(--radial-dot-color) 1px, transparent 0),
+    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
   background-size: 32px 32px;
   background-position: 0 0, 0 0, 0 0;
-  color: #E8EAED;
+  color: rgb(var(--text-primary));
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -50,27 +95,27 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B0D10;
+  background: rgb(var(--bg-void));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #262B33;
+  background: rgb(var(--border-hairline));
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #8B93A1;
+  background: rgb(var(--text-muted));
 }
 
 /* Clinical grid hairline utility */
 .hairline-grid {
   background-size: 24px 24px;
   background-image: 
-    linear-gradient(to right, rgba(38, 43, 51, 0.35) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(38, 43, 51, 0.35) 1px, transparent 1px);
+    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
 }
 
-/* Prevent FOUC (Flash of Unanimated Content) before GSAP mounts */
+/* Prevent FOUC before GSAP mounts */
 .hero-bg-anim,
 .hero-header-anim,
 .hero-badge-anim,
@@ -97,5 +142,173 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-glow-pulse {
   animation: demoGlowPulse 5s ease-in-out infinite;
+}
+
+/* ========================================================================= */
+/* CODE EDITOR SOLIDITY SYNTAX HIGHLIGHTING TOKENS                           */
+/* Cyber-security terminal dark aesthetic with clinical light mode fallback */
+/* ========================================================================= */
+
+.solidity-code-line {
+  font-family: var(--font-mono), monospace;
+  white-space: pre;
+}
+
+/* Dark Mode Tokens (Default) */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #64748b; /* slate-500 italic */
+  font-style: italic;
+}
+
+.token.natspec-tag {
+  color: #38bdf8; /* sky-400 */
+  font-weight: 600;
+  font-style: normal;
+}
+
+.token.punctuation {
+  color: #94a3b8; /* slate-400 */
+}
+
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol {
+  color: #fb923c; /* orange-400 */
+}
+
+.token.boolean,
+.token.number {
+  color: #f97316; /* warm neon orange */
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char {
+  color: #fde047; /* bright yellow/gold */
+}
+
+.token.builtin,
+.token.solidity-type {
+  color: #2dd4bf; /* neon teal / mint for types like address, uint256 */
+  font-weight: 500;
+}
+
+.token.operator,
+.token.entity,
+.token.url {
+  color: #38bdf8; /* accent scan cyan */
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #c084fc; /* purple-400 / radiant violet for keywords */
+  font-weight: 600;
+}
+
+.token.function,
+.token.class-name {
+  color: #60a5fa; /* blue-400 for functions & contract types */
+  font-weight: 600;
+}
+
+.token.evm-variable {
+  color: #f43f5e; /* rose-500 for msg.sender, block.timestamp */
+  font-weight: 600;
+}
+
+.token.security-call {
+  color: #f87171; /* red-400 for require, assert, revert */
+  font-weight: 600;
+}
+
+.token.safe-erc20 {
+  color: #34d399; /* emerald-400 for safeTransfer */
+  font-weight: 600;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #e2e8f0;
+}
+
+/* Light Mode Overrides */
+.light .token.comment,
+[data-theme="light"] .token.comment {
+  color: #64748b;
+}
+
+.light .token.natspec-tag,
+[data-theme="light"] .token.natspec-tag {
+  color: #0284c7;
+}
+
+.light .token.punctuation,
+[data-theme="light"] .token.punctuation {
+  color: #475569;
+}
+
+.light .token.property,
+.light .token.constant,
+[data-theme="light"] .token.property,
+[data-theme="light"] .token.constant {
+  color: #d97706;
+}
+
+.light .token.boolean,
+.light .token.number,
+[data-theme="light"] .token.boolean,
+[data-theme="light"] .token.number {
+  color: #ea580c;
+}
+
+.light .token.string,
+[data-theme="light"] .token.string {
+  color: #b45309;
+}
+
+.light .token.builtin,
+.light .token.solidity-type,
+[data-theme="light"] .token.builtin,
+[data-theme="light"] .token.solidity-type {
+  color: #0d9488;
+}
+
+.light .token.operator,
+[data-theme="light"] .token.operator {
+  color: #0284c7;
+}
+
+.light .token.keyword,
+[data-theme="light"] .token.keyword {
+  color: #7c3aed;
+}
+
+.light .token.function,
+.light .token.class-name,
+[data-theme="light"] .token.function,
+[data-theme="light"] .token.class-name {
+  color: #2563eb;
+}
+
+.light .token.evm-variable,
+[data-theme="light"] .token.evm-variable {
+  color: #e11d48;
+}
+
+.light .token.security-call,
+[data-theme="light"] .token.security-call {
+  color: #dc2626;
+}
+
+.light .token.safe-erc20,
+[data-theme="light"] .token.safe-erc20 {
+  color: #059669;
 }
 

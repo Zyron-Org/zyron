@@ -65,9 +65,10 @@ function normalizeStage(stage: string): PipelineStatus {
   if (s === "PENDING") return "pending";
   if (s === "SCANNING") return "scanning";
   if (s === "IN_REVIEW") return "in-review";
+  if (s === "CORRECTIONS_REQUESTED") return "corrections-requested";
   if (s === "COMPLETED") return "completed";
   if (s === "FAILED") return "failed";
-  return stage as PipelineStatus;
+  return (stage ? stage.toLowerCase() : "pending") as PipelineStatus;
 }
 
 function stageNumber(stage: string): number {
@@ -105,7 +106,8 @@ export default function ClientDashboardPage() {
     (a) =>
       normalizeStage(a.stage) === "scanning" ||
       normalizeStage(a.stage) === "in-review" ||
-      normalizeStage(a.stage) === "pending"
+      normalizeStage(a.stage) === "pending" ||
+      normalizeStage(a.stage) === "corrections-requested"
   );
   const completedAudits = audits.filter((a) => normalizeStage(a.stage) === "completed");
   const pastAudits = audits.filter(
@@ -123,7 +125,7 @@ export default function ClientDashboardPage() {
       filterStage === "past"
         ? ns === "completed" || ns === "failed"
         : filterStage === "in-flight"
-        ? ns === "scanning" || ns === "in-review" || ns === "pending"
+        ? ns === "scanning" || ns === "in-review" || ns === "pending" || ns === "corrections-requested"
         : true;
 
     const matchesSearch =

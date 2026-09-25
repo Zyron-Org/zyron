@@ -63,6 +63,11 @@ export class AdvanceStageDto {
   @ApiProperty({ enum: AuditStage, example: AuditStage.IN_REVIEW, description: 'Target pipeline stage' })
   @IsEnum(AuditStage, { message: 'Invalid audit stage' })
   stage: AuditStage;
+
+  @ApiPropertyOptional({ example: '8f9b2d4', description: 'Remediation git commit SHA' })
+  @IsOptional()
+  @IsString()
+  gitCommit?: string;
 }
 
 export class CreateFindingDto {
@@ -135,12 +140,45 @@ export class UpdateFindingDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  title?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   remediatedCode?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   remediationNote?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  falsePositive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  fpJustification?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  isMitigated?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  mitigationJustification?: string;
 }
 
 export class CreateCommentDto {

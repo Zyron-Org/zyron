@@ -18,12 +18,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/auth-context";
 
 export default function AuditorSettingsPage() {
+  const { user } = useAuth();
   const [savedFeedback, setSavedFeedback] = React.useState(false);
 
   const [signingAddress, setSigningAddress] = React.useState(
-    "0x71C...8942 (0xAuditor_K4 EIP-712 Attestation Key)"
+    user?.walletAddress || "0x71C...8942 (EIP-712 Attestation Key)"
   );
   const [compilerTarget, setCompilerTarget] = React.useState("solc v0.8.20 / v0.8.24");
   const [fuzzRuns, setFuzzRuns] = React.useState("10000");
@@ -69,11 +71,11 @@ export default function AuditorSettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-text-muted text-[11px]">AUDITOR IDENTIFIER</label>
-              <Input value="0xAuditor_K4" disabled className="text-xs" />
+              <Input value={user?.name || "Auditor"} disabled className="text-xs" />
             </div>
             <div className="space-y-1">
               <label className="text-text-muted text-[11px]">EMAIL / ENCRYPTED COMM</label>
-              <Input value="k4@zyron.labs" disabled className="text-xs" />
+              <Input value={user?.email || "auditor@zyron.org"} disabled className="text-xs" />
             </div>
           </div>
         </div>

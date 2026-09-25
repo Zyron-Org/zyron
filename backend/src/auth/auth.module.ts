@@ -8,6 +8,9 @@ import {
   LoginService,
   SiweService,
   UserProfileService,
+  PasswordResetService,
+  EmailVerificationService,
+  GithubOAuthService,
 } from './services';
 
 @Module({
@@ -24,6 +27,9 @@ import {
     LoginService,
     SiweService,
     UserProfileService,
+    PasswordResetService,
+    EmailVerificationService,
+    GithubOAuthService,
   ],
   exports: [
     AuthService,
@@ -31,7 +37,12 @@ import {
     LoginService,
     SiweService,
     UserProfileService,
+    PasswordResetService,
+    EmailVerificationService,
+    GithubOAuthService,
     JwtModule,
   ],
 })
 export class AuthModule {}
+
+

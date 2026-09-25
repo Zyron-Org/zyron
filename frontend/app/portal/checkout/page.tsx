@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
   CreditCard,
@@ -25,10 +25,17 @@ import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
+import { apiClient } from "@/lib/api-client";
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const ticketParam = searchParams.get("ticketId") || searchParams.get("auditId") || searchParams.get("id") || "";
+
   const { user } = useAuth();
+  const [audit, setAudit] = React.useState<any>(null);
+  const [loadingAudit, setLoadingAudit] = React.useState(true);
+
   const [paymentMethod, setPaymentMethod] = React.useState<"crypto" | "invoice">("crypto");
   const [selectedToken, setSelectedToken] = React.useState<"USDC" | "USDT">("USDC");
   const [selectedNetwork, setSelectedNetwork] = React.useState<"ethereum" | "arbitrum">("ethereum");
@@ -36,17 +43,52 @@ export default function CheckoutPage() {
   const [isConfirmed, setIsConfirmed] = React.useState(false);
 
   // Corporate Billing form state
-  const [companyName, setCompanyName] = React.useState("Aura Finance DAO Ltd.");
-  const [billingEmail, setBillingEmail] = React.useState("finance@auraprotocol.io");
+  const [companyName, setCompanyName] = React.useState("");
+  const [billingEmail, setBillingEmail] = React.useState("");
   const [taxId, setTaxId] = React.useState("EU-948120482");
 
-  // Scoped line items matching New Audit Request
-  const scopedSloc = 1482;
-  const targetContract = "VaultCore.sol";
-  const protocolName = "Aura Liquidity Pool V3";
-  const baseSlocFee = 8500;
+  React.useEffect(() => {
+    if (user) {
+      if (user.organization?.name) setCompanyName(user.organization.name);
+      else if (user.name) setCompanyName(`${user.name} Organization`);
+      if (user.email) setBillingEmail(user.email);
+    }
+  }, [user]);
+
+  React.useEffect(() => {
+    async function loadAudit() {
+      try {
+        setLoadingAudit(true);
+        if (ticketParam) {
+          const res = await apiClient.get(`/audits/${ticketParam}`);
+          if (res.data) setAudit(res.data);
+        } else {
+          const res = await apiClient.get("/audits");
+          if (Array.isArray(res.data) && res.data.length > 0) {
+            setAudit(res.data[0]);
+          }
+        }
+      } catch (err: any) {
+        console.warn("Could not load audit for checkout:", err.message);
+      } finally {
+        setLoadingAudit(false);
+      }
+    }
+    loadAudit();
+  }, [ticketParam]);
+
+  // Scoped line items matching real audit request
+  const currentTicketId = audit?.id || ticketParam || "ZYR-9481";
+  const scopedSloc = audit?.sloc || 1482;
+  const targetContract = audit?.contractFileName || "Contract.sol";
+  const protocolName = audit?.protocolName || user?.organization?.name || "Smart Contract Protocol";
+  const gitCommit = audit?.gitCommit ? audit.gitCommit.slice(0, 7) : "8f9b2d4";
+  const compilerVersion = audit?.compilerVersion || "v0.8.20";
+  const assignedLead = audit?.leadAuditor?.name || "0xAuditor_K4";
+
+  const baseSlocFee = Math.round(scopedSloc * 5.7) || 8500;
   const auditorAllocationFee = 4000;
-  const totalAmount = baseSlocFee + auditorAllocationFee;
+  const totalAmount = audit?.payment?.amountUsd || (baseSlocFee + auditorAllocationFee);
 
   const handleConfirmPayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +129,7 @@ export default function CheckoutPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-[4px] bg-bg-void border border-border-hairline font-mono text-xs">
             <div>
               <div className="text-text-muted text-[10px]">TICKET ID</div>
-              <div className="text-accent-scan font-bold">#ZAM-9486</div>
+              <div className="text-accent-scan font-bold">#{currentTicketId}</div>
             </div>
             <div>
               <div className="text-text-muted text-[10px]">FEE PAID</div>
@@ -95,7 +137,7 @@ export default function CheckoutPage() {
             </div>
             <div>
               <div className="text-text-muted text-[10px]">ASSIGNED LEAD</div>
-              <div className="text-text-primary">0xAuditor_K4</div>
+              <div className="text-text-primary">{assignedLead}</div>
             </div>
             <div>
               <div className="text-text-muted text-[10px]">INITIAL TRIAGE SLA</div>
@@ -104,7 +146,7 @@ export default function CheckoutPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Link href="/portal/track/ZAM-9481">
+            <Link href={`/portal/track/${currentTicketId}`}>
               <Button variant="primary" size="md" rightIcon={<ArrowRight className="h-4 w-4" />}>
                 Open Live Status Tracker
               </Button>
@@ -133,130 +175,114 @@ export default function CheckoutPage() {
           </h1>
         </div>
         <div className="font-mono text-xs text-text-muted">
-          TICKET // #ZAM-9486 · SCOPE: {scopedSloc} SLOC
+          TICKET // #{currentTicketId} · SCOPE: {scopedSloc} SLOC
         </div>
       </div>
 
       <form onSubmit={handleConfirmPayment}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* LEFT 7 COLS: PAYMENT METHOD & SETTLEMENT DETAILS */}
+          {/* LEFT 7 COLS: PAYMENT INSTRUMENT SELECTOR */}
           <div className="lg:col-span-7 space-y-6">
-            {/* Method Selector Tabs */}
             <div className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
               <div className="border-b border-border-hairline pb-3">
-                <h2 className="font-display text-base font-semibold text-text-primary">
+                <h3 className="font-display text-base font-semibold text-text-primary">
                   Select Settlement Method
-                </h2>
+                </h3>
                 <p className="text-xs text-text-muted font-mono">
-                  Funds are secured in multi-sig escrow and released upon milestone completion.
+                  Funds held in on-chain dual-sign escrow until automated pass completes.
                 </p>
               </div>
 
-              {/* Toggle Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div
+              {/* Payment Type Toggle */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
                   onClick={() => setPaymentMethod("crypto")}
-                  className={`p-4 rounded-[4px] border cursor-pointer select-none transition-colors space-y-2 ${
+                  className={`p-4 rounded-[4px] border text-left flex items-start gap-3 transition-colors ${
                     paymentMethod === "crypto"
-                      ? "bg-bg-panel-raised border-accent-scan"
-                      : "bg-bg-void border-border-hairline hover:border-hairline/80"
+                      ? "border-accent-scan bg-accent-scan/5 text-text-primary"
+                      : "border-border-hairline bg-bg-void hover:border-hairline/90 text-text-muted"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-display text-sm font-semibold text-text-primary">
-                      <Wallet className="h-4 w-4 text-accent-scan" />
-                      <span>Web3 Crypto Escrow</span>
-                    </div>
-                    {paymentMethod === "crypto" && <Check className="h-4 w-4 text-accent-scan" />}
+                  <Wallet className="h-5 w-5 text-accent-scan shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold text-xs text-text-primary">Direct Crypto Escrow</div>
+                    <div className="text-[11px] text-text-muted">USDC / USDT on Ethereum or Arbitrum</div>
                   </div>
-                  <p className="text-xs text-text-muted leading-relaxed font-mono text-[11px]">
-                    Instant dispatch via USDC / USDT multi-sig smart contract escrow.
-                  </p>
-                </div>
+                </button>
 
-                <div
+                <button
+                  type="button"
                   onClick={() => setPaymentMethod("invoice")}
-                  className={`p-4 rounded-[4px] border cursor-pointer select-none transition-colors space-y-2 ${
+                  className={`p-4 rounded-[4px] border text-left flex items-start gap-3 transition-colors ${
                     paymentMethod === "invoice"
-                      ? "bg-bg-panel-raised border-accent-scan"
-                      : "bg-bg-void border-border-hairline hover:border-hairline/80"
+                      ? "border-accent-scan bg-accent-scan/5 text-text-primary"
+                      : "border-border-hairline bg-bg-void hover:border-hairline/90 text-text-muted"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-display text-sm font-semibold text-text-primary">
-                      <Building className="h-4 w-4 text-accent-scan" />
-                      <span>Corporate Net-30 Wire</span>
-                    </div>
-                    {paymentMethod === "invoice" && <Check className="h-4 w-4 text-accent-scan" />}
+                  <Building className="h-5 w-5 text-accent-scan shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-semibold text-xs text-text-primary">Enterprise Invoice</div>
+                    <div className="text-[11px] text-text-muted">NET-15 Wire / ACH for DAO Treasuries</div>
                   </div>
-                  <p className="text-xs text-text-muted leading-relaxed font-mono text-[11px]">
-                    Formal PDF invoice generation with Net-30 wire transfer terms.
-                  </p>
-                </div>
+                </button>
               </div>
 
               {/* Crypto Escrow Configuration */}
               {paymentMethod === "crypto" && (
                 <div className="space-y-4 pt-2">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 font-mono text-xs">
+                    {/* Token Selection */}
                     <div className="space-y-1.5">
-                      <label className="font-mono text-xs text-text-muted">ESCROW TOKEN</label>
-                      <div className="flex rounded-[4px] border border-border-hairline bg-bg-void p-0.5 font-mono text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedToken("USDC")}
-                          className={`flex-1 py-1.5 rounded-[2px] transition-colors ${
-                            selectedToken === "USDC"
-                              ? "bg-bg-panel-raised text-accent-scan font-bold"
-                              : "text-text-muted hover:text-text-primary"
-                          }`}
-                        >
-                          USDC (USD Coin)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedToken("USDT")}
-                          className={`flex-1 py-1.5 rounded-[2px] transition-colors ${
-                            selectedToken === "USDT"
-                              ? "bg-bg-panel-raised text-accent-scan font-bold"
-                              : "text-text-muted hover:text-text-primary"
-                          }`}
-                        >
-                          USDT (Tether)
-                        </button>
+                      <label className="text-text-muted text-[11px]">PAYMENT TOKEN</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(["USDC", "USDT"] as const).map((token) => (
+                          <button
+                            key={token}
+                            type="button"
+                            onClick={() => setSelectedToken(token)}
+                            className={`p-2 rounded-[2px] border text-center font-bold ${
+                              selectedToken === token
+                                ? "border-accent-scan bg-accent-scan/10 text-accent-scan"
+                                : "border-border-hairline bg-bg-void text-text-muted"
+                            }`}
+                          >
+                            {token}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
+                    {/* Network Selection */}
                     <div className="space-y-1.5">
-                      <label className="font-mono text-xs text-text-muted">SETTLEMENT CHAIN</label>
-                      <select
-                        value={selectedNetwork}
-                        onChange={(e) => setSelectedNetwork(e.target.value as any)}
-                        className="w-full h-9 px-3 rounded-[4px] bg-bg-void border border-border-hairline font-mono text-xs text-text-primary focus:outline-none"
-                      >
-                        <option value="ethereum">Ethereum Mainnet (ChainID: 1)</option>
-                        <option value="arbitrum">Arbitrum One (ChainID: 42161)</option>
-                      </select>
+                      <label className="text-text-muted text-[11px]">SETTLEMENT NETWORK</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(["ethereum", "arbitrum"] as const).map((net) => (
+                          <button
+                            key={net}
+                            type="button"
+                            onClick={() => setSelectedNetwork(net)}
+                            className={`p-2 rounded-[2px] border text-center capitalize font-medium ${
+                              selectedNetwork === net
+                                ? "border-accent-scan bg-accent-scan/10 text-accent-scan"
+                                : "border-border-hairline bg-bg-void text-text-muted"
+                            }`}
+                          >
+                            {net}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Connected Wallet Box */}
-                  <div className="p-3.5 rounded-[4px] bg-bg-void border border-border-hairline space-y-1.5 font-mono text-xs">
-                    <div className="flex items-center justify-between text-text-muted text-[10px]">
-                      <span>CONNECTED PROTOCOL WALLET</span>
-                      <span className="text-signal-resolved">BALANCE: 45,200 {selectedToken}</span>
+                  <div className="p-3.5 rounded-[4px] bg-bg-void border border-border-hairline space-y-2 font-mono text-xs">
+                    <div className="flex items-center justify-between text-text-muted text-[11px]">
+                      <span>MULTI-SIG ESCROW REPOSITORY:</span>
+                      <span className="text-accent-scan font-bold">0x71C829034...382E92</span>
                     </div>
-                    <div className="text-text-primary text-[11px] truncate">
-                      {(user as any)?.walletAddress || user?.email || "Not connected"}
-                    </div>
-                  </div>
-
-                  {/* Escrow Terms Notice */}
-                  <div className="p-3 rounded-[4px] bg-bg-panel-raised border border-border-hairline flex items-start gap-2.5 text-xs font-mono text-text-muted">
-                    <ShieldCheck className="h-4 w-4 text-signal-resolved shrink-0 mt-0.5" />
-                    <span>
-                      Escrow Release Terms: 50% allocated upon automated AST ingestion start; 50% final release upon cryptographic attestation delivery.
-                    </span>
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      Upon confirmation, funds are locked in the smart contract escrow. Auditor payouts are released on milestone attestation signatures.
+                    </p>
                   </div>
                 </div>
               )}
@@ -269,7 +295,7 @@ export default function CheckoutPage() {
                     <Input
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="e.g. Aura Finance DAO Ltd."
+                      placeholder="e.g. Acme Protocol Labs Ltd."
                       required
                     />
                   </div>
@@ -307,7 +333,7 @@ export default function CheckoutPage() {
                   Scoped Review Summary
                 </h3>
                 <span className="font-mono text-[11px] text-accent-scan font-bold">
-                  #ZAM-9486
+                  #{currentTicketId}
                 </span>
               </div>
 
@@ -318,7 +344,7 @@ export default function CheckoutPage() {
                   {protocolName} ({targetContract})
                 </div>
                 <div className="text-text-muted text-[11px]">
-                  Commit SHA: 8f9b2d4 · Solc v0.8.20
+                  Commit SHA: {gitCommit} · Solc {compilerVersion}
                 </div>
               </div>
 
@@ -388,5 +414,19 @@ export default function CheckoutPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="max-w-6xl mx-auto p-12 text-center text-text-muted font-mono text-xs">
+          Loading checkout...
+        </div>
+      }
+    >
+      <CheckoutContent />
+    </React.Suspense>
   );
 }

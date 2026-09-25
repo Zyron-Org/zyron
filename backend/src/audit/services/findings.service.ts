@@ -70,8 +70,15 @@ export class FindingsService {
       data.status = dto.status;
     }
 
-    if (dto.remediatedCode) data.remediatedCode = dto.remediatedCode;
-    if (dto.remediationNote) data.remediationNote = dto.remediationNote;
+    if (dto.title !== undefined) data.title = dto.title;
+    if (dto.location !== undefined) data.location = dto.location;
+    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.remediatedCode !== undefined) data.remediatedCode = dto.remediatedCode;
+    if (dto.remediationNote !== undefined) data.remediationNote = dto.remediationNote;
+    if (dto.falsePositive !== undefined) data.falsePositive = dto.falsePositive;
+    if (dto.fpJustification !== undefined) data.fpJustification = dto.fpJustification;
+    if (dto.isMitigated !== undefined) data.isMitigated = dto.isMitigated;
+    if (dto.mitigationJustification !== undefined) data.mitigationJustification = dto.mitigationJustification;
 
     return this.prisma.finding.update({
       where: { id: findingId },
@@ -80,7 +87,22 @@ export class FindingsService {
     });
   }
 
-  async findFindingsByAudit(auditId: string) {
+  async findFindingsByAudit(auditId: string, userRole?: UserRole) {
+    if (userRole === UserRole.CLIENT) {
+      const audit = await this.prisma.auditRequest.findUnique({
+        where: { id: auditId },
+        select: { stage: true },
+      });
+      // Clients only see findings once auditor approves and flags for corrections / fixes
+      if (
+        audit &&
+        audit.stage !== AuditStage.CORRECTIONS_REQUESTED &&
+        audit.stage !== AuditStage.COMPLETED
+      ) {
+        return [];
+      }
+    }
+
     return this.prisma.finding.findMany({
       where: { auditId },
       include: {

@@ -7,6 +7,9 @@ interface SidebarContextType {
   setIsOpen: (open: boolean) => void;
   toggle: () => void;
   close: () => void;
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
+  toggleCollapse: () => void;
 }
 
 const SidebarContext = React.createContext<SidebarContextType>({
@@ -14,10 +17,14 @@ const SidebarContext = React.createContext<SidebarContextType>({
   setIsOpen: () => {},
   toggle: () => {},
   close: () => {},
+  isCollapsed: false,
+  setIsCollapsed: () => {},
+  toggleCollapse: () => {},
 });
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   const toggle = React.useCallback(() => {
     setIsOpen((prev) => !prev);
@@ -27,8 +34,22 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(false);
   }, []);
 
+  const toggleCollapse = React.useCallback(() => {
+    setIsCollapsed((prev) => !prev);
+  }, []);
+
   return (
-    <SidebarContext.Provider value={{ isOpen, setIsOpen, toggle, close }}>
+    <SidebarContext.Provider
+      value={{
+        isOpen,
+        setIsOpen,
+        toggle,
+        close,
+        isCollapsed,
+        setIsCollapsed,
+        toggleCollapse,
+      }}
+    >
       {children}
     </SidebarContext.Provider>
   );

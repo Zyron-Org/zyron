@@ -8,6 +8,7 @@ export interface ExpandingButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "light" | "dark" | "accent";
   size?: "sm" | "md" | "lg";
+  rounded?: "default" | "md" | "lg" | "xl" | "full";
   icon?: React.ReactNode;
 }
 
@@ -20,6 +21,7 @@ export const ExpandingButton = React.forwardRef<
       className,
       variant = "light",
       size = "md",
+      rounded = "default",
       icon,
       children,
       disabled,
@@ -40,6 +42,14 @@ export const ExpandingButton = React.forwardRef<
       lg: "w-9",
     }[size];
 
+    const radiusClasses = {
+      default: { outer: "rounded-[6px]", inner: "rounded-[4px]" },
+      md: { outer: "rounded-[6px]", inner: "rounded-[4px]" },
+      lg: { outer: "rounded-lg", inner: "rounded-[6px]" },
+      xl: { outer: "rounded-xl", inner: "rounded-[10px]" },
+      full: { outer: "rounded-full", inner: "rounded-full" },
+    }[rounded];
+
     // Light Variant (White button -> Dark expanding icon background)
     if (variant === "light") {
       const defaultIcon = icon || <ArrowUpRight className="h-4 w-4 stroke-[2.5]" />;
@@ -48,7 +58,8 @@ export const ExpandingButton = React.forwardRef<
           ref={ref}
           disabled={disabled}
           className={cn(
-            "relative group overflow-hidden inline-flex items-center justify-between rounded-[6px] font-mono font-bold select-none shadow-md",
+            "relative group overflow-hidden inline-flex items-center justify-between font-mono font-bold select-none shadow-md",
+            radiusClasses.outer,
             "bg-text-primary text-bg-void border border-white/20",
             containerClasses,
             className
@@ -59,7 +70,8 @@ export const ExpandingButton = React.forwardRef<
           <span
             aria-hidden="true"
             className={cn(
-              "absolute right-[2px] top-[2px] bottom-[2px] rounded-[4px] bg-bg-void/10 pointer-events-none transition-all duration-300 ease-out",
+              "absolute right-[2px] top-[2px] bottom-[2px] bg-bg-void/10 pointer-events-none transition-all duration-300 ease-out",
+              radiusClasses.inner,
               iconBoxWidth,
               "group-hover:w-[calc(100%-4px)] group-hover:bg-bg-void"
             )}
@@ -91,7 +103,8 @@ export const ExpandingButton = React.forwardRef<
           ref={ref}
           disabled={disabled}
           className={cn(
-            "relative group overflow-hidden inline-flex items-center justify-between rounded-[6px] font-mono font-bold select-none shadow-md",
+            "relative group overflow-hidden inline-flex items-center justify-between font-mono font-bold select-none shadow-md",
+            radiusClasses.outer,
             "bg-accent-scan text-bg-void border border-accent-scan/40",
             containerClasses,
             className
@@ -102,7 +115,8 @@ export const ExpandingButton = React.forwardRef<
           <span
             aria-hidden="true"
             className={cn(
-              "absolute right-[2px] top-[2px] bottom-[2px] rounded-[4px] bg-bg-void/20 pointer-events-none transition-all duration-300 ease-out",
+              "absolute right-[2px] top-[2px] bottom-[2px] bg-bg-void/20 pointer-events-none transition-all duration-300 ease-out",
+              radiusClasses.inner,
               iconBoxWidth,
               "group-hover:w-[calc(100%-4px)] group-hover:bg-bg-void"
             )}
@@ -133,7 +147,8 @@ export const ExpandingButton = React.forwardRef<
         ref={ref}
         disabled={disabled}
         className={cn(
-          "relative group overflow-hidden inline-flex items-center justify-between rounded-[6px] font-mono font-medium select-none shadow-lg",
+          "relative group overflow-hidden inline-flex items-center justify-between font-mono font-medium select-none shadow-lg",
+          radiusClasses.outer,
           "bg-bg-panel text-text-primary border border-border-hairline",
           containerClasses,
           className
@@ -144,7 +159,8 @@ export const ExpandingButton = React.forwardRef<
         <span
           aria-hidden="true"
           className={cn(
-            "absolute right-[2px] top-[2px] bottom-[2px] rounded-[4px] bg-accent-scan pointer-events-none transition-all duration-300 ease-out",
+            "absolute right-[2px] top-[2px] bottom-[2px] bg-accent-scan pointer-events-none transition-all duration-300 ease-out",
+            radiusClasses.inner,
             iconBoxWidth,
             "group-hover:w-[calc(100%-4px)] group-hover:bg-accent-scan"
           )}

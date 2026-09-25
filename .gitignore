@@ -48,7 +48,11 @@ npm-debug.log*
 .vscode/
 .idea/
 .gemini/
+*.tsbuildinfo
+
+# VPS / Process Manager
+ecosystem.config.js
+logs/
 
 # Reference Codebase
 codebase/
-

@@ -29,12 +29,12 @@ export default function AuditorOnboardingPage() {
   const [activeStep, setActiveStep] = React.useState<1 | 2 | 3 | 4>(1);
 
   // Step 1 Form State
-  const [candidateName, setCandidateName] = React.useState("0xAuditor_K4");
-  const [candidateEmail, setCandidateEmail] = React.useState("k4@zyron.labs");
-  const [walletAddress, setWalletAddress] = React.useState("0x71C7656EC7ab88b098defB751B7401B5f6d8976F");
-  const [githubHandle, setGithubHandle] = React.useState("0xAuditorK4");
+  const [candidateName, setCandidateName] = React.useState("");
+  const [candidateEmail, setCandidateEmail] = React.useState("");
+  const [walletAddress, setWalletAddress] = React.useState("");
+  const [githubHandle, setGithubHandle] = React.useState("");
   const [specialization, setSpecialization] = React.useState("EVM / Solidity / Foundry");
-  const [pastReportsUrl, setPastReportsUrl] = React.useState("https://github.com/0xAuditorK4/audits");
+  const [pastReportsUrl, setPastReportsUrl] = React.useState("");
 
   // Step 2 Benchmark State
   const [selectedBug1, setSelectedBug1] = React.useState(false);

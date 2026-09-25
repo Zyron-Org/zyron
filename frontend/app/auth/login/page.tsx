@@ -2,64 +2,77 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Terminal,
   Wallet,
   ArrowRight,
+  ArrowUpRight,
   Lock,
   Mail,
-  ShieldCheck,
-  User,
-  ShieldAlert,
-  Sparkles,
+  AlertCircle,
+  Github,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eyebrow } from "@/components/ui/eyebrow";
-import { Badge } from "@/components/ui/badge";
-import { useAuth, SAMPLE_ACCOUNTS } from "@/lib/auth-context";
-
+import { ExpandingButton } from "@/components/ui/expanding-button";
+import { useAuth, getDashboardForRole } from "@/lib/auth-context";
+import { apiClient } from "@/lib/api-client";
+import { getAddress } from "ethers";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const { login, loginAs } = useAuth();
-  const [email, setEmail] = React.useState("security@auraprotocol.io");
-  const [password, setPassword] = React.useState("SecurePassword123!");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login, loginWithSiwe, user, loading } = useAuth();
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [isWeb3Loading, setIsWeb3Loading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+
+  // Auto-redirect if already authenticated
+  React.useEffect(() => {
+    if (!loading && user) {
+      const redirectParam = searchParams?.get("redirect");
+      const isValidRedirect =
+        redirectParam &&
+        !redirectParam.startsWith("/auth") &&
+        redirectParam !== "/";
+      const dest = isValidRedirect ? redirectParam : getDashboardForRole(user.role);
+      router.replace(dest);
+    }
+  }, [user, loading, router, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      await login(email, password);
-      toast.success("Authentication successful! Session token active.");
+      const loggedUser = await login(email, password);
+      toast.success("Welcome back! Redirecting to workspace...");
+      const redirectParam = searchParams?.get("redirect");
+      const isValidRedirect =
+        redirectParam &&
+        !redirectParam.startsWith("/auth") &&
+        redirectParam !== "/";
+      const dest = isValidRedirect ? redirectParam : getDashboardForRole(loggedUser?.role);
+      router.replace(dest);
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || "Invalid email or password";
       const displayMsg = Array.isArray(msg) ? msg.join(", ") : msg;
       setErrorMsg(displayMsg);
-      toast.error(`Authentication Failed: ${displayMsg}`);
+      toast.error(displayMsg);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoLogin = (roleStr: string) => {
-    loginAs(roleStr);
-    toast.info(`Switched to Demo Persona (${roleStr.toUpperCase()})`);
   };
 
   const handleWeb3Login = async () => {
     setIsWeb3Loading(true);
     setErrorMsg(null);
 
-    // Timeout helper (5s limit so hung browser extensions never freeze the UI)
-    const withTimeout = <T,>(promise: Promise<T>, ms = 5000): Promise<T> => {
+    const withTimeout = <T,>(promise: Promise<T>, ms = 15000): Promise<T> => {
       return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error("Wallet request timed out (5s limit)")), ms);
+        const timer = setTimeout(() => reject(new Error("Wallet request timed out")), ms);
         promise
           .then((res) => {
             clearTimeout(timer);
@@ -81,261 +94,212 @@ export default function LoginPage() {
 
         const accounts = (await withTimeout(
           ethereum.request({ method: "eth_requestAccounts" }),
-          5000
+          15000
         )) as string[];
 
-        const address = accounts[0];
-
+        const address = getAddress(accounts[0]);
         const domain = window.location.host;
         const origin = window.location.origin;
         const issuedAt = new Date().toISOString();
-        const nonce = Math.random().toString(36).substring(2, 10);
+
+        let nonce = Math.random().toString(36).substring(2, 10);
+        try {
+          const nonceRes = await apiClient.get("/auth/siwe/nonce");
+          if (nonceRes.data?.nonce) {
+            nonce = nonceRes.data.nonce;
+          }
+        } catch {}
 
         const message = `${domain} wants you to sign in with your Ethereum account:\n${address}\n\nSign in to Zyron Audit Workbench.\n\nURI: ${origin}\nVersion: 1\nChain ID: 1\nNonce: ${nonce}\nIssued At: ${issuedAt}`;
         const hexMessage = "0x" + Array.from(new TextEncoder().encode(message)).map((b) => b.toString(16).padStart(2, "0")).join("");
 
+        let signature: string;
         try {
-          await withTimeout(
+          signature = (await withTimeout(
             ethereum.request({
               method: "personal_sign",
               params: [hexMessage, address],
             }),
-            5000
-          );
-        } catch (e1: any) {
-          try {
-            await withTimeout(
-              ethereum.request({
-                method: "personal_sign",
-                params: [message, address],
-              }),
-              5000
-            );
-          } catch (e2: any) {}
+            15000
+          )) as string;
+        } catch {
+          signature = (await withTimeout(
+            ethereum.request({
+              method: "personal_sign",
+              params: [message, address],
+            }),
+            15000
+          )) as string;
         }
-        toast.success(`Web3 Wallet Connected: ${address.substring(0, 6)}...${address.substring(38)}`);
-        loginAs("client");
+
+        toast.success(`Wallet connected: ${address.substring(0, 6)}...${address.substring(38)}`);
+        const loggedUser = await loginWithSiwe(message, signature);
+        const dest = getDashboardForRole(loggedUser?.role);
+        router.replace(dest);
       } else {
-        toast.error("Web3 Wallet Extension Not Detected: Please install MetaMask or another EVM wallet extension.");
+        toast.error("Please install MetaMask or another EVM wallet extension.");
       }
     } catch (err: any) {
-      console.warn("Web3 sign notice:", err);
-      toast.error(err?.message || "Web3 Wallet Authentication Failed: Connection timed out or signature rejected.");
+      toast.error(err?.message || "Wallet authentication failed");
     } finally {
       setIsWeb3Loading(false);
     }
   };
 
+  const githubAuthUrl = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://144.91.110.133:4000'}/api/v1/auth/github`;
+
   return (
-    <div className="space-y-6">
-      {/* 1-CLICK DEMO PERSONA SELECTOR */}
-      <div className="p-4 rounded-[4px] bg-bg-panel border border-accent-scan/30 space-y-3 font-mono text-xs">
-        <div className="flex items-center justify-between border-b border-border-hairline pb-2">
-          <span className="text-accent-scan font-bold flex items-center gap-1.5 text-[11px]">
-            <Sparkles className="h-3.5 w-3.5" />
-            INSTANT DEMO PERSONAS
-          </span>
-          <span className="text-text-muted text-[10px]">1-CLICK LOGIN</span>
+    <div className="w-full space-y-6">
+
+      {/* Header */}
+      <div className="space-y-1.5 text-center">
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary">
+          Welcome back
+        </h1>
+        <p className="text-sm text-text-muted">
+          Sign in to manage your smart contract audits and security reviews.
+        </p>
+      </div>
+
+      {/* Error Message Box */}
+      {errorMsg && (
+        <div className="p-3.5 rounded-xl bg-signal-critical/10 border border-signal-critical/30 text-signal-critical text-xs space-y-1.5 flex items-start gap-2.5">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-medium leading-relaxed">{errorMsg}</p>
+            {errorMsg.toLowerCase().includes("verify your email") && (
+              <Link
+                href={`/auth/verify-email?status=pending${email ? `&email=${encodeURIComponent(email)}` : ""}`}
+                className="text-signal-success underline hover:text-signal-success/80 font-medium inline-flex items-center gap-1"
+              >
+                <span>Resend verification link</span>
+                <span>&rarr;</span>
+              </Link>
+            )}
+          </div>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          {/* Client Sample Button */}
-          <button
+      {/* Social / GitHub & Web3 Actions (Using Landing Page ExpandingButton Component) */}
+      <div className="space-y-3">
+        {/* Continue with GitHub (ExpandingButton CTA) */}
+        <a href={githubAuthUrl} className="block w-full">
+          <ExpandingButton
             type="button"
-            onClick={() => handleDemoLogin("client")}
-            className="p-3 rounded-[4px] bg-bg-void border border-border-hairline hover:border-accent-scan/60 text-left transition-colors space-y-1.5 group cursor-pointer"
+            variant="dark"
+            size="md"
+            rounded="xl"
+            className="w-full cursor-pointer"
+            icon={
+              <ArrowUpRight className="h-4 w-4 stroke-[2.5]" />
+            }
           >
-            <div className="flex items-center justify-between gap-1">
-              <Badge severity="resolved" size="sm" className="text-[9px] px-1.5 py-0">
-                CLIENT
-              </Badge>
-              <span className="text-[9px] text-text-muted">1-CLICK</span>
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-text-primary font-bold group-hover:text-accent-scan text-[11px] truncate">
-                Client Portal
-              </div>
-              <div className="text-[10px] text-text-muted truncate">Aura Finance DAO</div>
-            </div>
-          </button>
+            <span className="flex items-center gap-2.5">
+              <svg
+                className="w-4 h-4 fill-current shrink-0 text-text-primary group-hover:text-bg-void transition-colors"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+              >
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+              </svg>
+              <span>Continue with GitHub</span>
+            </span>
+          </ExpandingButton>
+        </a>
 
-          {/* Auditor Sample Button */}
-          <button
-            type="button"
-            onClick={() => handleDemoLogin("auditor")}
-            className="p-3 rounded-[4px] bg-bg-void border border-border-hairline hover:border-signal-high/60 text-left transition-colors space-y-1.5 group cursor-pointer"
-          >
-            <div className="flex items-center justify-between gap-1">
-              <Badge severity="high" size="sm" className="text-[9px] px-1.5 py-0">
-                AUDITOR
-              </Badge>
-              <span className="text-[9px] text-text-muted">1-CLICK</span>
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-text-primary font-bold group-hover:text-signal-high text-[11px] truncate">
-                Auditor Workspace
-              </div>
-              <div className="text-[10px] text-text-muted truncate">0xAuditor_K4 (Queue)</div>
-            </div>
-          </button>
+        {/* Web3 Sign-in Button (ExpandingButton CTA) */}
+        <ExpandingButton
+          type="button"
+          variant="dark"
+          size="md"
+          rounded="xl"
+          disabled={isWeb3Loading}
+          onClick={handleWeb3Login}
+          className="w-full cursor-pointer"
+          icon={<ArrowUpRight className="h-4 w-4 stroke-[2.5]" />}
+        >
+          <span className="flex items-center gap-2.5">
+            <Wallet className="h-4 w-4 text-accent-scan shrink-0" />
+            <span>{isWeb3Loading ? "Connecting wallet..." : "Sign in with Ethereum"}</span>
+          </span>
+        </ExpandingButton>
+      </div>
 
-          {/* Platform Admin Sample Button */}
-          <button
-            type="button"
-            onClick={() => handleDemoLogin("admin")}
-            className="p-3 rounded-[4px] bg-bg-void border border-border-hairline hover:border-accent-scan text-left transition-colors space-y-1.5 group cursor-pointer"
-          >
-            <div className="flex items-center justify-between gap-1">
-              <Badge severity="critical" size="sm" className="text-[9px] px-1.5 py-0">
-                SUPERUSER
-              </Badge>
-              <span className="text-[9px] text-text-muted">1-CLICK</span>
-            </div>
-            <div className="space-y-0.5">
-              <div className="text-text-primary font-bold group-hover:text-accent-scan text-[11px] truncate">
-                Platform Admin
-              </div>
-              <div className="text-[10px] text-text-muted truncate">0xAdmin_SecOps (Global)</div>
-            </div>
-          </button>
+      {/* Divider */}
+      <div className="relative my-3">
+        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+          <div className="w-full border-t border-border-hairline" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-bg-void px-3 text-text-muted select-none">
+            or sign in with email
+          </span>
         </div>
       </div>
 
-      {/* STANDARD FORM LOGIN */}
-      <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
-        <div className="space-y-1.5 border-b border-border-hairline pb-4">
-          <Eyebrow size="xs" variant="scan" prefix="// ACCESS_PORTAL · ">
-            CREDENTIAL_AUTHENTICATION
-          </Eyebrow>
-          <h1 className="font-display text-xl font-semibold tracking-tight text-text-primary">
-            Sign In with Email or Wallet
-          </h1>
-          <p className="text-xs text-text-muted font-mono">
-            Access your protocol pipeline or internal auditor review queue.
-          </p>
+      {/* Email / Password Form */}
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-muted">
+            Email address
+          </label>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@company.com"
+            prefix={<Mail className="h-4 w-4 text-text-muted" />}
+            className="rounded-xl h-11 border-border-hairline focus-within:border-accent-scan"
+            required
+          />
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="font-mono text-xs text-text-muted">EMAIL ADDRESS</label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="security@protocol.io"
-              prefix={<Mail className="h-3.5 w-3.5 text-text-muted" />}
-              required
-            />
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <label className="font-medium text-text-muted">
+              Password
+            </label>
+            <Link
+              href="/auth/reset-password"
+              className="text-accent-scan hover:underline text-xs font-medium"
+            >
+              Forgot password?
+            </Link>
           </div>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••••••"
+            prefix={<Lock className="h-4 w-4 text-text-muted" />}
+            className="rounded-xl h-11 border-border-hairline focus-within:border-accent-scan"
+            required
+          />
+        </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between font-mono text-xs">
-              <label className="text-text-muted">PASSWORD</label>
-              <Link
-                href="/auth/reset-password"
-                className="text-accent-scan hover:underline text-[11px]"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
-              prefix={<Lock className="h-3.5 w-3.5 text-text-muted" />}
-              required
-            />
-          </div>
-
-          <Button
+        {/* Primary Submit Button (Landing Page Light ExpandingButton CTA) */}
+        <div className="pt-1">
+          <ExpandingButton
             type="submit"
-            variant="primary"
-            className="w-full"
+            variant="light"
             size="md"
-            isLoading={isLoading}
-            rightIcon={<ArrowRight className="h-4 w-4" />}
+            rounded="xl"
+            disabled={isLoading}
+            className="w-full cursor-pointer"
+            icon={<ArrowRight className="h-4 w-4 stroke-[2.5]" />}
           >
-            Sign In with Credentials
-          </Button>
-        </form>
-
-        {/* Web3 Sign-in Divider */}
-        <div className="relative flex items-center justify-center">
-          <div className="w-full border-t border-border-hairline" />
-          <span className="bg-bg-panel px-2 font-mono text-[10px] text-text-muted uppercase tracking-wider relative">
-            OR SIGN IN WITH WALLET
-          </span>
+            {isLoading ? "Signing in..." : "Sign in to Zyron"}
+          </ExpandingButton>
         </div>
+      </form>
 
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          size="md"
-          isLoading={isWeb3Loading}
-          onClick={handleWeb3Login}
-          leftIcon={<Wallet className="h-4 w-4 text-accent-scan" />}
-        >
-          Sign In with Ethereum (EIP-4361)
-        </Button>
-
-        {/* Quick Demo Persona Shortcuts */}
-        <div className="p-4 rounded bg-bg-void border border-border-hairline space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] text-text-muted font-semibold tracking-wider flex items-center gap-1.5">
-              <Sparkles className="h-3 w-3 text-accent-scan" /> QUICK TEST ACCOUNTS
-            </span>
-            <Badge severity="resolved" size="sm">DEMO READY</Badge>
-          </div>
-          <div className="grid grid-cols-3 gap-2 font-mono text-xs">
-            <button
-              type="button"
-              onClick={() => {
-                setEmail("security@auraprotocol.io");
-                setPassword("SecurePassword123!");
-                handleDemoLogin("client");
-              }}
-              className="p-2 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-left transition-colors cursor-pointer"
-            >
-              <div className="text-[10px] text-text-muted">ROLE: CLIENT</div>
-              <div className="font-bold text-text-primary text-[11px] truncate">Aura Client</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setEmail("k4@zyron.labs");
-                setPassword("AuditorPass123!");
-                handleDemoLogin("auditor");
-              }}
-              className="p-2 rounded bg-bg-panel border border-border-hairline hover:border-accent-scan text-left transition-colors cursor-pointer"
-            >
-              <div className="text-[10px] text-signal-resolved font-bold">ROLE: AUDITOR</div>
-              <div className="font-bold text-text-primary text-[11px] truncate">0xAuditor_K4</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setEmail("admin@zyron.labs");
-                setPassword("AdminPass123!");
-                handleDemoLogin("admin");
-              }}
-              className="p-2 rounded bg-bg-panel border border-border-hairline hover:border-signal-critical text-left transition-colors cursor-pointer"
-            >
-              <div className="text-[10px] text-signal-critical font-bold">ROLE: ADMIN</div>
-              <div className="font-bold text-text-primary text-[11px] truncate">Admin Lead</div>
-            </button>
-          </div>
-        </div>
-
-        <div className="pt-2 border-t border-border-hairline text-center font-mono text-xs text-text-muted">
-          <span>Need to audit a new protocol? </span>
-          <Link href="/auth/register" className="text-accent-scan hover:underline font-semibold">
-            Register Protocol →
-          </Link>
-        </div>
+      {/* Bottom Switch Link */}
+      <div className="pt-2 border-t border-border-hairline/60 text-center text-xs text-text-muted">
+        <span>Need to audit a new protocol? </span>
+        <Link href="/auth/register" className="text-accent-scan hover:underline font-semibold ml-1">
+          Create an account &rarr;
+        </Link>
       </div>
     </div>
   );

@@ -3,8 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  Sun,
-  Globe,
   ArrowUpRight,
   ArrowRight,
   Search,
@@ -50,8 +48,10 @@ import { Badge } from "@/components/ui/badge";
 import { ExpandingButton } from "@/components/ui/expanding-button";
 import { ChainLogo } from "@/components/ui/chain-logos";
 import { useAuth } from "@/lib/auth-context";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/api-client";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -108,10 +108,44 @@ const row3Chains = [
 export default function LandingPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isAuthenticated = mounted && !!user;
+
+  const dashboardHref = isAuthenticated
+    ? user?.role?.toUpperCase() === "AUDITOR"
+      ? "/auditor/queue"
+      : user?.role?.toUpperCase() === "ADMIN"
+      ? "/admin/users"
+      : "/portal"
+    : "/auth/login";
+
   const [activeTab, setActiveTab] = React.useState<"all" | "in_progress" | "completed" | "failed" | "drafts">("all");
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [expandedFaq, setExpandedFaq] = React.useState<number | null>(0);
   const [billingCycle, setBillingCycle] = React.useState<"engagement" | "continuous">("engagement");
+  const [stats, setStats] = React.useState<any>(null);
+  const [searchScans, setSearchScans] = React.useState("");
+
+  React.useEffect(() => {
+    let isMounted = true;
+    apiClient
+      .get("/audits/stats/overview")
+      .then((res) => {
+        if (isMounted && res.data) {
+          setStats(res.data);
+        }
+      })
+      .catch((err) => console.warn("Failed to load overview stats:", err.message));
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const containerRef = React.useRef<HTMLDivElement>(null);
   const demoRef = React.useRef<HTMLDivElement>(null);
   const [demoScale, setDemoScale] = React.useState(1);
@@ -301,6 +335,45 @@ export default function LandingPage() {
     { scope: containerRef }
   );
 
+  const fallbackScans = [
+    {
+      id: "ZYR-9482",
+      protocolName: "Beetrade Orderbook",
+      contractFileName: "BeeTradeOrderbook.sol",
+      stage: "CORRECTIONS_REQUESTED",
+      sloc: 159,
+      createdAt: "2026-09-23T13:06:49.964Z",
+      findings: [{}, {}],
+    },
+    {
+      id: "ZYR-9481",
+      protocolName: "Aura Liquidity Protocol",
+      contractFileName: "VaultCore.sol",
+      stage: "CORRECTIONS_REQUESTED",
+      sloc: 29,
+      createdAt: "2026-09-22T12:59:16.710Z",
+      findings: [{}, {}],
+    },
+  ];
+
+  const recentAuditsList = (stats?.recentAudits && stats.recentAudits.length > 0)
+    ? stats.recentAudits
+    : fallbackScans;
+
+  const scansToRender = recentAuditsList.filter((a: any) => {
+    if (activeTab === "in_progress" && a.stage === "COMPLETED") return false;
+    if (activeTab === "completed" && a.stage !== "COMPLETED") return false;
+    if (searchScans.trim() !== "") {
+      const q = searchScans.toLowerCase();
+      return (
+        a.contractFileName?.toLowerCase().includes(q) ||
+        a.protocolName?.toLowerCase().includes(q) ||
+        a.id?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
   return (
     <div
       ref={containerRef}
@@ -311,7 +384,7 @@ export default function LandingPage() {
         <img
           src="/hero-bg.png"
           alt=""
-          className="w-full h-full object-cover object-top opacity-10 [filter:hue-rotate(-75deg)_saturate(2)_brightness(1.1)] [mask-image:linear-gradient(to_bottom,black_65%,transparent_100%)]"
+          className="w-full h-full object-cover object-top dark:opacity-10 opacity-[0.03] [filter:hue-rotate(-75deg)_saturate(2)_brightness(1.1)] [mask-image:linear-gradient(to_bottom,black_65%,transparent_100%)]"
         />
       </div>
 
@@ -372,31 +445,16 @@ export default function LandingPage() {
 
           {/* Right: Theme Toggle + Globe + Login Button + Mobile Hamburger */}
           <div className="flex items-center gap-2.5">
-            {/* Sun / Theme Button (Hidden on Mobile) */}
-            <button
-              type="button"
-              className="hidden sm:flex w-9 h-9 rounded-[4px] bg-bg-panel border border-border-hairline items-center justify-center text-text-muted hover:text-text-primary hover:border-border-hairline/80 transition-colors"
-              title="Toggle Theme"
-            >
-              <Sun className="h-4 w-4" />
-            </button>
+            {/* Theme Toggle Button */}
+            <ThemeToggle />
 
-            {/* Language / Globe Button (Hidden on Mobile) */}
-            <button
-              type="button"
-              className="hidden sm:flex w-9 h-9 rounded-[4px] bg-bg-panel border border-border-hairline items-center justify-center text-text-muted hover:text-text-primary hover:border-border-hairline/80 transition-colors"
-              title="Select Language"
-            >
-              <Globe className="h-4 w-4" />
-            </button>
-
-            {/* Login / Dashboard ↗ Button */}
-            <Link href={user ? "/portal" : "/auth/login"}>
+            {/* Sign In / Dashboard ↗ Button */}
+            <Link href={dashboardHref}>
               <button
                 type="button"
-                className="h-9 px-3.5 sm:px-4 rounded-[4px] bg-text-primary text-bg-void font-bold text-xs hover:bg-white transition-colors flex items-center gap-1.5 shadow-sm font-mono"
+                className="h-9 px-3.5 sm:px-4 rounded-[4px] bg-text-primary text-bg-void font-bold text-xs hover:bg-accent-scan hover:text-white dark:hover:bg-white dark:hover:text-bg-void transition-colors flex items-center gap-1.5 shadow-sm font-mono cursor-pointer"
               >
-                <span>{user ? "Dashboard" : "Login"}</span>
+                <span>{isAuthenticated ? "Dashboard" : "Sign In"}</span>
                 <ArrowUpRight className="h-3.5 w-3.5 stroke-[2.5]" />
               </button>
             </Link>
@@ -422,6 +480,18 @@ export default function LandingPage() {
           <div className="lg:hidden px-4 pb-4 max-w-[1440px] mx-auto animate-in fade-in slide-in-from-top-2 duration-150">
             <div className="p-3.5 rounded-[6px] bg-bg-panel/95 border border-border-hairline backdrop-blur-xl shadow-2xl space-y-2 font-mono text-xs">
               <div className="space-y-1">
+                <div className="flex items-center justify-between p-2 rounded-[4px] bg-bg-panel border border-border-hairline mb-2">
+                  <span className="text-text-muted font-bold">THEME</span>
+                  <ThemeToggle size="sm" showLabel />
+                </div>
+                <Link
+                  href={dashboardHref}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between p-2.5 rounded-[4px] bg-text-primary text-bg-void font-bold hover:bg-accent-scan hover:text-white dark:hover:bg-white dark:hover:text-bg-void transition-colors mb-2"
+                >
+                  <span>{isAuthenticated ? "Dashboard" : "Sign In"}</span>
+                  <ArrowUpRight className="h-3.5 w-3.5 stroke-[2.5]" />
+                </Link>
                 <Link
                   href="#features"
                   onClick={() => setMobileMenuOpen(false)}
@@ -465,23 +535,8 @@ export default function LandingPage() {
               </div>
 
               {/* Mobile Quick Controls Bar */}
-              <div className="pt-2 border-t border-border-hairline flex items-center justify-between text-[11px] text-text-muted px-1">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-bg-void border border-border-hairline text-text-muted hover:text-text-primary"
-                  >
-                    <Sun className="h-3.5 w-3.5" />
-                    <span>Theme</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-bg-void border border-border-hairline text-text-muted hover:text-text-primary"
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    <span>English</span>
-                  </button>
-                </div>
+              <div className="pt-2 border-t border-border-hairline flex items-center justify-between text-[11px] text-text-muted px-1 font-mono">
+                <span className="text-[10px] text-text-muted">ZYRON_LABS_v2.6</span>
                 <span className="text-[10px] text-accent-scan">ZYRON_OS</span>
               </div>
             </div>
@@ -496,15 +551,15 @@ export default function LandingPage() {
         {/* Hero Copy */}
         <div className="text-center space-y-6 max-w-3xl mx-auto">
           {/* Liquid Glass AI-Powered Pill Badge */}
-          <div className="hero-badge-anim relative inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/[0.04] backdrop-blur-xl border border-white/[0.14] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_8px_24px_-4px_rgba(0,0,0,0.6)] group overflow-hidden cursor-default">
+          <div className="hero-badge-anim relative inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-bg-panel/80 backdrop-blur-xl border border-border-hairline shadow-sm group overflow-hidden cursor-default">
             {/* Top Specular Rim Reflection */}
-            <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
+            <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-accent-scan/30 to-transparent pointer-events-none" />
 
             {/* Subtle Liquid Shimmer Layer */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.07] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent-scan/[0.05] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none" />
 
             {/* Badge Text */}
-            <span className="relative z-10 text-xs font-mono font-medium text-text-primary tracking-wide drop-shadow-sm">
+            <span className="relative z-10 text-xs font-mono font-medium text-text-primary tracking-wide">
               AI-Powered Security Engine
             </span>
           </div>
@@ -630,16 +685,18 @@ export default function LandingPage() {
                       {/* User profile chip */}
                       <div className="flex items-center gap-1.5 bg-bg-void border border-border-hairline px-2 py-1 rounded-[4px] text-[11px] text-text-primary whitespace-nowrap">
                         <div className="h-4 w-4 rounded-full bg-accent-scan/20 text-accent-scan flex items-center justify-center text-[9px] font-bold shrink-0">
-                          A
+                          {user?.name?.[0]?.toUpperCase() || "Z"}
                         </div>
-                        <span className="text-[10px]">aura-finance.eth</span>
+                        <span className="text-[10px]">
+                          {user?.name || user?.email || (stats?.recentAudits?.[0]?.protocolName ? `${stats.recentAudits[0].protocolName.toLowerCase().replace(/\s+/g, '-')}.eth` : "beetrade-dex.eth")}
+                        </span>
                       </div>
 
                       {/* + New Scan Button */}
                       <Link href="/portal/new-request">
                         <button
                           type="button"
-                          className="flex items-center gap-1 bg-text-primary hover:bg-white text-bg-void font-bold px-2.5 py-1 rounded-[4px] text-[11px] transition-colors shadow-sm whitespace-nowrap"
+                          className="flex items-center gap-1 bg-text-primary hover:bg-accent-scan hover:text-white dark:hover:bg-white dark:hover:text-bg-void text-bg-void font-bold px-2.5 py-1 rounded-[4px] text-[11px] transition-colors shadow-sm whitespace-nowrap"
                         >
                           <Plus className="h-3 w-3 stroke-[3]" />
                           <span>New Scan</span>
@@ -657,11 +714,11 @@ export default function LandingPage() {
                         <ShieldAlert className="h-3.5 w-3.5 text-signal-critical shrink-0" />
                       </div>
                       <div className="text-xl font-bold text-text-primary font-display">
-                        3
+                        {stats ? stats.openRisks : 3}
                       </div>
                       <div className="text-[9px] text-signal-critical flex items-center gap-1 whitespace-nowrap">
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-signal-critical shrink-0" />
-                        1 Critical, 2 Medium
+                        {stats ? `${stats.criticalRisks} Critical, ${stats.mediumRisks} Medium` : "1 Critical, 2 Medium"}
                       </div>
                     </div>
 
@@ -672,7 +729,7 @@ export default function LandingPage() {
                         <ShieldCheck className="h-3.5 w-3.5 text-signal-resolved shrink-0" />
                       </div>
                       <div className="text-xl font-bold text-text-primary font-display">
-                        124
+                        {stats ? (stats.totalSloc > 0 ? Math.round(stats.totalSloc * 0.8) : 124) : 124}
                       </div>
                       <div className="text-[9px] text-signal-resolved flex items-center gap-1 whitespace-nowrap">
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-signal-resolved shrink-0" />
@@ -687,7 +744,7 @@ export default function LandingPage() {
                         <FileCode2 className="h-3.5 w-3.5 text-accent-scan shrink-0" />
                       </div>
                       <div className="text-xl font-bold text-text-primary font-display">
-                        18
+                        {stats ? stats.totalAudits : 18}
                       </div>
                       <div className="text-[9px] text-text-muted whitespace-nowrap">
                         Fixed pricing by selected tokens
@@ -708,7 +765,7 @@ export default function LandingPage() {
                             : "text-text-muted hover:text-text-primary"
                         }`}
                       >
-                        All (18)
+                        All ({stats ? stats.totalAudits : 18})
                       </button>
                       <button
                         type="button"
@@ -719,7 +776,7 @@ export default function LandingPage() {
                             : "text-text-muted hover:text-text-primary"
                         }`}
                       >
-                        In progress (2)
+                        In progress ({stats ? stats.inProgressAudits : 2})
                       </button>
                       <button
                         type="button"
@@ -730,7 +787,7 @@ export default function LandingPage() {
                             : "text-text-muted hover:text-text-primary"
                         }`}
                       >
-                        Completed (16)
+                        Completed ({stats ? stats.completedAudits : 16})
                       </button>
                     </div>
 
@@ -739,6 +796,8 @@ export default function LandingPage() {
                       <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
                       <input
                         type="text"
+                        value={searchScans}
+                        onChange={(e) => setSearchScans(e.target.value)}
                         placeholder="Search scans..."
                         className="bg-bg-void border border-border-hairline rounded-[4px] pl-6 pr-2 py-1 text-[10px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-scan w-40"
                       />
@@ -753,60 +812,80 @@ export default function LandingPage() {
                           <th className="py-2.5 px-3.5 font-normal">Name</th>
                           <th className="py-2.5 px-3.5 font-normal">Status</th>
                           <th className="py-2.5 px-3.5 font-normal">Risk Summary</th>
-                          <th className="py-2.5 px-3.5 font-normal">Charge</th>
+                          <th className="py-2.5 px-3.5 font-normal">Scope</th>
                           <th className="py-2.5 px-3.5 font-normal text-right">Created</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border-hairline">
-                        {/* Row 1 */}
-                        <tr className="hover:bg-bg-panel-raised/50 transition-colors">
-                          <td className="py-3 px-3.5">
-                            <div className="flex items-center gap-2">
-                              <span className="w-24 h-3 bg-bg-panel-raised rounded-[2px] animate-pulse inline-block" />
-                              <span className="text-text-muted text-[10px]">VaultCore.sol</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-3.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-scan/15 border border-accent-scan/40 text-accent-scan text-[10px] font-medium">
-                              <X className="h-2.5 w-2.5" />
-                              <span>Scanning</span>
-                            </span>
-                          </td>
-                          <td className="py-3 px-3.5 text-text-muted text-[10px]">
-                            In progress
-                          </td>
-                          <td className="py-3 px-3.5 text-text-primary font-medium">
-                            $1.78
-                          </td>
-                          <td className="py-3 px-3.5 text-text-muted text-[10px] text-right">
-                            Mar 8, 2026, 11:32AM
-                          </td>
-                        </tr>
+                        {scansToRender.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="py-4 text-center text-text-muted text-[10px]">
+                              No scans match your current filter.
+                            </td>
+                          </tr>
+                        ) : (
+                          scansToRender.map((item: any) => {
+                            const isCompleted = item.stage === "COMPLETED";
+                            const isScanning = item.stage === "SCANNING";
+                            const stageDisplay = item.stage === "CORRECTIONS_REQUESTED"
+                              ? "Corrections"
+                              : item.stage === "IN_REVIEW"
+                              ? "In Review"
+                              : item.stage === "SCANNING"
+                              ? "Scanning"
+                              : item.stage === "COMPLETED"
+                              ? "Completed"
+                              : item.stage || "Pending";
 
-                        {/* Row 2 */}
-                        <tr className="hover:bg-bg-panel-raised/50 transition-colors">
-                          <td className="py-3 px-3.5">
-                            <div className="flex items-center gap-2">
-                              <span className="w-32 h-3 bg-bg-panel-raised rounded-[2px] animate-pulse inline-block" />
-                              <span className="text-text-muted text-[10px]">StrategyRouter.sol</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-3.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-scan/15 border border-accent-scan/40 text-accent-scan text-[10px] font-medium">
-                              <X className="h-2.5 w-2.5" />
-                              <span>Scanning</span>
-                            </span>
-                          </td>
-                          <td className="py-3 px-3.5 text-text-muted text-[10px]">
-                            In progress
-                          </td>
-                          <td className="py-3 px-3.5 text-text-primary font-medium">
-                            $1.84
-                          </td>
-                          <td className="py-3 px-3.5 text-text-muted text-[10px] text-right">
-                            Mar 8, 2026, 10:15AM
-                          </td>
-                        </tr>
+                            const findingsCount = item.findings?.length ?? 0;
+                            const riskSummary = isCompleted
+                              ? "0 Open Risks (Attested)"
+                              : findingsCount > 0
+                              ? `${findingsCount} Risk${findingsCount > 1 ? "s" : ""} Found`
+                              : "In progress";
+
+                            const createdFormatted = new Date(item.createdAt || Date.now()).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            });
+
+                            return (
+                              <tr key={item.id} className="hover:bg-bg-panel-raised/50 transition-colors">
+                                <td className="py-3 px-3.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-accent-scan/40 inline-block shrink-0" />
+                                    <div>
+                                      <span className="text-text-primary text-[11px] font-semibold block">{item.contractFileName}</span>
+                                      <span className="text-text-muted text-[9px] block">{item.protocolName}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-3.5">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                                    isCompleted
+                                      ? "bg-signal-resolved/15 border-signal-resolved/40 text-signal-resolved"
+                                      : isScanning
+                                      ? "bg-accent-scan/15 border-accent-scan/40 text-accent-scan"
+                                      : "bg-signal-high/15 border-signal-high/40 text-signal-high"
+                                  }`}>
+                                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                    <span>{stageDisplay}</span>
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3.5 text-text-muted text-[10px]">
+                                  {riskSummary}
+                                </td>
+                                <td className="py-3 px-3.5 text-text-primary font-medium">
+                                  {(item.sloc || 100).toLocaleString()} SLOC
+                                </td>
+                                <td className="py-3 px-3.5 text-text-muted text-[10px] text-right">
+                                  {createdFormatted}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -849,10 +928,10 @@ export default function LandingPage() {
             {[...row1Chains, ...row1Chains].map((name, index) => (
               <div
                 key={`r1-${name}-${index}`}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-[6px] bg-bg-panel shadow-md shadow-black/60 hover:bg-bg-panel-raised hover:shadow-lg transition-all group shrink-0 select-none cursor-default"
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-[6px] bg-bg-panel border border-border-hairline shadow-sm dark:shadow-black/60 shadow-black/5 hover:bg-bg-panel-raised transition-all group shrink-0 select-none cursor-default"
               >
                 <ChainLogo name={name} className="h-5 w-5 shrink-0" />
-                <span className="font-display font-medium text-xs text-text-primary group-hover:text-white transition-colors">
+                <span className="font-display font-medium text-xs text-text-primary group-hover:text-accent-scan transition-colors">
                   {name}
                 </span>
               </div>
@@ -864,10 +943,10 @@ export default function LandingPage() {
             {[...row2Chains, ...row2Chains].map((name, index) => (
               <div
                 key={`r2-${name}-${index}`}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-[6px] bg-bg-panel shadow-md shadow-black/60 hover:bg-bg-panel-raised hover:shadow-lg transition-all group shrink-0 select-none cursor-default"
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-[6px] bg-bg-panel border border-border-hairline shadow-sm dark:shadow-black/60 shadow-black/5 hover:bg-bg-panel-raised transition-all group shrink-0 select-none cursor-default"
               >
                 <ChainLogo name={name} className="h-5 w-5 shrink-0" />
-                <span className="font-display font-medium text-xs text-text-primary group-hover:text-white transition-colors">
+                <span className="font-display font-medium text-xs text-text-primary group-hover:text-accent-scan transition-colors">
                   {name}
                 </span>
               </div>
@@ -879,10 +958,10 @@ export default function LandingPage() {
             {[...row3Chains, ...row3Chains].map((name, index) => (
               <div
                 key={`r3-${name}-${index}`}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-[6px] bg-bg-panel shadow-md shadow-black/60 hover:bg-bg-panel-raised hover:shadow-lg transition-all group shrink-0 select-none cursor-default"
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-[6px] bg-bg-panel border border-border-hairline shadow-sm dark:shadow-black/60 shadow-black/5 hover:bg-bg-panel-raised transition-all group shrink-0 select-none cursor-default"
               >
                 <ChainLogo name={name} className="h-5 w-5 shrink-0" />
-                <span className="font-display font-medium text-xs text-text-primary group-hover:text-white transition-colors">
+                <span className="font-display font-medium text-xs text-text-primary group-hover:text-accent-scan transition-colors">
                   {name}
                 </span>
               </div>
@@ -919,7 +998,7 @@ export default function LandingPage() {
           {/* Clean Rounded Stat Cards (Matching Reference Aesthetic) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {/* Card 1: Stolen Capital (Deep Dark Void / Signal) */}
-            <div className="reveal-on-scroll rounded-[22px] bg-[#0E1116] p-7 min-h-[200px] flex flex-col justify-between text-text-primary shadow-xl border border-white/[0.04] relative overflow-hidden group hover:border-signal-critical/30 transition-all">
+            <div className="reveal-on-scroll rounded-[22px] bg-bg-panel p-7 min-h-[200px] flex flex-col justify-between text-text-primary shadow-sm border border-border-hairline relative overflow-hidden group hover:border-signal-critical/40 transition-all">
               <div className="flex flex-col items-start gap-3.5">
                 <div id="counter-stolen" className="text-4xl sm:text-5xl font-display font-bold tracking-tight text-text-primary shrink-0 leading-none">
                   $0.00B+
@@ -930,32 +1009,32 @@ export default function LandingPage() {
               </div>
 
               <div className="pt-6">
-                <span className="inline-block px-3.5 py-1.5 rounded-[8px] bg-white/[0.06] text-text-muted group-hover:text-text-primary text-[11px] font-mono font-medium border border-white/[0.04] transition-colors">
+                <span className="inline-block px-3.5 py-1.5 rounded-[8px] bg-bg-void text-text-muted group-hover:text-text-primary text-[11px] font-mono font-medium border border-border-hairline transition-colors">
                   Web3 Exploits
                 </span>
               </div>
             </div>
 
             {/* Card 2: Secured TVL (High-Contrast Bone / Off-White Accent) */}
-            <div className="reveal-on-scroll rounded-[22px] bg-[#EAE7DF] p-7 min-h-[200px] flex flex-col justify-between text-[#111317] shadow-xl border border-transparent relative overflow-hidden group hover:bg-[#F2EFE8] transition-all">
+            <div className="reveal-on-scroll rounded-[22px] bg-bg-panel-raised dark:bg-[#EAE7DF] p-7 min-h-[200px] flex flex-col justify-between text-text-primary dark:text-[#111317] shadow-sm border border-border-hairline dark:border-transparent relative overflow-hidden group hover:border-accent-scan/40 transition-all">
               <div className="flex flex-col items-start gap-3.5">
-                <div id="counter-secured" className="text-4xl sm:text-5xl font-display font-bold tracking-tight text-[#111317] shrink-0 leading-none">
+                <div id="counter-secured" className="text-4xl sm:text-5xl font-display font-bold tracking-tight text-text-primary dark:text-[#111317] shrink-0 leading-none">
                   $0.0B+
                 </div>
-                <p className="text-xs sm:text-[13px] text-[#111317]/80 font-medium leading-snug max-w-[135px] text-left pt-0.5">
+                <p className="text-xs sm:text-[13px] text-text-muted dark:text-[#111317]/80 font-medium leading-snug max-w-[135px] text-left pt-0.5">
                   Total value secured across audited protocols
                 </p>
               </div>
 
               <div className="pt-6">
-                <span className="inline-block px-3.5 py-1.5 rounded-[8px] bg-black/[0.08] text-[#111317] text-[11px] font-mono font-semibold border border-black/[0.04]">
+                <span className="inline-block px-3.5 py-1.5 rounded-[8px] bg-accent-scan/10 text-accent-scan dark:bg-black/[0.08] dark:text-[#111317] text-[11px] font-mono font-semibold border border-accent-scan/20 dark:border-black/[0.04]">
                   Protected TVL
                 </span>
               </div>
             </div>
 
             {/* Card 3: Zero-Days Intercepted (Muted Charcoal / Slate) */}
-            <div className="reveal-on-scroll rounded-[22px] bg-[#1B2028] p-7 min-h-[200px] flex flex-col justify-between text-text-primary shadow-xl border border-white/[0.05] relative overflow-hidden group hover:border-signal-high/30 transition-all">
+            <div className="reveal-on-scroll rounded-[22px] bg-bg-panel p-7 min-h-[200px] flex flex-col justify-between text-text-primary shadow-sm border border-border-hairline relative overflow-hidden group hover:border-signal-high/40 transition-all">
               <div className="flex flex-col items-start gap-3.5">
                 <div id="counter-vulns" className="text-4xl sm:text-5xl font-display font-bold tracking-tight text-text-primary shrink-0 leading-none">
                   0
@@ -966,14 +1045,14 @@ export default function LandingPage() {
               </div>
 
               <div className="pt-6">
-                <span className="inline-block px-3.5 py-1.5 rounded-[8px] bg-white/[0.08] text-text-muted group-hover:text-text-primary text-[11px] font-mono font-medium border border-white/[0.04] transition-colors">
+                <span className="inline-block px-3.5 py-1.5 rounded-[8px] bg-bg-void text-text-muted group-hover:text-text-primary text-[11px] font-mono font-medium border border-border-hairline transition-colors">
                   Zero-Day Triage
                 </span>
               </div>
             </div>
 
             {/* Card 4: Mean Scan Speed (Deep Steel / Terminal Dark) */}
-            <div className="reveal-on-scroll rounded-[22px] bg-[#14181F] p-7 min-h-[200px] flex flex-col justify-between text-text-primary shadow-xl border border-white/[0.04] relative overflow-hidden group hover:border-accent-scan/30 transition-all">
+            <div className="reveal-on-scroll rounded-[22px] bg-bg-panel p-7 min-h-[200px] flex flex-col justify-between text-text-primary shadow-sm border border-border-hairline relative overflow-hidden group hover:border-accent-scan/40 transition-all">
               <div className="flex flex-col items-start gap-3.5">
                 <div id="counter-speed" className="text-4xl sm:text-5xl font-display font-bold tracking-tight text-text-primary shrink-0 leading-none">
                   0.0s
@@ -984,7 +1063,7 @@ export default function LandingPage() {
               </div>
 
               <div className="pt-6">
-                <span className="inline-block px-3.5 py-1.5 rounded-[8px] bg-white/[0.06] text-text-muted group-hover:text-text-primary text-[11px] font-mono font-medium border border-white/[0.04] transition-colors">
+                <span className="inline-block px-3.5 py-1.5 rounded-[8px] bg-bg-void text-text-muted group-hover:text-text-primary text-[11px] font-mono font-medium border border-border-hairline transition-colors">
                   Inference Latency
                 </span>
               </div>
@@ -1018,18 +1097,18 @@ export default function LandingPage() {
           {/* Top Row: 2 Large Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Card 1: Smart Contract Audit & Review */}
-            <div className="reveal-on-scroll rounded-[18px] bg-[#12151B] p-6 flex flex-col justify-between">
+            <div className="reveal-on-scroll rounded-[18px] bg-bg-panel border border-border-hairline shadow-sm p-6 flex flex-col justify-between">
               {/* Image Container with Top-only Radius and Padding */}
-              <div className="rounded-t-[14px] rounded-b-none bg-[#0A0C10] pt-3 sm:pt-3.5 px-3 sm:px-3.5 pb-0 h-[220px] sm:h-[240px] mb-6 relative overflow-hidden flex items-end justify-center">
+              <div className="rounded-t-[14px] rounded-b-none bg-bg-panel-raised border-b border-border-hairline pt-3 sm:pt-3.5 px-3 sm:px-3.5 pb-0 h-[220px] sm:h-[240px] mb-6 relative overflow-hidden flex items-end justify-center">
                 {/* Bordered Inner Image Frame with Top-only Radius cutting off at bottom */}
-                <div className="w-full h-full rounded-t-[10px] rounded-b-none border-t border-x border-b-0 border-white/[0.08] overflow-hidden relative flex items-center justify-center bg-bg-void">
+                <div className="w-full h-full rounded-t-[10px] rounded-b-none border-t border-x border-b-0 border-border-hairline overflow-hidden relative flex items-center justify-center bg-bg-void">
                   <img
                     src="/audit-review.png"
                     alt="Smart Contract Audit & Review Workspace"
                     className="w-full h-full object-cover object-top"
                   />
                   {/* Bottom Soft Blur / Fade */}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0A0C10] via-[#0A0C10]/60 to-transparent backdrop-blur-[1px]" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-bg-panel-raised via-bg-panel-raised/60 to-transparent backdrop-blur-[1px]" />
                 </div>
               </div>
 
@@ -1045,18 +1124,18 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2: Token Risk Analyzer */}
-            <div className="reveal-on-scroll rounded-[18px] bg-[#12151B] p-6 flex flex-col justify-between">
+            <div className="reveal-on-scroll rounded-[18px] bg-bg-panel border border-border-hairline shadow-sm p-6 flex flex-col justify-between">
               {/* Image Container with Top-only Radius and Padding */}
-              <div className="rounded-t-[14px] rounded-b-none bg-[#0A0C10] pt-3 sm:pt-3.5 px-3 sm:px-3.5 pb-0 h-[220px] sm:h-[240px] mb-6 relative overflow-hidden flex items-end justify-center">
+              <div className="rounded-t-[14px] rounded-b-none bg-bg-panel-raised border-b border-border-hairline pt-3 sm:pt-3.5 px-3 sm:px-3.5 pb-0 h-[220px] sm:h-[240px] mb-6 relative overflow-hidden flex items-end justify-center">
                 {/* Bordered Inner Image Frame with Top-only Radius cutting off at bottom */}
-                <div className="w-full h-full rounded-t-[10px] rounded-b-none border-t border-x border-b-0 border-white/[0.08] overflow-hidden relative flex items-center justify-center bg-bg-void">
+                <div className="w-full h-full rounded-t-[10px] rounded-b-none border-t border-x border-b-0 border-border-hairline overflow-hidden relative flex items-center justify-center bg-bg-void">
                   <img
                     src="/token-scan.png"
                     alt="Token Risk Analyzer Diagnostic Workspace"
                     className="w-full h-full object-cover object-top"
                   />
                   {/* Bottom Soft Blur / Fade */}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0A0C10] via-[#0A0C10]/60 to-transparent backdrop-blur-[1px]" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-bg-panel-raised via-bg-panel-raised/60 to-transparent backdrop-blur-[1px]" />
                 </div>
               </div>
 
@@ -1075,18 +1154,18 @@ export default function LandingPage() {
           {/* Bottom Row: 3 Smaller Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Card 3: Incident Monitor */}
-            <div className="reveal-on-scroll rounded-[18px] bg-[#12151B] p-6 flex flex-col justify-between">
+            <div className="reveal-on-scroll rounded-[18px] bg-bg-panel border border-border-hairline shadow-sm p-6 flex flex-col justify-between">
               {/* Image Container with Top-only Radius and Padding */}
-              <div className="rounded-t-[14px] rounded-b-none bg-[#0A0C10] pt-3 px-3 pb-0 h-[190px] sm:h-[200px] mb-6 relative overflow-hidden flex items-end justify-center">
+              <div className="rounded-t-[14px] rounded-b-none bg-bg-panel-raised border-b border-border-hairline pt-3 px-3 pb-0 h-[190px] sm:h-[200px] mb-6 relative overflow-hidden flex items-end justify-center">
                 {/* Bordered Inner Image Frame with Top-only Radius cutting off at bottom */}
-                <div className="w-full h-full rounded-t-[10px] rounded-b-none border-t border-x border-b-0 border-white/[0.08] overflow-hidden relative flex items-center justify-center bg-bg-void">
+                <div className="w-full h-full rounded-t-[10px] rounded-b-none border-t border-x border-b-0 border-border-hairline overflow-hidden relative flex items-center justify-center bg-bg-void">
                   <img
                     src="/incident-monitor.png"
                     alt="Incident Monitor Mempool Telemetry Workspace"
                     className="w-full h-full object-cover object-top"
                   />
                   {/* Bottom Soft Blur / Fade */}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0A0C10] to-transparent backdrop-blur-[1px]" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-bg-panel-raised to-transparent backdrop-blur-[1px]" />
                 </div>
               </div>
 
@@ -1102,18 +1181,18 @@ export default function LandingPage() {
             </div>
 
             {/* Card 4: Security Vaults */}
-            <div className="reveal-on-scroll rounded-[18px] bg-[#12151B] p-6 flex flex-col justify-between">
+            <div className="reveal-on-scroll rounded-[18px] bg-bg-panel border border-border-hairline shadow-sm p-6 flex flex-col justify-between">
               {/* Image Container with Top-only Radius and Padding */}
-              <div className="rounded-t-[14px] rounded-b-none bg-[#0A0C10] pt-3 px-3 pb-0 h-[190px] sm:h-[200px] mb-6 relative overflow-hidden flex items-end justify-center">
+              <div className="rounded-t-[14px] rounded-b-none bg-bg-panel-raised border-b border-border-hairline pt-3 px-3 pb-0 h-[190px] sm:h-[200px] mb-6 relative overflow-hidden flex items-end justify-center">
                 {/* Bordered Inner Image Frame with Top-only Radius cutting off at bottom */}
-                <div className="w-full h-full rounded-t-[10px] rounded-b-none border-t border-x border-b-0 border-white/[0.08] overflow-hidden relative flex items-center justify-center bg-bg-void">
+                <div className="w-full h-full rounded-t-[10px] rounded-b-none border-t border-x border-b-0 border-border-hairline overflow-hidden relative flex items-center justify-center bg-bg-void">
                   <img
                     src="/document-vault.png"
                     alt="Cryptographic Document Vault & Attestation Registry"
                     className="w-full h-full object-cover object-top"
                   />
                   {/* Bottom Soft Blur / Fade */}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0A0C10] to-transparent backdrop-blur-[1px]" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-bg-panel-raised to-transparent backdrop-blur-[1px]" />
                 </div>
               </div>
 
@@ -1129,18 +1208,18 @@ export default function LandingPage() {
             </div>
 
             {/* Card 5: Learning Platform */}
-            <div className="reveal-on-scroll rounded-[18px] bg-[#12151B] p-6 flex flex-col justify-between">
+            <div className="reveal-on-scroll rounded-[18px] bg-bg-panel border border-border-hairline shadow-sm p-6 flex flex-col justify-between">
               {/* Image Container with Top-only Radius and Padding */}
-              <div className="rounded-t-[14px] rounded-b-none bg-[#0A0C10] pt-3 px-3 pb-0 h-[190px] sm:h-[200px] mb-6 relative overflow-hidden flex items-end justify-center">
+              <div className="rounded-t-[14px] rounded-b-none bg-bg-panel-raised border-b border-border-hairline pt-3 px-3 pb-0 h-[190px] sm:h-[200px] mb-6 relative overflow-hidden flex items-end justify-center">
                 {/* Bordered Inner Image Frame with Top-only Radius cutting off at bottom */}
-                <div className="w-full h-full rounded-t-[10px] rounded-b-none border-t border-x border-b-0 border-white/[0.08] overflow-hidden relative flex items-center justify-center bg-bg-void">
+                <div className="w-full h-full rounded-t-[10px] rounded-b-none border-t border-x border-b-0 border-border-hairline overflow-hidden relative flex items-center justify-center bg-bg-void">
                   <img
                     src="/learning.png"
                     alt="Security Learning Platform and Interactive Course Academy"
                     className="w-full h-full object-cover object-top"
                   />
                   {/* Bottom Soft Blur / Fade */}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0A0C10] to-transparent backdrop-blur-[1px]" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-bg-panel-raised to-transparent backdrop-blur-[1px]" />
                 </div>
               </div>
 
@@ -1183,11 +1262,11 @@ export default function LandingPage() {
           {/* Sticky Stacking Cards Container */}
           <div className="relative pb-44 space-y-12">
             {/* ================================================================= */}
-            {/* STACK CARD 1: AST GRAMMAR & PARSER ENGINE                         */}
+            {/* STACK CARD 1: INSTANT AST GRAMMAR PARSER                          */}
             {/* ================================================================= */}
-            <div className="sticky top-[100px] z-10 rounded-[16px] bg-[#11141B] shadow-2xl shadow-black/90 overflow-hidden backdrop-blur-xl">
+            <div className="sticky top-[100px] z-10 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
               {/* Top Tab Bar Header (Visible when stacked) */}
-              <div className="px-6 sm:px-8 py-3.5 bg-[#151922] flex items-center justify-between font-mono text-xs text-text-muted">
+              <div className="px-6 sm:px-8 py-3.5 bg-bg-panel-raised border-b border-border-hairline flex items-center justify-between font-mono text-xs text-text-muted">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2 h-2 rounded-full bg-accent-scan" />
                   <span className="font-semibold text-text-primary">01 PARSE</span>
@@ -1275,9 +1354,9 @@ export default function LandingPage() {
             {/* ================================================================= */}
             {/* STACK CARD 2: DUAL-PANE CODE REVIEW & RED-TEAM WORKSPACE          */}
             {/* ================================================================= */}
-            <div className="sticky top-[148px] z-20 rounded-[16px] bg-[#141821] shadow-2xl shadow-black/90 overflow-hidden backdrop-blur-xl">
+            <div className="sticky top-[148px] z-20 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
               {/* Top Tab Bar Header (Visible when stacked) */}
-              <div className="px-6 sm:px-8 py-3.5 bg-[#181E29] flex items-center justify-between font-mono text-xs text-text-muted">
+              <div className="px-6 sm:px-8 py-3.5 bg-bg-panel-raised border-b border-border-hairline flex items-center justify-between font-mono text-xs text-text-muted">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2 h-2 rounded-full bg-signal-high" />
                   <span className="font-semibold text-text-primary">02 REVIEW</span>
@@ -1332,7 +1411,7 @@ export default function LandingPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {/* Left Sub-Pane */}
-                    <div className="p-2.5 rounded bg-bg-panel/70 space-y-1.5 text-[10px]">
+                    <div className="p-2.5 rounded bg-bg-panel-raised border border-border-hairline/60 space-y-1.5 text-[10px]">
                       <div className="text-text-muted font-bold text-[9px] uppercase border-b border-border-hairline/50 pb-1">
                         Contract Bytecode
                       </div>
@@ -1346,7 +1425,7 @@ export default function LandingPage() {
                     </div>
 
                     {/* Right Sub-Pane */}
-                    <div className="p-2.5 rounded bg-bg-panel/70 space-y-1.5 text-[10px]">
+                    <div className="p-2.5 rounded bg-bg-panel-raised border border-border-hairline/60 space-y-1.5 text-[10px]">
                       <div className="flex items-center justify-between text-[9px] border-b border-border-hairline/50 pb-1">
                         <span className="text-signal-critical font-bold">[CRITICAL]</span>
                         <span className="text-text-muted">auditor.eth</span>
@@ -1357,7 +1436,7 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <div className="p-2 rounded bg-bg-panel/60 flex items-center justify-between text-[10px] text-text-muted">
+                  <div className="p-2 rounded bg-bg-panel-raised border border-border-hairline/60 flex items-center justify-between text-[10px] text-text-muted">
                     <span>Consensus: 2/2 Signed</span>
                     <span className="text-accent-scan font-bold">Severity: Critical</span>
                   </div>
@@ -1368,9 +1447,9 @@ export default function LandingPage() {
             {/* ================================================================= */}
             {/* STACK CARD 3: 4-STAGE PIPELINE & MILESTONE ESCROW                 */}
             {/* ================================================================= */}
-            <div className="sticky top-[196px] z-30 rounded-[16px] bg-[#171C27] shadow-2xl shadow-black/90 overflow-hidden backdrop-blur-xl">
+            <div className="sticky top-[196px] z-30 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
               {/* Top Tab Bar Header (Visible when stacked) */}
-              <div className="px-6 sm:px-8 py-3.5 bg-[#1C2330] flex items-center justify-between font-mono text-xs text-text-muted">
+              <div className="px-6 sm:px-8 py-3.5 bg-bg-panel-raised border-b border-border-hairline flex items-center justify-between font-mono text-xs text-text-muted">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2 h-2 rounded-full bg-accent-scan animate-pulse" />
                   <span className="font-semibold text-text-primary">03 PIPELINE</span>
@@ -1440,7 +1519,7 @@ export default function LandingPage() {
                       <span className="text-text-muted text-[9px]">DONE</span>
                     </div>
 
-                    <div className="flex items-center justify-between bg-bg-panel/70 p-1.5 rounded text-accent-scan font-medium">
+                    <div className="flex items-center justify-between bg-bg-panel-raised border border-border-hairline/60 p-1.5 rounded text-accent-scan font-medium">
                       <span className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-accent-scan animate-pulse" />
                         03 · Manual Adversarial Triage
@@ -1454,7 +1533,7 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <div className="p-2 rounded bg-bg-panel/60 flex items-center justify-between text-[10px] text-text-muted">
+                  <div className="p-2 rounded bg-bg-panel-raised border border-border-hairline/60 flex items-center justify-between text-[10px] text-text-muted">
                     <span>Escrow: 50% Released</span>
                     <span className="text-text-primary font-bold">Target ETA: 24h</span>
                   </div>
@@ -1465,9 +1544,9 @@ export default function LandingPage() {
             {/* ================================================================= */}
             {/* STACK CARD 4: IMMUTABLE DOCUMENT VAULT & VERIFIED PROOFS          */}
             {/* ================================================================= */}
-            <div className="sticky top-[244px] z-40 rounded-[16px] bg-[#1A202D] shadow-2xl shadow-black/90 overflow-hidden backdrop-blur-xl">
+            <div className="sticky top-[244px] z-40 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
               {/* Top Tab Bar Header (Visible when stacked) */}
-              <div className="px-6 sm:px-8 py-3.5 bg-[#1F2737] flex items-center justify-between font-mono text-xs text-text-muted">
+              <div className="px-6 sm:px-8 py-3.5 bg-bg-panel-raised border-b border-border-hairline flex items-center justify-between font-mono text-xs text-text-muted">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2 h-2 rounded-full bg-signal-resolved" />
                   <span className="font-semibold text-text-primary">04 ATTEST</span>
@@ -1520,9 +1599,13 @@ export default function LandingPage() {
                     </span>
                   </div>
 
-                  <div className="p-3 rounded bg-bg-panel/70 space-y-2">
+                  <div className="p-3 rounded bg-bg-panel-raised border border-border-hairline/60 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-text-primary font-bold text-xs">Aura-VaultCore-Audit.pdf</span>
+                      <span className="text-text-primary font-bold text-xs">
+                        {stats?.recentAudits?.[0]?.contractFileName
+                          ? `${stats.recentAudits[0].contractFileName.replace(/\.sol$/, '')}-Audit.pdf`
+                          : "BeeTrade-Orderbook-Audit.pdf"}
+                      </span>
                       <span className="text-[10px] text-text-muted">4.8 MB</span>
                     </div>
 
@@ -1538,14 +1621,14 @@ export default function LandingPage() {
                         <Check className="h-3 w-3" />
                         Zero Open Vulnerabilities
                       </span>
-                      <button className="px-2.5 py-1 rounded bg-text-primary text-bg-void font-bold text-[10px] flex items-center gap-1 hover:bg-white transition-colors">
+                      <button className="px-2.5 py-1 rounded bg-text-primary text-bg-void font-bold text-[10px] flex items-center gap-1 hover:opacity-90 transition-opacity">
                         <Download className="h-3 w-3" />
                         Download
                       </button>
                     </div>
                   </div>
 
-                  <div className="p-2 rounded bg-bg-panel/60 flex items-center justify-between text-[10px] text-text-muted">
+                  <div className="p-2 rounded bg-bg-panel-raised border border-border-hairline/60 flex items-center justify-between text-[10px] text-text-muted">
                     <span>Public Proof: <span className="text-text-primary">zyron.io/verify/8942</span></span>
                   </div>
                 </div>
@@ -1574,7 +1657,7 @@ export default function LandingPage() {
           {/* 3-Card Layout Matching Reference Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
             {/* CARD 1: STARTER */}
-            <div className="rounded-[22px] bg-[#12151B] p-7 sm:p-8 border border-white/[0.08] flex flex-col justify-between space-y-7 hover:border-white/[0.14] transition-colors">
+            <div className="rounded-[22px] bg-bg-panel p-7 sm:p-8 border border-border-hairline flex flex-col justify-between space-y-7 shadow-sm hover:border-accent-scan/40 transition-colors">
               <div className="space-y-6">
                 {/* Header & Subtitle */}
                 <div className="space-y-2">
@@ -1603,7 +1686,7 @@ export default function LandingPage() {
                       <button
                         onClick={() => setBillingCycle(billingCycle === "continuous" ? "engagement" : "continuous")}
                         className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center ${
-                          billingCycle === "continuous" ? "bg-signal-resolved" : "bg-white/20"
+                          billingCycle === "continuous" ? "bg-signal-resolved" : "bg-text-muted/20"
                         }`}
                       >
                         <div
@@ -1623,14 +1706,14 @@ export default function LandingPage() {
 
                 {/* Action Button */}
                 <Link href="/portal/integrations" className="block w-full">
-                  <button className="w-full py-3 px-4 rounded-[10px] bg-bg-panel-raised border border-border-hairline text-text-primary hover:bg-white/[0.06] hover:border-white/[0.2] transition-colors font-mono text-xs font-semibold flex items-center justify-center gap-2">
+                  <button className="w-full py-3 px-4 rounded-[10px] bg-bg-panel-raised border border-border-hairline text-text-primary hover:bg-bg-panel hover:border-accent-scan/50 transition-colors font-mono text-xs font-semibold flex items-center justify-center gap-2">
                     <span>Start for Free</span>
                     <span>→</span>
                   </button>
                 </Link>
 
                 {/* Feature List */}
-                <div className="space-y-3 text-xs sm:text-[13px] font-sans text-text-muted pt-2 border-t border-white/[0.04]">
+                <div className="space-y-3 text-xs sm:text-[13px] font-sans text-text-muted pt-2 border-t border-border-hairline">
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-signal-resolved shrink-0 mt-0.5" />
                     <span>Access to 120+ SWC AST invariant rules</span>
@@ -1664,7 +1747,7 @@ export default function LandingPage() {
             </div>
 
             {/* CARD 2: PRO (MOST POPULAR) */}
-            <div className="rounded-[22px] bg-[#141822] p-7 sm:p-8 border border-white/[0.12] flex flex-col justify-between space-y-7 shadow-xl relative">
+            <div className="rounded-[22px] bg-bg-panel p-7 sm:p-8 border-2 border-accent-scan/50 flex flex-col justify-between space-y-7 shadow-xl relative">
               <div className="space-y-6">
                 {/* Header & Subtitle */}
                 <div className="space-y-2">
@@ -1713,14 +1796,14 @@ export default function LandingPage() {
 
                 {/* Dark Solid Action Button */}
                 <Link href="/portal/new-request" className="block w-full">
-                  <button className="w-full py-3 px-4 rounded-[10px] bg-text-primary text-bg-void hover:bg-white hover:shadow-lg transition-all font-mono text-xs font-bold flex items-center justify-center gap-2">
+                  <button className="w-full py-3 px-4 rounded-[10px] bg-text-primary text-bg-void hover:opacity-90 hover:shadow-lg transition-all font-mono text-xs font-bold flex items-center justify-center gap-2">
                     <span>Request Scoped Quote</span>
                     <span>→</span>
                   </button>
                 </Link>
 
                 {/* Feature List */}
-                <div className="space-y-3 text-xs sm:text-[13px] font-sans text-text-muted pt-2 border-t border-white/[0.04]">
+                <div className="space-y-3 text-xs sm:text-[13px] font-sans text-text-muted pt-2 border-t border-border-hairline">
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-signal-resolved shrink-0 mt-0.5" />
                     <span className="text-text-primary font-medium">Dual-pane collaborative auditor workspace</span>
@@ -1754,7 +1837,7 @@ export default function LandingPage() {
             </div>
 
             {/* CARD 3: ENTERPRISE */}
-            <div className="rounded-[22px] bg-[#12151B] p-7 sm:p-8 border border-white/[0.08] flex flex-col justify-between space-y-7 hover:border-white/[0.14] transition-colors">
+            <div className="rounded-[22px] bg-bg-panel p-7 sm:p-8 border border-border-hairline flex flex-col justify-between space-y-7 shadow-sm hover:border-accent-scan/40 transition-colors">
               <div className="space-y-6">
                 {/* Header & Subtitle */}
                 <div className="space-y-2">
@@ -1782,14 +1865,14 @@ export default function LandingPage() {
 
                 {/* Action Button */}
                 <Link href="/portal/new-request" className="block w-full">
-                  <button className="w-full py-3 px-4 rounded-[10px] bg-bg-panel-raised border border-border-hairline text-text-primary hover:bg-white/[0.06] hover:border-white/[0.2] transition-colors font-mono text-xs font-semibold flex items-center justify-center gap-2">
+                  <button className="w-full py-3 px-4 rounded-[10px] bg-bg-panel-raised border border-border-hairline text-text-primary hover:bg-bg-panel hover:border-accent-scan/50 transition-colors font-mono text-xs font-semibold flex items-center justify-center gap-2">
                     <span>Request Personalized Demo</span>
                     <span>→</span>
                   </button>
                 </Link>
 
                 {/* Feature List */}
-                <div className="space-y-3 text-xs sm:text-[13px] font-sans text-text-muted pt-2 border-t border-white/[0.04]">
+                <div className="space-y-3 text-xs sm:text-[13px] font-sans text-text-muted pt-2 border-t border-border-hairline">
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-signal-resolved shrink-0 mt-0.5" />
                     <span>Dedicated lead whitehat auditor on retainer</span>
@@ -1877,7 +1960,7 @@ export default function LandingPage() {
               return (
                 <div
                   key={faq.id}
-                  className="rounded-[12px] bg-[#12151B] border border-border-hairline overflow-hidden transition-colors"
+                  className="rounded-[12px] bg-bg-panel border border-border-hairline overflow-hidden transition-colors shadow-sm"
                 >
                   <button
                     onClick={() => setExpandedFaq(isOpen ? null : faq.id)}
@@ -1889,7 +1972,7 @@ export default function LandingPage() {
                     </span>
                   </button>
                   {isOpen && (
-                    <div className="px-5 pb-5 pt-1 text-text-muted font-sans text-xs sm:text-[13px] leading-relaxed border-t border-white/[0.04]">
+                    <div className="px-5 pb-5 pt-1 text-text-muted font-sans text-xs sm:text-[13px] leading-relaxed border-t border-border-hairline">
                       {faq.a}
                     </div>
                   )}
@@ -1904,16 +1987,16 @@ export default function LandingPage() {
       {/* SECTION 8: FINAL HIGH-IMPACT CALL TO ACTION (CTA)                         */}
       {/* ========================================================================= */}
       <section className="py-20 px-4 sm:px-6 md:px-12 border-t border-border-hairline bg-bg-void relative">
-        <div className="max-w-7xl mx-auto rounded-[24px] sm:rounded-[28px] overflow-hidden relative border border-white/[0.12] p-8 sm:p-14 lg:p-16 min-h-[420px] flex flex-col justify-center shadow-2xl">
+        <div className="max-w-7xl mx-auto rounded-[24px] sm:rounded-[28px] overflow-hidden relative border border-border-hairline bg-bg-panel p-8 sm:p-14 lg:p-16 min-h-[420px] flex flex-col justify-center shadow-2xl dark:shadow-black/80 shadow-black/5">
           {/* Hero Background Layer with Hue-Rotate and Vignette */}
           <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
             <img
               src="/hero-bg.png"
               alt=""
-              className="w-full h-full object-cover object-center [filter:hue-rotate(-75deg)_saturate(2)_brightness(1.15)] scale-105"
+              className="w-full h-full object-cover object-center [filter:hue-rotate(-75deg)_saturate(2)_brightness(1.15)] scale-105 dark:opacity-30 opacity-15"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0B0D10]/85 via-[#0B0D10]/50 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D10]/60 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r dark:from-[#0B0D10]/90 dark:via-[#0B0D10]/60 dark:to-transparent from-bg-panel/95 via-bg-panel/75 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t dark:from-[#0B0D10]/70 dark:via-transparent dark:to-transparent from-bg-panel/60 via-transparent to-transparent" />
           </div>
 
           {/* Left-Aligned Banner Content Matching Reference */}
@@ -1924,13 +2007,13 @@ export default function LandingPage() {
                 Join 500+ protocol teams on Zyron
               </span>
               <div className="flex items-center -space-x-2">
-                <div className="h-7 w-7 rounded-full bg-[#1A1F2C] border-2 border-bg-void flex items-center justify-center text-[10px] font-mono font-bold text-accent-scan shadow-sm">
+                <div className="h-7 w-7 rounded-full bg-accent-scan/15 border-2 border-bg-panel flex items-center justify-center text-[10px] font-mono font-bold text-accent-scan shadow-sm">
                   0x
                 </div>
-                <div className="h-7 w-7 rounded-full bg-[#162720] border-2 border-bg-void flex items-center justify-center text-[10px] font-mono font-bold text-signal-resolved shadow-sm">
+                <div className="h-7 w-7 rounded-full bg-signal-resolved/15 border-2 border-bg-panel flex items-center justify-center text-[10px] font-mono font-bold text-signal-resolved shadow-sm">
                   Z
                 </div>
-                <div className="h-7 w-7 rounded-full bg-[#271E18] border-2 border-bg-void flex items-center justify-center text-[10px] font-mono font-bold text-signal-high shadow-sm">
+                <div className="h-7 w-7 rounded-full bg-signal-high/15 border-2 border-bg-panel flex items-center justify-center text-[10px] font-mono font-bold text-signal-high shadow-sm">
                   Ξ
                 </div>
               </div>
@@ -1976,9 +2059,9 @@ export default function LandingPage() {
       {/* ========================================================================= */}
       {/* SECTION 9: INSTITUTIONAL FOOTER (REFERENCE CONCEPT)                       */}
       {/* ========================================================================= */}
-      <footer className="pt-20 pb-12 px-6 md:px-12 border-t border-border-hairline bg-[#090B0E] text-text-muted relative overflow-hidden">
+      <footer className="pt-20 pb-12 px-6 md:px-12 border-t border-border-hairline bg-bg-void text-text-muted relative overflow-hidden">
         {/* Subtle Ambient Nebula Glow */}
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_110%,rgba(94,200,255,0.09),rgba(130,80,220,0.06),transparent_70%)]" />
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_110%,rgba(94,200,255,0.09),rgba(130,80,220,0.06),transparent_70%)] dark:opacity-100 opacity-40" />
 
         <div className="max-w-7xl mx-auto space-y-16 relative z-10">
           {/* Top Bar: Contact Info + Navigation Links */}
@@ -2024,19 +2107,19 @@ export default function LandingPage() {
           <div className="py-8 sm:py-12 md:py-16 flex items-center justify-center select-none">
             <div className="w-full flex items-center justify-between gap-4 sm:gap-8">
               {/* Brand Terminal Icon matching header */}
-              <div className="h-12 w-12 sm:h-20 sm:w-20 md:h-28 md:w-28 lg:h-36 lg:w-36 shrink-0 rounded-[12px] sm:rounded-[20px] lg:rounded-[28px] bg-white flex items-center justify-center p-2.5 sm:p-4 md:p-6 lg:p-8 shadow-2xl">
-                <Terminal className="w-full h-full text-[#090B0E] stroke-[2.5]" />
+              <div className="h-12 w-12 sm:h-20 sm:w-20 md:h-28 md:w-28 lg:h-36 lg:w-36 shrink-0 rounded-[12px] sm:rounded-[20px] lg:rounded-[28px] bg-bg-panel border border-border-hairline flex items-center justify-center p-2.5 sm:p-4 md:p-6 lg:p-8 shadow-xl">
+                <Terminal className="w-full h-full text-accent-scan stroke-[2.5]" />
               </div>
 
               {/* Massive Wordmark */}
-              <span className="font-display text-[14vw] font-bold tracking-tight text-white leading-none lowercase sm:lowercase">
+              <span className="font-display text-[14vw] font-bold tracking-tight text-text-primary leading-none lowercase sm:lowercase">
                 zyron
               </span>
             </div>
           </div>
 
           {/* Bottom Row: Copyright + Social Links */}
-          <div className="pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-text-muted/80">
+          <div className="pt-6 border-t border-border-hairline flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-text-muted/80">
             <div>
               © 2026 Zyron Protocol Inc. All rights reserved.
             </div>

@@ -5,6 +5,9 @@ import { RegisterService } from '../src/auth/services/register.service';
 import { LoginService } from '../src/auth/services/login.service';
 import { SiweService } from '../src/auth/services/siwe.service';
 import { UserProfileService } from '../src/auth/services/user-profile.service';
+import { PasswordResetService } from '../src/auth/services/password-reset.service';
+import { EmailVerificationService } from '../src/auth/services/email-verification.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../src/database/database.module';
 import { JwtService } from '@nestjs/jwt';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
@@ -17,6 +20,7 @@ describe('AuthService (Unit Tests)', () => {
   let authService: AuthService;
   let mockPrisma: any;
   let mockJwtService: any;
+  let mockEventEmitter: any;
 
   const mockUser = {
     id: 'usr_123',
@@ -30,6 +34,13 @@ describe('AuthService (Unit Tests)', () => {
     organization: { id: 'org_123', name: 'Aura Finance DAO' },
     createdAt: new Date(),
     updatedAt: new Date(),
+    emailVerified: true,
+  };
+
+  const mockEmailVerificationService = {
+    createVerificationToken: vi.fn().mockResolvedValue('mock_token'),
+    verifyEmail: vi.fn().mockResolvedValue({ success: true, message: 'Email verified' }),
+    resendVerification: vi.fn().mockResolvedValue({ success: true, message: 'Verification email resent' }),
   };
 
   beforeEach(async () => {
@@ -41,10 +52,27 @@ describe('AuthService (Unit Tests)', () => {
       organization: {
         create: vi.fn().mockResolvedValue({ id: 'org_123', name: 'Aura Finance DAO' }),
       },
+      passwordResetToken: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
+      },
+      emailVerificationToken: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
+      },
+      $transaction: vi.fn().mockImplementation((promises) => Promise.all(promises)),
     };
 
     mockJwtService = {
       sign: vi.fn().mockReturnValue('mocked_jwt_access_token'),
+    };
+
+    mockEventEmitter = {
+      emit: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -54,10 +82,14 @@ describe('AuthService (Unit Tests)', () => {
         LoginService,
         SiweService,
         UserProfileService,
+        PasswordResetService,
+        { provide: EmailVerificationService, useValue: mockEmailVerificationService },
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwtService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
+
 
     authService = module.get<AuthService>(AuthService);
   });
@@ -75,7 +107,7 @@ describe('AuthService (Unit Tests)', () => {
       ).rejects.toThrow(ConflictException);
     });
 
-    it('should hash password with bcrypt and return user with JWT token', async () => {
+    it('should hash password with bcrypt and return user with verification requirement', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockPrisma.user.create.mockResolvedValue(mockUser);
       (bcrypt.hash as any).mockResolvedValue('hashed_password_string');
@@ -88,7 +120,7 @@ describe('AuthService (Unit Tests)', () => {
       });
 
       expect(bcrypt.hash).toHaveBeenCalledWith('Password123!', 12);
-      expect(result).toHaveProperty('accessToken', 'mocked_jwt_access_token');
+      expect(result).toHaveProperty('requiresEmailVerification', true);
       expect(result.user.email).toBe('security@auraprotocol.io');
     });
   });

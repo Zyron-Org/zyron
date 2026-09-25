@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 export default function TeamAccessPage() {
+  const { user } = useAuth();
   const [org, setOrg] = React.useState<any>(null);
   const [inviteEmail, setInviteEmail] = React.useState("");
   const [loading, setLoading] = React.useState(true);
@@ -76,10 +78,10 @@ export default function TeamAccessPage() {
             </Eyebrow>
             <h1 className="font-display text-2xl font-semibold text-text-primary flex items-center gap-2">
               <Building className="h-6 w-6 text-accent-scan" />
-              <span>{org?.name || "Aura Finance DAO"}</span>
+              <span>{org?.name || user?.organization?.name || (user?.name ? `${user.name}'s Organization` : "Organization Access Control")}</span>
             </h1>
             <p className="text-xs text-text-muted font-mono">
-              Tier: <span className="text-accent-scan uppercase font-bold">{org?.tier || "Standard"}</span> | Total Members: {org?.users?.length || 1}
+              Tier: <span className="text-accent-scan uppercase font-bold">{org?.tier || "Standard"}</span> | Total Members: {org?.users?.length || (user ? 1 : 0)}
             </p>
           </div>
 
@@ -126,9 +128,12 @@ export default function TeamAccessPage() {
           </div>
 
           <div className="space-y-2">
-            {(org?.users || [
-              { id: "usr_1", name: "Alex Vance", email: "alex@auraprotocol.io", role: "CLIENT" },
-            ]).map((member: any, idx: number) => (
+            {(org?.users?.length
+              ? org.users
+              : user
+              ? [{ id: user.id, name: user.name || "User", email: user.email, role: user.role || "CLIENT" }]
+              : []
+            ).map((member: any, idx: number) => (
               <div
                 key={member.id || idx}
                 className="p-3 rounded-[6px] bg-bg-void border border-border-hairline flex items-center justify-between"

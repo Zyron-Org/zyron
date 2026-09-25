@@ -35,6 +35,10 @@ export class AuditService {
     return this.getAuditsService.findAllAudits(userId, role, organizationId, stageFilter);
   }
 
+  getOverviewStats() {
+    return this.getAuditsService.getOverviewStats();
+  }
+
   findOneAudit(auditId: string, userId: string, role: UserRole, organizationId?: string) {
     return this.getAuditsService.findOneAudit(auditId, userId, role, organizationId);
   }
@@ -55,8 +59,8 @@ export class AuditService {
     return this.findingsService.updateFinding(findingId, dto, userRole);
   }
 
-  findFindingsByAudit(auditId: string) {
-    return this.findingsService.findFindingsByAudit(auditId);
+  findFindingsByAudit(auditId: string, role?: UserRole) {
+    return this.findingsService.findFindingsByAudit(auditId, role);
   }
 
   createFindingComment(findingId: string, senderId: string, dto: CreateCommentDto) {
