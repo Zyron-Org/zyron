@@ -309,7 +309,7 @@ export function PortalSidebar() {
               close();
               logout();
             }}
-            className="w-full flex items-center justify-center p-2 rounded-xl text-signal-critical hover:text-white bg-signal-critical/10 hover:bg-signal-critical border border-signal-critical/20 hover:border-signal-critical transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+            className="w-full flex items-center justify-center p-2 rounded-xl text-signal-critical hover:text-white bg-bg-void/90 dark:bg-bg-void hover:bg-signal-critical border border-signal-critical/50 hover:border-signal-critical transition-all cursor-pointer shadow-xs active:scale-[0.98]"
             title="Sign Out"
           >
             <LogOut className="h-4 w-4" />

@@ -140,7 +140,7 @@ export const ExpandingButton = React.forwardRef<
       );
     }
 
-    // Danger / Red Variant (Red-tinted button -> Red expanding icon background)
+    // Danger / Red Variant (Dark background with red border -> Solid red expanding on hover)
     if (variant === "danger") {
       const defaultIcon = icon || <ArrowRight className="h-4 w-4" />;
       return (
@@ -150,7 +150,7 @@ export const ExpandingButton = React.forwardRef<
           className={cn(
             "relative group overflow-hidden inline-flex items-center justify-between font-mono font-medium select-none shadow-xs transition-all cursor-pointer",
             radiusClasses.outer,
-            "bg-signal-critical/10 text-signal-critical border border-signal-critical/30 hover:border-signal-critical/50 active:scale-[0.99]",
+            "bg-bg-void/90 dark:bg-bg-void text-text-primary border border-signal-critical/50 hover:border-signal-critical active:scale-[0.99]",
             containerClasses,
             className
           )}
@@ -160,7 +160,7 @@ export const ExpandingButton = React.forwardRef<
           <span
             aria-hidden="true"
             className={cn(
-              "absolute right-[2px] top-[2px] bottom-[2px] bg-signal-critical/20 pointer-events-none transition-all duration-300 ease-out",
+              "absolute right-[2px] top-[2px] bottom-[2px] bg-signal-critical/15 pointer-events-none transition-all duration-300 ease-out",
               radiusClasses.inner,
               iconBoxWidth,
               "group-hover:w-[calc(100%-4px)] group-hover:bg-signal-critical"
