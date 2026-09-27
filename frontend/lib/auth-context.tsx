@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "./api-client";
+import { startTopLoader } from "@/components/top-loader";
 
 /** Sync JWT to a cookie so Next.js middleware can read it at the edge */
 function setAuthCookie(token: string) {
@@ -145,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ? redirectAfterLogin
           : defaultDest;
 
+      startTopLoader();
       router.push(destination);
       router.replace(destination);
       return apiUser;
@@ -170,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isRedirectValidForRole(redirectAfterLogin, apiUser.role) && redirectAfterLogin
           ? redirectAfterLogin
           : defaultDest;
+      startTopLoader();
       router.push(dest);
       router.replace(dest);
       return apiUser;
@@ -217,6 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearAuthCookie(); // Clear edge middleware cookie
     } catch (e) {}
     if (typeof window !== "undefined") {
+      startTopLoader();
       window.location.href = "/auth/login";
     } else {
       router.replace("/auth/login");
