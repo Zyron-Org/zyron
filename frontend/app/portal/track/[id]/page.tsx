@@ -788,27 +788,33 @@ export default function AuditStatusTrackerPage() {
             </div>
           </div>
 
-          {/* Connected Horizontal Stepper */}
-          <div className="relative pt-2">
-            {/* Background Track Line */}
-            <div className="absolute top-7 left-8 right-8 h-1 bg-[#E4E7EC] dark:bg-border-hairline/80 -translate-y-1/2 z-0 hidden sm:block rounded-full" />
+          {/* Connected Horizontal Stepper (Desktop / Tablet: sm+) */}
+          <div className="hidden sm:block relative pt-2 pb-1">
+            {/* The 0% to 100% Track Container: 0% = circle 1 center, 100% = circle 4 center */}
+            <div className="relative mx-5 h-10 flex items-center">
+              {/* Background Track Line */}
+              <div className="absolute left-0 right-0 h-1 bg-[#E4E7EC] dark:bg-border-hairline/80 rounded-full" />
 
-            {/* Active Filled Progress Line */}
-            <div
-              className="absolute top-7 left-8 h-1 bg-accent-scan -translate-y-1/2 z-0 transition-all duration-500 hidden sm:block rounded-full"
-              style={{
-                width: `${((Math.min(activeStageNum, 4) - 1) / 3) * 75}%`,
-              }}
-            />
+              {/* Active Filled Progress Line */}
+              <div
+                className="absolute left-0 h-1 bg-accent-scan transition-all duration-500 rounded-full shadow-[0_0_8px_rgba(94,200,255,0.6)]"
+                style={{
+                  width: `${((Math.min(activeStageNum, 4) - 1) / 3) * 100}%`,
+                }}
+              />
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 sm:gap-2 relative z-10">
-              {PIPELINE_STEPS.map((s) => {
+              {/* Step Circles */}
+              {PIPELINE_STEPS.map((s, index) => {
                 const isPast = activeStageNum > s.step;
                 const isCurrent = activeStageNum === s.step;
-                const isFuture = activeStageNum < s.step;
+                const leftPercent = (index / 3) * 100;
 
                 return (
-                  <div key={s.step} className="flex sm:flex-col items-center sm:text-center gap-3 sm:gap-3">
+                  <div
+                    key={s.step}
+                    className="absolute -translate-x-1/2 flex items-center justify-center z-10"
+                    style={{ left: `${leftPercent}%` }}
+                  >
                     <div
                       className={cn(
                         "h-10 w-10 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-all shrink-0",
@@ -830,28 +836,109 @@ export default function AuditStatusTrackerPage() {
                         `0${s.step}`
                       )}
                     </div>
+                  </div>
+                );
+              })}
+            </div>
 
-                    <div className="space-y-0.5 text-left sm:text-center">
-                      <div
-                        className={cn(
-                          "text-xs font-semibold tracking-tight",
-                          isCurrent
-                            ? "text-accent-scan"
-                            : isPast
-                            ? "text-text-primary"
-                            : "text-text-muted"
-                        )}
-                      >
-                        {s.title}
-                      </div>
-                      <div className="text-[11px] text-text-muted leading-tight line-clamp-2">
-                        {s.shortDesc}
-                      </div>
+            {/* Labels Row below circles */}
+            <div className="relative mx-5 mt-3 h-14">
+              {PIPELINE_STEPS.map((s, index) => {
+                const isPast = activeStageNum > s.step;
+                const isCurrent = activeStageNum === s.step;
+                const leftPercent = (index / 3) * 100;
+                const isFirst = index === 0;
+                const isLast = index === 3;
+
+                return (
+                  <div
+                    key={s.step}
+                    className={cn(
+                      "absolute space-y-0.5 max-w-[170px] lg:max-w-[210px]",
+                      isFirst
+                        ? "left-0 -translate-x-5 text-left"
+                        : isLast
+                        ? "right-0 translate-x-5 text-right"
+                        : "-translate-x-1/2 text-center"
+                    )}
+                    style={!isFirst && !isLast ? { left: `${leftPercent}%` } : undefined}
+                  >
+                    <div
+                      className={cn(
+                        "text-xs font-semibold tracking-tight",
+                        isCurrent
+                          ? "text-accent-scan font-bold"
+                          : isPast
+                          ? "text-text-primary"
+                          : "text-text-muted"
+                      )}
+                    >
+                      {s.title}
+                    </div>
+                    <div className="text-[11px] text-text-muted leading-tight">
+                      {s.shortDesc}
                     </div>
                   </div>
                 );
               })}
             </div>
+          </div>
+
+          {/* Mobile Vertical Stepper (< sm) */}
+          <div className="sm:hidden space-y-4 pt-1">
+            {PIPELINE_STEPS.map((s, index) => {
+              const isPast = activeStageNum > s.step;
+              const isCurrent = activeStageNum === s.step;
+              const isLast = index === PIPELINE_STEPS.length - 1;
+
+              return (
+                <div key={s.step} className="flex items-start gap-3.5 relative">
+                  {!isLast && (
+                    <div
+                      className={cn(
+                        "absolute left-4 top-9 bottom-0 w-0.5 -translate-x-1/2 -mb-2",
+                        isPast ? "bg-signal-resolved" : "bg-[#E4E7EC] dark:bg-border-hairline/80"
+                      )}
+                    />
+                  )}
+
+                  <div
+                    className={cn(
+                      "h-8 w-8 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-all shrink-0 z-10",
+                      isPast
+                        ? "bg-signal-resolved text-white shadow-xs"
+                        : isCurrent
+                        ? "bg-accent-scan text-white ring-4 ring-accent-scan/20 shadow-xs"
+                        : "bg-white dark:bg-bg-panel border border-[#D0D5DD] dark:border-border-hairline text-text-muted"
+                    )}
+                  >
+                    {isPast ? (
+                      <Check className="h-3.5 w-3.5 stroke-[3]" />
+                    ) : (
+                      `0${s.step}`
+                    )}
+                  </div>
+
+                  <div className="space-y-0.5 pt-0.5">
+                    <div
+                      className={cn(
+                        "text-xs font-semibold",
+                        isCurrent
+                          ? "text-accent-scan font-bold"
+                          : isPast
+                          ? "text-text-primary"
+                          : "text-text-muted"
+                      )}
+                    >
+                      {s.title}
+                    </div>
+                    <div className="text-[11px] text-text-muted leading-tight">
+                      {s.shortDesc}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Expandable Rounds History Drawer */}
