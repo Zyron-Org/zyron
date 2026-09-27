@@ -4,14 +4,14 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-xl font-sans text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-scan disabled:pointer-events-none disabled:opacity-40 select-none",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-xl font-sans text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-scan disabled:pointer-events-none disabled:opacity-40 select-none",
   {
     variants: {
       variant: {
         primary:
-          "bg-accent-scan text-void hover:bg-accent-scan/90 active:bg-accent-scan/80 border border-transparent",
+          "bg-accent-scan text-void hover:bg-accent-scan/90 active:bg-accent-scan/80 border border-transparent shadow-xs",
         secondary:
-          "bg-panel border border-hairline text-text-primary hover:bg-panel-raised hover:border-hairline/80 active:bg-panel-raised/90",
+          "bg-panel border border-hairline text-text-primary hover:bg-panel-raised hover:border-hairline/80 active:bg-panel-raised/90 shadow-xs",
         outline:
           "bg-transparent border border-hairline text-text-primary hover:bg-panel hover:border-text-muted/40 active:bg-panel-raised",
         ghost:
@@ -20,11 +20,13 @@ const buttonVariants = cva(
           "bg-panel border border-signal-critical/40 text-signal-critical hover:bg-signal-critical/10 active:bg-signal-critical/20",
       },
       size: {
-        sm: "h-7 px-2.5 text-xs gap-1.5",
-        md: "h-9 px-3.5 text-sm gap-2",
-        lg: "h-11 px-5 text-sm gap-2.5",
-        icon: "h-9 w-9 p-0",
-        "icon-sm": "h-7 w-7 p-0",
+        xs: "h-7 px-2.5 text-xs gap-1.5",
+        sm: "h-9 px-3.5 text-xs gap-2",
+        md: "h-11 px-5 text-sm gap-2.5",
+        lg: "h-12 px-6 text-sm md:text-base gap-3",
+        icon: "h-11 w-11 p-0",
+        "icon-sm": "h-9 w-9 p-0",
+        "icon-xs": "h-7 w-7 p-0",
       },
     },
     defaultVariants: {

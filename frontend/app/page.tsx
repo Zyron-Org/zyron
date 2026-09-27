@@ -159,12 +159,11 @@ export default function LandingPage() {
     }
   };
 
-  const handleScanToken = () => {
+  const handleViewDashboard = () => {
     if (!user) {
-      toast.error("Authentication Required: Please sign in to access the Token Risk & AI Audit Analyzer.");
       router.push("/auth/login");
     } else {
-      router.push("/portal/token-risk");
+      router.push("/portal");
     }
   };
 
@@ -591,15 +590,15 @@ export default function LandingPage() {
                 </ExpandingButton>
               </div>
 
-              {/* Button 2: Scan Token Security */}
-              <div onClick={handleScanToken} className="hero-cta-anim w-full sm:w-auto cursor-pointer">
+              {/* Button 2: Explore Dashboard */}
+              <div onClick={handleViewDashboard} className="hero-cta-anim w-full sm:w-auto cursor-pointer">
                 <ExpandingButton
                   variant="dark"
                   size="md"
                   className="w-full sm:w-auto"
                   icon={<ArrowUpRight className="h-4 w-4 stroke-[2.5]" />}
                 >
-                  Scan a Token Free
+                  Explore Dashboard
                 </ExpandingButton>
               </div>
             </div>
@@ -2041,14 +2040,14 @@ export default function LandingPage() {
                   Request an Audit
                 </ExpandingButton>
               </Link>
-              <Link href="/portal/token-risk" className="w-full sm:w-auto">
+              <Link href="/portal" className="w-full sm:w-auto">
                 <ExpandingButton
                   variant="dark"
                   size="md"
                   className="w-full sm:w-auto"
                   icon={<ArrowUpRight className="h-4 w-4 stroke-[2.5]" />}
                 >
-                  Scan a Token Free
+                  Explore Dashboard
                 </ExpandingButton>
               </Link>
             </div>
@@ -2085,17 +2084,11 @@ export default function LandingPage() {
               <Link href="#how-it-works" className="hover:text-text-primary transition-colors">
                 How It Works
               </Link>
-              <Link href="/portal/token-risk" className="hover:text-text-primary transition-colors">
-                Security Tools
-              </Link>
               <Link href="#pricing" className="hover:text-text-primary transition-colors">
                 Pricing
               </Link>
               <Link href="#faq" className="hover:text-text-primary transition-colors">
                 FAQ
-              </Link>
-              <Link href="/portal/learn" className="hover:text-text-primary transition-colors">
-                Academy
               </Link>
               <Link href="/portal" className="hover:text-text-primary transition-colors">
                 Client Portal

@@ -34,7 +34,6 @@ import { StatusPill, type PipelineStatus } from "@/components/ui/status-pill";
 import { ExpandingButton } from "@/components/ui/expanding-button";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
-import { MOCK_AUDIT_REQUESTS } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 interface FormattedAudit {
@@ -91,7 +90,7 @@ export default function ClientDashboardPage() {
   const fetchAudits = async () => {
     try {
       const res = await apiClient.get("/audits");
-      const rawData = res.data && Array.isArray(res.data) && res.data.length > 0 ? res.data : MOCK_AUDIT_REQUESTS;
+      const rawData = Array.isArray(res.data) ? res.data : [];
 
       const formatted: FormattedAudit[] = rawData.map((item: any) => {
         const stage = normalizeStage(item.stage);
@@ -148,28 +147,8 @@ export default function ClientDashboardPage() {
 
       setAudits(formatted);
     } catch (e: any) {
-      console.warn("Dashboard: could not load audits, using fallback:", e.message);
-      const fallbackFormatted: FormattedAudit[] = MOCK_AUDIT_REQUESTS.map((item) => ({
-        id: item.id,
-        protocolName: item.protocolName,
-        contractFileName: item.contractFileName,
-        contractAddress: item.contractAddress,
-        network: "Ethereum Sepolia",
-        sloc: item.sloc,
-        stage: normalizeStage(item.stage),
-        stageNumber: item.stageNumber,
-        submittedAt: item.submittedAt,
-        estimatedCompletion: item.estimatedCompletion,
-        assignedAuditor: item.assignedAuditor,
-        currentActivity: item.currentActivity,
-        bytecodeHash: item.bytecodeHash,
-        criticalCount: item.findings.critical,
-        highCount: item.findings.high,
-        mediumCount: item.findings.medium,
-        lowCount: item.findings.low,
-        resolvedCount: item.findings.resolved,
-      }));
-      setAudits(fallbackFormatted);
+      console.warn("Dashboard: could not load audits:", e.message);
+      setAudits([]);
     } finally {
       setLoading(false);
     }
@@ -463,9 +442,9 @@ export default function ClientDashboardPage() {
             </p>
             <div className="pt-2">
               <Link href="/portal/new-request">
-                <Button variant="primary" size="sm">
+                <ExpandingButton variant="accent" rounded="xl" size="sm" icon={<Plus className="h-4 w-4" />}>
                   Start New Audit Request
-                </Button>
+                </ExpandingButton>
               </Link>
             </div>
           </div>

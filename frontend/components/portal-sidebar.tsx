@@ -18,9 +18,6 @@ import {
   ExternalLink,
   LifeBuoy,
   Radio,
-  Shield,
-  Activity,
-  BookOpen,
   X,
   PanelLeftClose,
   PanelLeft,
@@ -81,7 +78,7 @@ export function PortalSidebar() {
     return acc;
   }, 0);
 
-  const latestActiveAuditId = inFlightAudits[0]?.id || audits[0]?.id || "ZYR-9481";
+  const latestActiveAuditId = inFlightAudits[0]?.id || audits[0]?.id || null;
 
   const handleCopy = () => {
     const textToCopy = user?.walletAddress || user?.email || "";
@@ -110,7 +107,7 @@ export function PortalSidebar() {
           badgeColor: "scan" as const,
         },
         {
-          href: `/portal/track/${latestActiveAuditId}`,
+          href: latestActiveAuditId ? `/portal/track/${latestActiveAuditId}` : "/portal/track",
           label: "Active Trackers",
           icon: Radio,
           badge: inFlightAudits.length > 0 ? `${inFlightAudits.length} LIVE` : null,
@@ -129,32 +126,6 @@ export function PortalSidebar() {
           icon: ShieldAlert,
           badge: openFindingsCount > 0 ? `${openFindingsCount} OPEN` : null,
           badgeColor: "scan" as const,
-        },
-      ],
-    },
-    {
-      group: "SECURITY TOOLS & LABS",
-      items: [
-        {
-          href: "/portal/token-risk",
-          label: "Token Risk Analyzer",
-          icon: Shield,
-          badge: "NEW",
-          badgeColor: "scan" as const,
-        },
-        {
-          href: "/portal/incident-monitor",
-          label: "Incident Monitor",
-          icon: Activity,
-          badge: "LIVE",
-          badgeColor: "pulse" as const,
-        },
-        {
-          href: "/portal/learn",
-          label: "Learning CTF Arena",
-          icon: BookOpen,
-          badge: "XP",
-          badgeColor: "resolved" as const,
         },
       ],
     },
