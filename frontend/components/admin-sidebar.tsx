@@ -183,10 +183,10 @@ export function AdminSidebar() {
 
                     {!isCollapsed && item.badge && (
                       <span
-                        className={`font-mono text-[9px] px-1.5 py-0.2 rounded-[4px] ${
-                          item.badgeType === "critical"
-                            ? "bg-signal-critical/15 text-signal-critical border border-signal-critical/40 font-bold animate-pulse"
-                            : "bg-bg-void text-text-muted border border-border-hairline"
+                        className={`font-mono text-[9px] px-1.5 py-0.5 rounded-md ${
+                          item.badgeType === "scan"
+                            ? "bg-accent-scan/15 text-accent-scan border border-accent-scan/40 font-bold"
+                            : "bg-gray-100 dark:bg-bg-void text-text-muted border border-border-hairline"
                         }`}
                       >
                         {item.badge}

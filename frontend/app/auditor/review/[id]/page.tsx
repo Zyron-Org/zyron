@@ -1022,158 +1022,162 @@ mitigated or verified false positives before production deployment.
     <div className="max-w-7xl mx-auto space-y-6">
       {/* SUCCESS BANNER WHEN REPORT IS FINALIZED */}
       {isFinalized && (
-        <div className="p-6 rounded-[4px] bg-signal-resolved/10 border-2 border-signal-resolved font-mono text-xs space-y-4 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5 text-signal-resolved font-bold text-sm">
-              <CheckCircle2 className="h-5 w-5" />
-              <span>ATTESTATION REPORT FINALIZED & SEALED</span>
-            </div>
-            <Badge severity="resolved" size="sm">
-              COMPLETED ✓
-            </Badge>
-          </div>
-
-          <p className="text-text-primary text-xs leading-relaxed font-sans">
-            Cryptographic attestation certificate for ticket <strong>#{audit.id}</strong> ({audit.protocolName}) has been sealed for commit <strong>{audit.gitCommit || "4b8f10e"}</strong> with SHA-256 bytecode hash and recorded in the database.
-          </p>
-
-          {audit.onChainTxHash && (
-            <div className="p-3 rounded-[3px] bg-bg-void border border-border-hairline space-y-1 font-mono text-[11px]">
-              <div className="text-text-muted text-[10px]">ON-CHAIN ATTESTATION RECORD (Arbitrum Sepolia):</div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-accent-scan select-all text-xs truncate">{audit.onChainTxHash}</span>
-                <a
-                  href={`https://sepolia.arbiscan.io/tx/${audit.onChainTxHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-signal-resolved hover:underline text-xs flex items-center gap-1 shrink-0 font-bold"
-                >
-                  <span>Verify On-Chain Explorer</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+        <div className="rounded-2xl border border-signal-resolved/40 bg-signal-resolved/10 p-2 sm:p-2.5 shadow-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-bg-panel rounded-xl p-5 border border-signal-resolved/30 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5 text-signal-resolved font-bold text-sm">
+                <CheckCircle2 className="h-5 w-5" />
+                <span>ATTESTATION REPORT FINALIZED & SEALED</span>
               </div>
+              <Badge severity="resolved" size="sm">
+                COMPLETED ✓
+              </Badge>
             </div>
-          )}
 
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <Button
-              variant="primary"
-              size="sm"
-              leftIcon={<Download className="h-3.5 w-3.5" />}
-              onClick={() => handleExportPDF(audit)}
-            >
-              Download Signed Certificate (.txt)
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<FileJson className="h-3.5 w-3.5 text-accent-scan" />}
-              onClick={() => handleExportJSON(audit)}
-            >
-              Export JSON Attestation
-            </Button>
-            <Link href={`/portal/vault#${audit.id}`}>
-              <Button variant="outline" size="sm" rightIcon={<ExternalLink className="h-3.5 w-3.5" />}>
-                View in Client Document Vault
+            <p className="text-text-primary text-xs leading-relaxed font-sans">
+              Cryptographic attestation certificate for ticket <strong>#{audit.id}</strong> ({audit.protocolName}) has been sealed for commit <strong>{audit.gitCommit || "4b8f10e"}</strong> with SHA-256 bytecode hash and recorded in the database.
+            </p>
+
+            {audit.onChainTxHash && (
+              <div className="p-3 rounded-xl bg-[#F2F4F7] dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline space-y-1 font-mono text-[11px]">
+                <div className="text-text-muted text-[10px]">ON-CHAIN ATTESTATION RECORD (Arbitrum Sepolia):</div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-accent-scan select-all text-xs truncate">{audit.onChainTxHash}</span>
+                  <a
+                    href={`https://sepolia.arbiscan.io/tx/${audit.onChainTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-signal-resolved hover:underline text-xs flex items-center gap-1 shrink-0 font-bold"
+                  >
+                    <span>Verify On-Chain Explorer</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Download className="h-3.5 w-3.5" />}
+                onClick={() => handleExportPDF(audit)}
+              >
+                Download Signed Certificate (.txt)
               </Button>
-            </Link>
-            <Link href="/auditor/reports">
-              <Button variant="outline" size="sm" rightIcon={<ExternalLink className="h-3.5 w-3.5" />}>
-                View All Sealed Reports
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<FileJson className="h-3.5 w-3.5 text-accent-scan" />}
+                onClick={() => handleExportJSON(audit)}
+              >
+                Export JSON Attestation
               </Button>
-            </Link>
-            <Link href="/auditor/queue">
-              <Button variant="outline" size="sm">
-                Return to Ticket Queue
-              </Button>
-            </Link>
+              <Link href={`/portal/vault#${audit.id}`}>
+                <Button variant="outline" size="sm" rightIcon={<ExternalLink className="h-3.5 w-3.5" />}>
+                  View in Client Document Vault
+                </Button>
+              </Link>
+              <Link href="/auditor/reports">
+                <Button variant="outline" size="sm" rightIcon={<ExternalLink className="h-3.5 w-3.5" />}>
+                  View All Sealed Reports
+                </Button>
+              </Link>
+              <Link href="/auditor/queue">
+                <Button variant="outline" size="sm">
+                  Return to Ticket Queue
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       )}
 
       {/* TOP AUDITOR BREADCRUMB & SCOPE HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-[4px] bg-bg-panel border border-border-hairline font-mono text-xs">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/auditor/queue"
-            className="text-text-muted hover:text-text-primary flex items-center gap-1 transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>TICKET QUEUE</span>
-          </Link>
-          <span className="text-text-muted">/</span>
-          <span className="text-accent-scan font-bold">{audit.id}</span>
-          <span className="text-text-primary font-semibold hidden sm:inline">
-            {audit.protocolName}
-          </span>
-          <span className="text-text-muted text-[11px]">
-            ({audit.contractFileName})
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Quick Add Finding Button in Header — hidden when client corrections are in progress */}
-          {!isCorrectionsStage && (
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<Plus className="h-3.5 w-3.5 text-accent-scan" />}
-              onClick={() => handleOpenAddFinding()}
-              className="border-accent-scan/30 hover:bg-accent-scan/10 text-accent-scan"
+      <div className="rounded-2xl border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-panel/40 p-1.5 sm:p-2 shadow-sm">
+        <div className="bg-white dark:bg-bg-panel rounded-xl p-4 sm:p-5 border border-gray-200/60 dark:border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs shadow-xs">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/auditor/queue"
+              className="text-text-muted hover:text-text-primary flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-void text-xs transition-colors font-sans font-medium"
             >
-              Add Finding
-            </Button>
-          )}
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Ticket Queue</span>
+            </Link>
+            <span className="text-text-muted/40">/</span>
+            <span className="text-accent-scan font-bold tracking-wider">{audit.id}</span>
+            <span className="text-text-primary font-semibold hidden sm:inline font-sans text-sm">
+              {audit.protocolName}
+            </span>
+            <span className="text-text-muted text-[11px]">
+              ({audit.contractFileName})
+            </span>
+          </div>
 
-          {/* Conditional Report Generation Action */}
-          {allFindingsResolved ? (
-            <Button
-              variant="primary"
-              size="sm"
-              className="bg-signal-resolved hover:bg-signal-resolved/90 text-bg-void font-bold shadow-lg"
-              leftIcon={<FileCheck2 className="h-4 w-4" />}
-              onClick={() => setShowReportModal(true)}
-            >
-              Generate Final Attestation Report
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2">
-              {ticketStage.includes("correction") ? (
-                <div className="flex items-center gap-2">
-                  <Badge severity="high" size="sm">
-                    FINDINGS RELEASED TO CLIENT (AWAITING FIXES)
-                  </Badge>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Quick Add Finding Button in Header — hidden when client corrections are in progress */}
+            {!isCorrectionsStage && (
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<Plus className="h-3.5 w-3.5 text-accent-scan" />}
+                onClick={() => handleOpenAddFinding()}
+              >
+                Add Finding
+              </Button>
+            )}
+
+            {/* Conditional Report Generation Action */}
+            {allFindingsResolved ? (
+              <Button
+                variant="primary"
+                size="sm"
+                className="bg-signal-resolved hover:bg-signal-resolved/90 text-bg-void font-bold shadow-sm"
+                leftIcon={<FileCheck2 className="h-4 w-4" />}
+                onClick={() => setShowReportModal(true)}
+              >
+                Generate Final Attestation Report
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                {ticketStage.includes("correction") ? (
+                  <StatusPill status="corrections-requested" size="sm">
+                    Awaiting Client Fixes
+                  </StatusPill>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="bg-accent-scan text-bg-void hover:bg-accent-scan/90 font-bold shadow-sm"
+                    leftIcon={<Check className="h-3.5 w-3.5" />}
+                    onClick={async () => {
+                      try {
+                        await apiClient.patch(`/audits/${audit.id}/flag-corrections`);
+                        setTicketStage("corrections-requested");
+                        toast.success(`Findings approved! Ticket ${audit.id} released to client for remediation.`);
+                      } catch (e: any) {
+                        setTicketStage("corrections-requested");
+                        toast.success(`Findings approved and released to client for remediation.`);
+                      }
+                    }}
+                  >
+                    Release Findings to Client
+                  </Button>
+                )}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F2F4F7] dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline text-text-muted text-xs" title="Resolve all findings to unlock report compilation">
+                  <Lock className="h-3.5 w-3.5 text-signal-critical" />
+                  <span>Report Locked ({openOrFixCount} Unresolved)</span>
                 </div>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="bg-accent-scan text-bg-void hover:bg-accent-scan/90 font-bold shadow-md"
-                  leftIcon={<Check className="h-3.5 w-3.5" />}
-                  onClick={async () => {
-                    try {
-                      await apiClient.patch(`/audits/${audit.id}/flag-corrections`);
-                      setTicketStage("corrections-requested");
-                      toast.success(`Findings approved! Ticket ${audit.id} released to client for remediation.`);
-                    } catch (e: any) {
-                      setTicketStage("corrections-requested");
-                      toast.success(`Findings approved and released to client for remediation.`);
-                    }
-                  }}
-                >
-                  Approve & Send Findings to Client
-                </Button>
-              )}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-bg-void border border-border-hairline text-text-muted text-[11px]" title="Resolve all findings to unlock report compilation">
-                <Lock className="h-3 w-3 text-signal-critical" />
-                <span>Report Locked ({openOrFixCount} Unresolved)</span>
               </div>
-            </div>
-          )}
+            )}
 
-          <Badge severity={ticketStage === "completed" ? "resolved" : ticketStage.includes("correction") ? "critical" : "high"} size="sm">
-            {ticketStage.toUpperCase().replace("_", "-")}
-          </Badge>
+            <StatusPill
+              status={ticketStage === "completed" ? "completed" : ticketStage.includes("correction") ? "corrections-requested" : "in-review"}
+              size="sm"
+            >
+              {ticketStage.toUpperCase().replace("_", " ")}
+            </StatusPill>
+          </div>
         </div>
       </div>
 
@@ -1182,77 +1186,78 @@ mitigated or verified false positives before production deployment.
         {/* ========================================================================= */}
         {/* LEFT 7 COLS: CODE PANE (FILE TREE + COMMIT DIFF / FULL SOURCE)             */}
         {/* ========================================================================= */}
-        <div className="lg:col-span-7 rounded-[4px] bg-bg-panel border border-border-hairline overflow-hidden flex flex-col">
-          {/* Top Control Bar */}
-          <div className="border-b border-border-hairline bg-bg-void/90 flex flex-wrap items-center justify-between font-mono text-xs px-3 py-2 gap-2">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowFileTree(!showFileTree)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-[2px] transition-colors text-[11px] ${
-                  showFileTree
-                    ? "bg-accent-scan/15 text-accent-scan border border-accent-scan/40 font-semibold"
-                    : "text-text-muted hover:text-text-primary border border-border-hairline"
-                }`}
-                title="Toggle File Tree Explorer"
-              >
-                <FolderTree className="h-3.5 w-3.5" />
-                <span>Explorer</span>
-              </button>
-
-              <span className="text-text-muted">/</span>
-
-              <span className="font-semibold text-text-primary text-xs flex items-center gap-1.5">
-                <FileCode2 className="h-3.5 w-3.5 text-accent-scan" />
-                <span className="truncate max-w-[200px]">{activeFile.path}</span>
-              </span>
-
-              {activeFileFindingsCount > 0 && (
-                <Badge severity="critical" size="sm">
-                  {activeFileFindingsCount} finding{activeFileFindingsCount > 1 ? "s" : ""}
-                </Badge>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {!isCorrectionsStage && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Plus className="h-3 w-3 text-accent-scan" />}
-                  onClick={() => handleOpenAddFinding(activeFile.path, 1)}
-                  className="text-[11px] h-7 px-2 border-border-hairline"
-                >
-                  Flag Line
-                </Button>
-              )}
-
-              <div className="flex items-center rounded-[3px] border border-border-hairline bg-bg-panel p-0.5">
+        <div className="lg:col-span-7 rounded-2xl border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-panel/40 p-1.5 sm:p-2 shadow-sm flex flex-col">
+          <div className="bg-white dark:bg-bg-panel rounded-xl border border-gray-200/60 dark:border-border-hairline overflow-hidden flex flex-col flex-1">
+            {/* Top Control Bar */}
+            <div className="border-b border-gray-200/70 dark:border-border-hairline bg-[#F9FAFB] dark:bg-bg-void/90 flex flex-wrap items-center justify-between font-mono text-xs px-3.5 py-2.5 gap-2">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setViewMode("diff")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] transition-colors text-[11px] font-mono ${
-                    viewMode === "diff"
-                      ? "bg-accent-scan text-bg-void font-bold"
-                      : "text-text-muted hover:text-text-primary"
+                  onClick={() => setShowFileTree(!showFileTree)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors text-[11px] font-medium font-sans ${
+                    showFileTree
+                      ? "bg-accent-scan/15 text-accent-scan border border-accent-scan/40 font-semibold"
+                      : "text-text-muted hover:text-text-primary border border-gray-200/80 dark:border-border-hairline bg-white dark:bg-bg-panel"
                   }`}
+                  title="Toggle File Tree Explorer"
                 >
-                  <GitCompare className="h-3 w-3" />
-                  <span>Diff</span>
+                  <FolderTree className="h-3.5 w-3.5" />
+                  <span>Explorer</span>
                 </button>
 
-                <button
-                  onClick={() => setViewMode("full")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] transition-colors text-[11px] font-mono ${
-                    viewMode === "full"
-                      ? "bg-bg-panel-raised text-text-primary font-bold border border-border-hairline"
-                      : "text-text-muted hover:text-text-primary"
-                  }`}
-                >
-                  <Eye className="h-3 w-3" />
-                  <span>Full</span>
-                </button>
+                <span className="text-text-muted/40">/</span>
+
+                <span className="font-semibold text-text-primary text-xs flex items-center gap-1.5 font-mono">
+                  <FileCode2 className="h-3.5 w-3.5 text-accent-scan" />
+                  <span className="truncate max-w-[200px]">{activeFile.path}</span>
+                </span>
+
+                {activeFileFindingsCount > 0 && (
+                  <Badge severity="critical" size="sm">
+                    {activeFileFindingsCount} finding{activeFileFindingsCount > 1 ? "s" : ""}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {!isCorrectionsStage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Plus className="h-3 w-3 text-accent-scan" />}
+                    onClick={() => handleOpenAddFinding(activeFile.path, 1)}
+                    className="text-[11px] h-8 px-2.5"
+                  >
+                    Flag Line
+                  </Button>
+                )}
+
+                <div className="flex items-center rounded-lg border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-panel p-0.5">
+                  <button
+                    onClick={() => setViewMode("diff")}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-colors text-[11px] font-mono ${
+                      viewMode === "diff"
+                        ? "bg-accent-scan text-bg-void font-bold shadow-xs"
+                        : "text-text-muted hover:text-text-primary"
+                    }`}
+                  >
+                    <GitCompare className="h-3 w-3" />
+                    <span>Diff</span>
+                  </button>
+
+                  <button
+                    onClick={() => setViewMode("full")}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-colors text-[11px] font-mono ${
+                      viewMode === "full"
+                        ? "bg-white dark:bg-bg-panel-raised text-text-primary font-bold shadow-xs"
+                        : "text-text-muted hover:text-text-primary"
+                    }`}
+                  >
+                    <Eye className="h-3 w-3" />
+                    <span>Full</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
           {/* Sub-Header Metadata */}
           <div className="p-2.5 px-4 bg-bg-panel-raised/50 border-b border-border-hairline flex flex-wrap items-center justify-between font-mono text-[11px] text-text-muted gap-2">
@@ -1475,7 +1480,7 @@ mitigated or verified false positives before production deployment.
           </div>
 
           {/* Bottom Editor Status Bar */}
-          <div className="p-2.5 px-4 bg-bg-panel-raised border-t border-border-hairline flex items-center justify-between text-xs font-mono text-text-muted">
+          <div className="p-2.5 px-4 bg-gray-50/80 dark:bg-bg-panel-raised border-t border-gray-200/70 dark:border-border-hairline flex items-center justify-between text-xs font-mono text-text-muted">
             <span className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-signal-resolved" />
               <span>File: {activeFile.name} · {activeFile.sloc} SLOC</span>
@@ -1483,11 +1488,13 @@ mitigated or verified false positives before production deployment.
             <span className="text-accent-scan">EVM Target: Shanghai ({audit.compilerVersion})</span>
           </div>
         </div>
+      </div>
 
-        {/* ========================================================================= */}
-        {/* RIGHT 5 COLS: AUDITOR TRIAGE & VERIFICATION WORKBENCH                     */}
-        {/* ========================================================================= */}
-        <div className="lg:col-span-5 space-y-4">
+      {/* ========================================================================= */}
+      {/* RIGHT 5 COLS: AUDITOR TRIAGE & VERIFICATION WORKBENCH                     */}
+      {/* ========================================================================= */}
+      <div className="lg:col-span-5 rounded-2xl border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-panel/40 p-1.5 sm:p-2 shadow-sm flex flex-col">
+        <div className="bg-white dark:bg-bg-panel rounded-xl border border-gray-200/60 dark:border-border-hairline p-4 sm:p-5 shadow-xs space-y-4 font-mono text-xs flex-1">
 
           {/* ------------------------------------------------------------------ */}
           {/* VIEW A: FINDINGS LIST — shown when no finding is open in detail      */}
@@ -1495,27 +1502,27 @@ mitigated or verified false positives before production deployment.
           {findingView === "list" && (
             <div className="space-y-4 font-mono text-xs">
               {/* Triage Header & Filter Tabs */}
-              <div className="p-3 rounded-[4px] bg-bg-panel border border-border-hairline space-y-2.5">
+              <div className="p-3.5 rounded-xl bg-gray-50/80 dark:bg-bg-panel-raised/50 border border-gray-200/80 dark:border-border-hairline space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-text-primary flex items-center gap-1.5 text-xs">
-                    <ShieldCheck className="h-3.5 w-3.5 text-accent-scan" />
-                    FINDINGS TRIAGE ({findings.length})
+                  <span className="font-semibold text-text-primary flex items-center gap-1.5 text-xs font-sans">
+                    <ShieldCheck className="h-4 w-4 text-accent-scan" />
+                    <span>Findings Triage ({findings.length})</span>
                   </span>
                   {!isCorrectionsStage && (
                     <Button
                       variant="primary"
                       size="sm"
-                      className="h-6 text-[10px] px-2 bg-accent-scan text-bg-void font-bold"
+                      className="h-7 text-[11px] px-2.5 bg-accent-scan text-bg-void font-bold shadow-xs"
                       leftIcon={<Plus className="h-3 w-3" />}
                       onClick={() => handleOpenAddFinding()}
                     >
-                      + Add Finding
+                      Add Finding
                     </Button>
                   )}
                 </div>
 
                 {/* Filter Pills */}
-                <div className="flex items-center gap-1.5 overflow-x-auto text-[10px] pt-1">
+                <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] pt-1">
                   {(["all", "active", "resolved", "dismissed"] as const).map((filterKey) => {
                     const count =
                       filterKey === "all"
@@ -1530,10 +1537,10 @@ mitigated or verified false positives before production deployment.
                       <button
                         key={filterKey}
                         onClick={() => setFindingFilter(filterKey)}
-                        className={`px-2 py-0.5 rounded-[2px] transition-colors uppercase font-mono ${
+                        className={`px-3 py-1 rounded-lg transition-colors capitalize font-sans text-xs ${
                           findingFilter === filterKey
-                            ? "bg-accent-scan/15 text-accent-scan font-bold border border-accent-scan/30"
-                            : "text-text-muted hover:text-text-primary bg-bg-void border border-border-hairline"
+                            ? "bg-accent-scan/15 text-accent-scan font-semibold border border-accent-scan/30 shadow-xs"
+                            : "text-text-muted hover:text-text-primary bg-white dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline"
                         }`}
                       >
                         {filterKey} ({count})
@@ -1544,9 +1551,9 @@ mitigated or verified false positives before production deployment.
               </div>
 
               {/* Findings Card List — click to open detail view */}
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {filteredFindings.length === 0 && (
-                  <div className="p-8 text-center text-text-muted text-xs rounded-[4px] border border-border-hairline bg-bg-panel">
+                  <div className="p-8 text-center text-text-muted text-xs rounded-xl border border-gray-200/80 dark:border-border-hairline bg-gray-50/50 dark:bg-bg-panel font-sans">
                     No findings match this filter.
                   </div>
                 )}
@@ -1563,16 +1570,16 @@ mitigated or verified false positives before production deployment.
                           if (target) setSelectedFilePath(target.path);
                         }
                       }}
-                      className="w-full p-3.5 rounded-[4px] border transition-all text-left bg-bg-panel border-border-hairline hover:border-accent-scan/40 hover:bg-bg-panel-raised group"
+                      className="w-full p-3.5 rounded-xl border transition-all text-left bg-white dark:bg-bg-panel border-gray-200/80 dark:border-border-hairline hover:border-accent-scan/50 dark:hover:border-accent-scan/50 hover:shadow-xs group"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-accent-scan font-bold text-[11px]">{f.id}</span>
+                            <span className="text-accent-scan font-bold text-[11px] font-mono">{f.id}</span>
                             <Badge severity={f.severity} size="sm">
                               {f.severity.toUpperCase()}
                             </Badge>
-                            <span className="text-[10px] text-text-muted truncate">
+                            <span className="text-[10px] text-text-muted truncate font-mono">
                               {f.file.split("/").pop()}:{f.line}
                             </span>
                           </div>
@@ -1588,19 +1595,19 @@ mitigated or verified false positives before production deployment.
 
                         <div className="shrink-0 flex flex-col items-end gap-2">
                           {f.falsePositive ? (
-                            <span className="text-[10px] text-text-muted border border-border-hairline px-1.5 py-0.5 rounded-[2px] font-bold">
+                            <span className="text-[10px] text-text-muted border border-gray-200 dark:border-border-hairline bg-gray-50 dark:bg-bg-void px-2 py-0.5 rounded-md font-bold font-sans">
                               FALSE POSITIVE
                             </span>
                           ) : f.status === "resolved" ? (
-                            <span className="text-[10px] text-signal-resolved bg-signal-resolved/10 px-1.5 py-0.5 rounded-[2px] border border-signal-resolved/30 font-bold">
+                            <span className="text-[10px] text-signal-resolved bg-signal-resolved/10 px-2 py-0.5 rounded-md border border-signal-resolved/30 font-bold font-sans">
                               RESOLVED ✓
                             </span>
                           ) : f.status === "fix-submitted" ? (
-                            <span className="text-[10px] text-signal-high bg-signal-high/10 px-1.5 py-0.5 rounded-[2px] border border-signal-high/30 font-bold">
+                            <span className="text-[10px] text-signal-high bg-signal-high/10 px-2 py-0.5 rounded-md border border-signal-high/30 font-bold font-sans">
                               RE-VERIFY
                             </span>
                           ) : (
-                            <span className="text-[10px] text-signal-critical bg-signal-critical/10 px-1.5 py-0.5 rounded-[2px] border border-signal-critical/30 font-bold">
+                            <span className="text-[10px] text-signal-critical bg-signal-critical/10 px-2 py-0.5 rounded-md border border-signal-critical/30 font-bold font-sans">
                               OPEN
                             </span>
                           )}
@@ -1612,12 +1619,12 @@ mitigated or verified false positives before production deployment.
                           )}
                         </div>
                       </div>
-                      <div className="mt-2 pt-2 border-t border-border-hairline flex items-center justify-between text-[10px] text-text-muted">
-                        <span className="flex items-center gap-1">
+                      <div className="mt-2.5 pt-2 border-t border-gray-100 dark:border-border-hairline flex items-center justify-between text-[10px] text-text-muted">
+                        <span className="flex items-center gap-1 font-mono">
                           <FileCode2 className="h-3 w-3 text-accent-scan" />
                           {f.swcId}
                         </span>
-                        <span className="flex items-center gap-1 group-hover:text-accent-scan transition-colors">
+                        <span className="flex items-center gap-1 group-hover:text-accent-scan transition-colors font-sans font-medium">
                           Open findings detail →
                         </span>
                       </div>
@@ -1634,16 +1641,16 @@ mitigated or verified false positives before production deployment.
           {findingView === "detail" && selectedFinding && (
             <div className="space-y-4 font-mono text-xs animate-in fade-in duration-150">
               {/* Back navigation bar */}
-              <div className="flex items-center justify-between p-2.5 rounded-[4px] bg-bg-panel border border-border-hairline">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/80 dark:bg-bg-panel-raised/50 border border-gray-200/80 dark:border-border-hairline">
                 <button
                   onClick={() => setFindingView("list")}
-                  className="flex items-center gap-1.5 text-text-muted hover:text-accent-scan transition-colors text-xs"
+                  className="flex items-center gap-1.5 text-text-muted hover:text-accent-scan transition-colors text-xs font-sans font-medium"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
                   <span>Back to Findings</span>
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-text-muted">{filteredFindings.findIndex(f => f.id === selectedFindingId) + 1} of {filteredFindings.length}</span>
+                  <span className="text-[11px] text-text-muted font-sans">{filteredFindings.findIndex(f => f.id === selectedFindingId) + 1} of {filteredFindings.length}</span>
                   {/* Prev / Next */}
                   {filteredFindings.findIndex(f => f.id === selectedFindingId) > 0 && (
                     <button
@@ -1651,7 +1658,7 @@ mitigated or verified false positives before production deployment.
                         const idx = filteredFindings.findIndex(f => f.id === selectedFindingId);
                         setSelectedFindingId(filteredFindings[idx - 1].id);
                       }}
-                      className="text-text-muted hover:text-text-primary p-0.5"
+                      className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-gray-200/50 dark:hover:bg-bg-panel"
                     >
                       <ChevronUp className="h-3.5 w-3.5" />
                     </button>
@@ -1662,7 +1669,7 @@ mitigated or verified false positives before production deployment.
                         const idx = filteredFindings.findIndex(f => f.id === selectedFindingId);
                         setSelectedFindingId(filteredFindings[idx + 1].id);
                       }}
-                      className="text-text-muted hover:text-text-primary p-0.5"
+                      className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-gray-200/50 dark:hover:bg-bg-panel"
                     >
                       <ChevronDown className="h-3.5 w-3.5" />
                     </button>
@@ -1671,23 +1678,23 @@ mitigated or verified false positives before production deployment.
               </div>
 
               {/* Finding Detail Panel */}
-              <div className="rounded-[4px] bg-bg-panel border border-border-hairline overflow-hidden">
+              <div className="rounded-xl bg-white dark:bg-bg-panel border border-gray-200/80 dark:border-border-hairline overflow-hidden shadow-xs">
                 {/* Finding Header */}
-                <div className="p-4 border-b border-border-hairline space-y-2">
+                <div className="p-4 sm:p-5 border-b border-gray-200/70 dark:border-border-hairline space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-accent-scan font-bold text-sm">{selectedFinding.id}</span>
+                        <span className="text-accent-scan font-bold text-sm font-mono">{selectedFinding.id}</span>
                         <Badge severity={selectedFinding.severity} size="sm">
                           {selectedFinding.severity.toUpperCase()} ({selectedFinding.cvss})
                         </Badge>
-                        <span className="text-text-muted text-[11px]">{selectedFinding.swcId}</span>
+                        <span className="text-text-muted text-[11px] font-mono">{selectedFinding.swcId}</span>
                       </div>
                       <h4 className="font-sans text-sm font-semibold text-text-primary leading-snug">
                         {selectedFinding.title}
                       </h4>
-                      <div className="text-[11px] text-text-muted flex items-center gap-2">
-                        <FileCode2 className="h-3 w-3 text-accent-scan" />
+                      <div className="text-[11px] text-text-muted flex items-center gap-2 font-mono">
+                        <FileCode2 className="h-3.5 w-3.5 text-accent-scan" />
                         <span>{selectedFinding.file}:{selectedFinding.line}</span>
                       </div>
                     </div>
@@ -1705,14 +1712,14 @@ mitigated or verified false positives before production deployment.
                 </div>
 
                 {/* Scrollable detail body */}
-                <div className="divide-y divide-border-hairline">
+                <div className="divide-y divide-gray-200/70 dark:divide-border-hairline">
                   {/* False Positive Banner */}
                   {selectedFinding.falsePositive && (
-                    <div className="p-4">
-                      <div className="p-3 rounded-[3px] bg-bg-void border border-border-hairline space-y-1">
-                        <div className="font-bold text-text-primary flex items-center gap-1.5 text-xs">
+                    <div className="p-4 bg-signal-low/5">
+                      <div className="p-3 rounded-lg bg-white dark:bg-bg-void border border-signal-low/30 space-y-1">
+                        <div className="font-bold text-text-primary flex items-center gap-1.5 text-xs font-sans">
                           <AlertTriangle className="h-3.5 w-3.5 text-signal-low" />
-                          DISMISSED AS FALSE POSITIVE
+                          <span>Dismissed as False Positive</span>
                         </div>
                         <p className="text-[11px] text-text-muted font-sans leading-relaxed">
                           {selectedFinding.fpJustification || "Auditor evaluated finding as non-exploitable in this codebase context."}
@@ -1722,15 +1729,15 @@ mitigated or verified false positives before production deployment.
                   )}
 
                   {/* Impact & Description */}
-                  <div className="p-4 space-y-3">
+                  <div className="p-4 sm:p-5 space-y-3">
                     {selectedFinding.impact && (
-                      <div className="space-y-0.5">
-                        <div className="text-[10px] text-text-muted uppercase tracking-wide">EXPLOIT IMPACT</div>
+                      <div className="space-y-1">
+                        <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans">EXPLOIT IMPACT</div>
                         <div className="text-xs text-signal-high font-sans font-medium">{selectedFinding.impact}</div>
                       </div>
                     )}
-                    <div className="space-y-0.5">
-                      <div className="text-[10px] text-text-muted uppercase tracking-wide">ROOT CAUSE & ANALYSIS</div>
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans">ROOT CAUSE & ANALYSIS</div>
                       <p className="text-xs text-text-muted font-sans leading-relaxed">
                         {selectedFinding.description || <span className="italic">No description provided.</span>}
                       </p>
@@ -1739,9 +1746,9 @@ mitigated or verified false positives before production deployment.
 
                   {/* Vulnerable Code */}
                   {selectedFinding.vulnerableCode && (
-                    <div className="p-4 space-y-1.5">
-                      <div className="text-[10px] text-text-muted uppercase tracking-wide">FLAGGED VULNERABLE CODE</div>
-                      <div className="p-2.5 rounded-[2px] bg-bg-void border border-signal-critical/30 text-[11px] overflow-x-auto">
+                    <div className="p-4 sm:p-5 space-y-2">
+                      <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans">FLAGGED VULNERABLE CODE</div>
+                      <div className="p-3 rounded-lg bg-gray-50 dark:bg-bg-void border border-signal-critical/30 text-[11px] overflow-x-auto">
                         <HighlightedSolidityBlock code={selectedFinding.vulnerableCode} />
                       </div>
                     </div>
@@ -1749,8 +1756,8 @@ mitigated or verified false positives before production deployment.
 
                   {/* Remediation */}
                   {selectedFinding.remediation && (
-                    <div className="p-4 space-y-1.5">
-                      <div className="text-[10px] text-text-muted uppercase tracking-wide">REMEDIATION GUIDANCE</div>
+                    <div className="p-4 sm:p-5 space-y-2">
+                      <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans">REMEDIATION GUIDANCE</div>
                       <p className="text-xs text-signal-resolved font-sans leading-relaxed">
                         {selectedFinding.remediation}
                       </p>
@@ -1758,15 +1765,15 @@ mitigated or verified false positives before production deployment.
                   )}
 
                   {/* Triage Actions */}
-                  <div className="p-4 space-y-3">
-                    <div className="text-[10px] text-text-muted uppercase tracking-wide">TRIAGE ACTIONS</div>
+                  <div className="p-4 sm:p-5 space-y-3">
+                    <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans">TRIAGE ACTIONS</div>
 
                     {isCorrectionsStage ? (
                       <div className="space-y-2">
-                        <div className="p-3 rounded-[3px] bg-signal-high/10 border border-signal-high/30 flex items-start gap-2.5">
+                        <div className="p-3.5 rounded-xl bg-signal-high/10 border border-signal-high/30 flex items-start gap-2.5">
                           <Lock className="h-4 w-4 text-signal-high shrink-0 mt-0.5" />
                           <div className="space-y-0.5">
-                            <div className="text-[11px] font-bold text-signal-high uppercase">Triage Actions Locked</div>
+                            <div className="text-[11px] font-bold text-signal-high uppercase font-sans">Triage Actions Locked</div>
                             <p className="text-[11px] text-text-muted font-sans">
                               Findings are with the client for remediation. Only <strong className="text-text-primary">editing</strong> is permitted.
                             </p>
@@ -1795,7 +1802,7 @@ mitigated or verified false positives before production deployment.
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full text-text-muted border-border-hairline hover:text-text-primary text-xs"
+                          className="w-full text-text-muted border-gray-200 dark:border-border-hairline hover:text-text-primary text-xs"
                           onClick={() => handleOpenEditFinding(selectedFinding)}
                           leftIcon={<FileEdit className="h-3.5 w-3.5" />}
                         >
@@ -1809,7 +1816,7 @@ mitigated or verified false positives before production deployment.
                           value={auditorNote}
                           onChange={(e) => setAuditorNote(e.target.value)}
                           placeholder="Re-verification or triage notes (optional)..."
-                          className="text-xs bg-bg-void"
+                          className="text-xs bg-gray-50/50 dark:bg-bg-void rounded-xl border-gray-200/80 dark:border-border-hairline"
                         />
                         <div className="grid grid-cols-2 gap-2">
                           {selectedFinding.status !== "resolved" ? (
@@ -1826,7 +1833,7 @@ mitigated or verified false positives before production deployment.
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-text-muted border-border-hairline hover:text-text-primary text-xs"
+                              className="text-text-muted border-gray-200 dark:border-border-hairline hover:text-text-primary text-xs"
                               onClick={() => handleConfirmFinding(selectedFinding.id)}
                               leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
                             >
@@ -1856,7 +1863,7 @@ mitigated or verified false positives before production deployment.
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-text-muted hover:text-signal-critical border-border-hairline hover:border-signal-critical/40 text-[11px]"
+                            className="text-text-muted hover:text-signal-critical border-gray-200 dark:border-border-hairline hover:border-signal-critical/40 text-[11px]"
                             onClick={() => handleOpenFpModal(selectedFinding)}
                             leftIcon={<X className="h-3.5 w-3.5" />}
                           >
@@ -1868,13 +1875,13 @@ mitigated or verified false positives before production deployment.
                   </div>
 
                   {/* ── DISCUSSION THREAD ─────────────────────────────────── */}
-                  <div className="p-4 space-y-3">
+                  <div className="p-4 sm:p-5 space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="text-[10px] text-text-muted uppercase tracking-wide flex items-center gap-1.5">
+                      <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans flex items-center gap-1.5">
                         <MessageSquare className="h-3.5 w-3.5 text-accent-scan" />
-                        DISCUSSION THREAD
+                        <span>DISCUSSION THREAD</span>
                       </div>
-                      <span className="text-[10px] text-text-muted">
+                      <span className="text-[11px] text-text-muted font-sans">
                         {(findingComments[selectedFinding.id] || []).length} comment{(findingComments[selectedFinding.id] || []).length !== 1 ? "s" : ""}
                       </span>
                     </div>
@@ -1889,10 +1896,10 @@ mitigated or verified false positives before production deployment.
                       {(findingComments[selectedFinding.id] || []).map((c) => (
                         <div
                           key={c.id}
-                          className={`p-3 rounded-[3px] border space-y-1.5 ${
+                          className={`p-3.5 rounded-xl border space-y-1.5 ${
                             c.role === "auditor"
-                              ? "bg-bg-panel-raised border-accent-scan/25"
-                              : "bg-bg-void border-border-hairline"
+                              ? "bg-gray-50/80 dark:bg-bg-panel-raised border-accent-scan/25"
+                              : "bg-white dark:bg-bg-void border-gray-200/80 dark:border-border-hairline"
                           }`}
                         >
                           <div className="flex items-center justify-between">
@@ -1912,7 +1919,7 @@ mitigated or verified false positives before production deployment.
                     </div>
 
                     {/* Comment input */}
-                    <form onSubmit={handlePostFindingComment} className="space-y-2 pt-1 border-t border-border-hairline">
+                    <form onSubmit={handlePostFindingComment} className="space-y-2 pt-2 border-t border-gray-200/70 dark:border-border-hairline">
                       <textarea
                         value={newFindingComment}
                         onChange={(e) => setNewFindingComment(e.target.value)}
@@ -1924,10 +1931,10 @@ mitigated or verified false positives before production deployment.
                         }}
                         rows={3}
                         placeholder="Leave a comment on this finding... (Ctrl+Enter to submit)"
-                        className="w-full p-2.5 rounded-[4px] bg-bg-void border border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-sans resize-none"
+                        className="w-full p-3 rounded-xl bg-gray-50/50 dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-sans resize-none"
                       />
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-text-muted">Visible to both auditor and client</span>
+                        <span className="text-[10px] text-text-muted font-sans">Visible to both auditor and client</span>
                         <Button
                           type="submit"
                           variant="primary"
@@ -1948,21 +1955,22 @@ mitigated or verified false positives before production deployment.
           )}
         </div>
       </div>
+      </div>
 
 
       {/* ========================================================================= */}
       {/* MODAL 1: ADD MANUAL FINDING FORM                                          */}
       {/* ========================================================================= */}
       {showAddFindingModal && (
-        <div className="fixed inset-0 bg-bg-void/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-xl rounded-[4px] bg-bg-panel border border-border-hairline shadow-2xl p-6 space-y-5 font-mono text-xs animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-bg-panel border border-gray-200/80 dark:border-border-hairline shadow-2xl p-6 md:p-8 space-y-5 text-xs animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-border-hairline pb-3">
+            <div className="flex items-center justify-between border-b border-gray-200/70 dark:border-border-hairline pb-4">
               <div className="space-y-0.5">
                 <Eyebrow size="xs" variant="scan" prefix="// AUDITOR_TRIAGE · ">
                   {editingFindingId ? "EDIT_FINDING" : "LOG_MANUAL_FINDING"}
                 </Eyebrow>
-                <h3 className="font-display text-base font-bold text-text-primary font-sans">
+                <h3 className="font-display text-base font-bold text-text-primary">
                   {editingFindingId ? "Edit Vulnerability Finding" : "Create New Vulnerability Finding"}
                 </h3>
               </div>
@@ -1971,7 +1979,7 @@ mitigated or verified false positives before production deployment.
                   setShowAddFindingModal(false);
                   setEditingFindingId(null);
                 }}
-                className="text-text-muted hover:text-text-primary p-1"
+                className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-bg-panel transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1981,24 +1989,24 @@ mitigated or verified false positives before production deployment.
 
               {/* Title */}
               <div className="space-y-1">
-                <label className="text-[11px] text-text-muted">FINDING HEADLINE / TITLE *</label>
+                <label className="text-[11px] text-text-muted font-sans font-medium">FINDING HEADLINE / TITLE *</label>
                 <Input
                   value={newFindingForm.title}
                   onChange={(e) => setNewFindingForm((prev) => ({ ...prev, title: e.target.value }))}
                   placeholder="e.g. Missing Zero-Address Validation in setRewardPool()"
                   required
-                  className="text-xs bg-bg-void"
+                  className="text-xs bg-gray-50/50 dark:bg-bg-void rounded-xl border-gray-200/80 dark:border-border-hairline"
                 />
               </div>
 
               {/* Severity & CVSS Grid */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[11px] text-text-muted">SEVERITY CLASSIFICATION *</label>
+                  <label className="text-[11px] text-text-muted font-sans font-medium">SEVERITY CLASSIFICATION *</label>
                   <select
                     value={newFindingForm.severity}
                     onChange={(e) => setNewFindingForm((prev) => ({ ...prev, severity: e.target.value as any }))}
-                    className="w-full h-9 rounded-[4px] bg-bg-void border border-border-hairline text-text-primary px-3 text-xs focus:outline-none focus:border-accent-scan"
+                    className="w-full h-10 rounded-xl bg-gray-50/50 dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline text-text-primary px-3 text-xs focus:outline-none focus:border-accent-scan"
                   >
                     <option value="CRITICAL">CRITICAL</option>
                     <option value="HIGH">HIGH</option>
@@ -2009,23 +2017,23 @@ mitigated or verified false positives before production deployment.
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] text-text-muted">CVSS V3 SCORE</label>
+                  <label className="text-[11px] text-text-muted font-sans font-medium">CVSS V3 SCORE</label>
                   <Input
                     value={newFindingForm.cvss}
                     onChange={(e) => setNewFindingForm((prev) => ({ ...prev, cvss: e.target.value }))}
                     placeholder="CVSS 8.5"
-                    className="text-xs bg-bg-void"
+                    className="text-xs bg-gray-50/50 dark:bg-bg-void rounded-xl border-gray-200/80 dark:border-border-hairline"
                   />
                 </div>
               </div>
 
               {/* SWC Taxonomy */}
               <div className="space-y-1">
-                <label className="text-[11px] text-text-muted">SWC TAXONOMY / VULNERABILITY CLASS</label>
+                <label className="text-[11px] text-text-muted font-sans font-medium">SWC TAXONOMY / VULNERABILITY CLASS</label>
                 <select
                   value={newFindingForm.taxonomy}
                   onChange={(e) => setNewFindingForm((prev) => ({ ...prev, taxonomy: e.target.value }))}
-                  className="w-full h-9 rounded-[4px] bg-bg-void border border-border-hairline text-text-primary px-3 text-xs focus:outline-none focus:border-accent-scan"
+                  className="w-full h-10 rounded-xl bg-gray-50/50 dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline text-text-primary px-3 text-xs focus:outline-none focus:border-accent-scan"
                 >
                   <option value="SWC-107 · CWE-841 (Reentrancy)">SWC-107 · CWE-841 (Reentrancy)</option>
                   <option value="SWC-104 · CWE-252 (Unchecked Return Value)">SWC-104 · CWE-252 (Unchecked Return Value)</option>
@@ -2041,11 +2049,11 @@ mitigated or verified false positives before production deployment.
               {/* File & Line Number */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[11px] text-text-muted">AFFECTED FILE</label>
+                  <label className="text-[11px] text-text-muted font-sans font-medium">AFFECTED FILE</label>
                   <select
                     value={newFindingForm.file}
                     onChange={(e) => setNewFindingForm((prev) => ({ ...prev, file: e.target.value }))}
-                    className="w-full h-9 rounded-[4px] bg-bg-void border border-border-hairline text-text-primary px-3 text-xs focus:outline-none focus:border-accent-scan"
+                    className="w-full h-10 rounded-xl bg-gray-50/50 dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline text-text-primary px-3 text-xs focus:outline-none focus:border-accent-scan"
                   >
                     {projectFiles.map((p) => (
                       <option key={p.path} value={p.path}>
@@ -2056,53 +2064,53 @@ mitigated or verified false positives before production deployment.
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] text-text-muted">LINE NUMBER</label>
+                  <label className="text-[11px] text-text-muted font-sans font-medium">LINE NUMBER</label>
                   <Input
                     type="number"
                     value={newFindingForm.line}
                     onChange={(e) => setNewFindingForm((prev) => ({ ...prev, line: parseInt(e.target.value, 10) || 1 }))}
                     placeholder="142"
-                    className="text-xs bg-bg-void"
+                    className="text-xs bg-gray-50/50 dark:bg-bg-void rounded-xl border-gray-200/80 dark:border-border-hairline"
                   />
                 </div>
               </div>
 
               {/* Impact */}
               <div className="space-y-1">
-                <label className="text-[11px] text-text-muted">EXPLOIT IMPACT SUMMARY</label>
+                <label className="text-[11px] text-text-muted font-sans font-medium">EXPLOIT IMPACT SUMMARY</label>
                 <Input
                   value={newFindingForm.impact}
                   onChange={(e) => setNewFindingForm((prev) => ({ ...prev, impact: e.target.value }))}
                   placeholder="e.g. 100% COLLATERAL DRAIN"
-                  className="text-xs bg-bg-void"
+                  className="text-xs bg-gray-50/50 dark:bg-bg-void rounded-xl border-gray-200/80 dark:border-border-hairline"
                 />
               </div>
 
               {/* Description */}
               <div className="space-y-1">
-                <label className="text-[11px] text-text-muted">TECHNICAL ROOT CAUSE & DESCRIPTION</label>
+                <label className="text-[11px] text-text-muted font-sans font-medium">TECHNICAL ROOT CAUSE & DESCRIPTION</label>
                 <textarea
                   value={newFindingForm.description}
                   onChange={(e) => setNewFindingForm((prev) => ({ ...prev, description: e.target.value }))}
                   rows={3}
                   placeholder="Describe the vulnerability mechanics and how an attacker could trigger it..."
-                  className="w-full p-2.5 rounded-[4px] bg-bg-void border border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-sans"
+                  className="w-full p-3 rounded-xl bg-gray-50/50 dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-sans"
                 />
               </div>
 
               {/* Vulnerable Code */}
               <div className="space-y-1">
-                <label className="text-[11px] text-text-muted">VULNERABLE CODE SNIPPET (OPTIONAL)</label>
+                <label className="text-[11px] text-text-muted font-sans font-medium">VULNERABLE CODE SNIPPET (OPTIONAL)</label>
                 <textarea
                   value={newFindingForm.vulnerableCode}
                   onChange={(e) => setNewFindingForm((prev) => ({ ...prev, vulnerableCode: e.target.value }))}
                   rows={2}
                   placeholder="Paste vulnerable code lines..."
-                  className="w-full p-2.5 rounded-[4px] bg-bg-void border border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-mono"
+                  className="w-full p-3 rounded-xl bg-gray-50/50 dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-mono"
                 />
                 {newFindingForm.vulnerableCode.trim() && (
-                  <div className="p-2 rounded-[2px] bg-bg-panel border border-border-hairline text-[11px] overflow-x-auto">
-                    <div className="text-[9px] text-text-muted font-mono uppercase pb-1">Live Syntax Preview:</div>
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-bg-panel border border-gray-200/80 dark:border-border-hairline text-[11px] overflow-x-auto">
+                    <div className="text-[10px] text-text-muted font-mono uppercase pb-1.5 font-bold">Live Syntax Preview:</div>
                     <HighlightedSolidityBlock code={newFindingForm.vulnerableCode} />
                   </div>
                 )}
@@ -2110,17 +2118,17 @@ mitigated or verified false positives before production deployment.
 
               {/* Remediation */}
               <div className="space-y-1">
-                <label className="text-[11px] text-text-muted">REMEDIATION RECOMMENDATION</label>
+                <label className="text-[11px] text-text-muted font-sans font-medium">REMEDIATION RECOMMENDATION</label>
                 <textarea
                   value={newFindingForm.remediation}
                   onChange={(e) => setNewFindingForm((prev) => ({ ...prev, remediation: e.target.value }))}
                   rows={2}
                   placeholder="Step-by-step guidance for the protocol team to patch this vulnerability..."
-                  className="w-full p-2.5 rounded-[4px] bg-bg-void border border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-sans"
+                  className="w-full p-3 rounded-xl bg-gray-50/50 dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-sans"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border-hairline">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-200/70 dark:border-border-hairline">
                 <Button
                   type="button"
                   variant="outline"
@@ -2137,7 +2145,7 @@ mitigated or verified false positives before production deployment.
                   variant="primary"
                   size="sm"
                   isLoading={editingFindingId ? isEditingFinding : isSubmittingFinding}
-                  className="bg-accent-scan text-bg-void font-bold"
+                  className="bg-accent-scan text-bg-void font-bold shadow-sm"
                   leftIcon={<Check className="h-3.5 w-3.5" />}
                 >
                   {editingFindingId ? "Save Changes" : "Log Vulnerability Finding"}
@@ -2153,16 +2161,16 @@ mitigated or verified false positives before production deployment.
       {/* MODAL 2: FALSE POSITIVE DISMISSAL PROMPT                                  */}
       {/* ========================================================================= */}
       {showFpModal && findingToDismiss && (
-        <div className="fixed inset-0 bg-bg-void/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-[4px] bg-bg-panel border border-border-hairline shadow-2xl p-6 space-y-4 font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-border-hairline pb-3">
-              <div className="flex items-center gap-2 text-signal-critical font-bold">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-bg-panel border border-gray-200/80 dark:border-border-hairline shadow-2xl p-6 md:p-7 space-y-4 font-sans text-xs animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-gray-200/70 dark:border-border-hairline pb-3">
+              <div className="flex items-center gap-2 text-signal-critical font-bold text-sm">
                 <AlertTriangle className="h-4 w-4" />
-                <span>DISMISS AS FALSE POSITIVE</span>
+                <span>Dismiss as False Positive</span>
               </div>
               <button
                 onClick={() => setShowFpModal(false)}
-                className="text-text-muted hover:text-text-primary"
+                className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-bg-panel transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -2173,17 +2181,17 @@ mitigated or verified false positives before production deployment.
             </p>
 
             <div className="space-y-1">
-              <label className="text-[11px] text-text-muted">AUDITOR JUSTIFICATION / RATIONALE *</label>
+              <label className="text-[11px] text-text-muted font-sans font-medium">AUDITOR JUSTIFICATION / RATIONALE *</label>
               <textarea
                 value={fpJustificationInput}
                 onChange={(e) => setFpJustificationInput(e.target.value)}
                 rows={3}
                 placeholder="e.g. Non-exploitable in context: Reentrancy is impossible because parent contract employs ReentrancyGuard modifier..."
-                className="w-full p-2.5 rounded-[4px] bg-bg-void border border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-sans"
+                className="w-full p-3 rounded-xl bg-gray-50/50 dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline text-text-primary text-xs focus:outline-none focus:border-accent-scan font-sans"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-border-hairline">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-200/70 dark:border-border-hairline">
               <Button
                 variant="outline"
                 size="sm"
@@ -2194,7 +2202,7 @@ mitigated or verified false positives before production deployment.
               <Button
                 variant="primary"
                 size="sm"
-                className="bg-signal-critical text-bg-void hover:bg-signal-critical/90 font-bold"
+                className="bg-signal-critical text-bg-void hover:bg-signal-critical/90 font-bold shadow-sm"
                 onClick={handleConfirmFalsePositive}
               >
                 Confirm Dismissal
@@ -2208,10 +2216,10 @@ mitigated or verified false positives before production deployment.
       {/* MODAL 3: REPORT COMPILATION & ATTESTATION PREVIEW MODAL                    */}
       {/* ========================================================================= */}
       {showReportModal && (
-        <div className="fixed inset-0 bg-bg-void/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl rounded-[4px] bg-bg-panel border border-border-hairline shadow-2xl p-6 md:p-8 space-y-6 font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-bg-panel border border-gray-200/80 dark:border-border-hairline shadow-2xl p-6 md:p-8 space-y-6 text-xs animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-border-hairline pb-4">
+            <div className="flex items-center justify-between border-b border-gray-200/70 dark:border-border-hairline pb-4">
               <div className="space-y-0.5">
                 <Eyebrow size="xs" variant="scan" prefix="// COMPILATION_ENGINE · ">
                   {isFinalized ? "SEALED_ATTESTATION_DELIVERABLE" : "ATTESTATION_DELIVERABLE_PREVIEW"}
@@ -2222,20 +2230,20 @@ mitigated or verified false positives before production deployment.
               </div>
               <button
                 onClick={() => setShowReportModal(false)}
-                className="text-text-muted hover:text-text-primary"
+                className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-bg-panel transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Certificate Preview Card */}
-            <div className="p-6 rounded-[4px] bg-bg-void border border-border-hairline space-y-4">
-              <div className="flex items-center justify-between border-b border-border-hairline pb-3">
+            <div className="p-6 rounded-xl bg-gray-50/70 dark:bg-bg-void border border-gray-200/80 dark:border-border-hairline space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-200/70 dark:border-border-hairline pb-3">
                 <div>
                   <div className="font-display font-bold text-sm text-text-primary">
                     ZYRON SECURITY LABS
                   </div>
-                  <div className="text-[10px] text-text-muted">
+                  <div className="text-[10px] text-text-muted font-mono">
                     FINAL ATTESTATION CERTIFICATE #{audit.id}
                   </div>
                 </div>
@@ -2251,22 +2259,22 @@ mitigated or verified false positives before production deployment.
                 </div>
                 <div>
                   <span className="text-text-muted text-[10px]">PINNED COMMIT SHA:</span>
-                  <div className="text-signal-resolved font-bold">{audit.gitCommit || "4b8f10e"}</div>
+                  <div className="text-signal-resolved font-bold font-mono">{audit.gitCommit || "4b8f10e"}</div>
                 </div>
               </div>
 
-              <div className="p-3 rounded-[2px] bg-bg-panel border border-border-hairline space-y-1">
+              <div className="p-3.5 rounded-lg bg-white dark:bg-bg-panel border border-gray-200/80 dark:border-border-hairline space-y-1">
                 <div className="flex items-center justify-between text-[10px] text-text-muted">
                   <span>IMMUTABLE BYTECODE SHA-256 HASH:</span>
                   <span className="text-signal-resolved font-bold">COMMIT SEALED ✓</span>
                 </div>
-                <div className="text-accent-scan select-all text-xs truncate">
+                <div className="text-accent-scan select-all text-xs truncate font-mono">
                   {audit.bytecodeHash || "0x8f9b2d4c01e9a37d8849b209d7c04419f8a32d645e771b"}
                 </div>
               </div>
 
               {audit.onChainTxHash && (
-                <div className="p-3 rounded-[2px] bg-bg-panel border border-border-hairline space-y-1 font-mono">
+                <div className="p-3.5 rounded-lg bg-white dark:bg-bg-panel border border-gray-200/80 dark:border-border-hairline space-y-1 font-mono">
                   <div className="flex items-center justify-between text-[10px]">
                     <span className="text-text-muted">ON-CHAIN ATTESTATION TX HASH (Arbitrum Sepolia):</span>
                     <span className="text-signal-resolved font-bold flex items-center gap-1">
@@ -2279,7 +2287,7 @@ mitigated or verified false positives before production deployment.
                       href={`https://sepolia.arbiscan.io/tx/${audit.onChainTxHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-signal-resolved hover:underline text-[10px] flex items-center gap-1 shrink-0"
+                      className="text-signal-resolved hover:underline text-[10px] flex items-center gap-1 shrink-0 font-bold"
                     >
                       <span>Explorer</span>
                       <ExternalLink className="h-3 w-3" />
@@ -2288,7 +2296,7 @@ mitigated or verified false positives before production deployment.
                 </div>
               )}
 
-              <div className="pt-2 border-t border-border-hairline flex items-center justify-between text-[11px] text-text-muted">
+              <div className="pt-2 border-t border-gray-200/70 dark:border-border-hairline flex items-center justify-between text-[11px] text-text-muted">
                 <span>VERIFIED FINDINGS: {findings.length} ({findings.filter(f => f.status === "resolved").length} RESOLVED, {findings.filter(f => f.falsePositive).length} DISMISSED)</span>
                 <span className="text-signal-resolved font-bold">0 OPEN CRITICAL / HIGH</span>
               </div>
@@ -2296,7 +2304,7 @@ mitigated or verified false positives before production deployment.
 
             {/* Modal Actions */}
             <div className="flex items-center justify-between pt-2">
-              <span className="text-text-muted text-[11px]">
+              <span className="text-text-muted text-[11px] font-sans">
                 {isFinalized
                   ? "Attestation is sealed on-chain and registered in the database."
                   : "Finalizing will seal the immutable cryptographic proof and mark ticket COMPLETED."}
@@ -2315,7 +2323,7 @@ mitigated or verified false positives before production deployment.
                   <Button
                     variant="primary"
                     size="sm"
-                    className="bg-signal-resolved hover:bg-signal-resolved/90 text-bg-void font-bold shadow-lg"
+                    className="bg-signal-resolved hover:bg-signal-resolved/90 text-bg-void font-bold shadow-sm"
                     isLoading={isCompilingReport}
                     leftIcon={<Lock className="h-3.5 w-3.5" />}
                     onClick={handleFinalizeReport}
