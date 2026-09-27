@@ -9,6 +9,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { ExpandingButton } from "@/components/ui/expanding-button";
 
 interface UserProfileDropdownProps {
   align?: "left" | "right";
@@ -144,17 +145,19 @@ export function UserProfileDropdown({ align = "right" }: UserProfileDropdownProp
 
           {/* Footer / Sign Out */}
           <div className="p-1.5 border-t border-border-hairline/70 bg-bg-void/20">
-            <button
-              type="button"
+            <ExpandingButton
+              variant="danger"
+              size="sm"
+              rounded="lg"
+              className="w-full text-xs"
+              icon={<LogOut className="h-3.5 w-3.5" />}
               onClick={() => {
                 setIsOpen(false);
                 logout();
               }}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-signal-critical hover:text-red-400 bg-signal-critical/10 hover:bg-signal-critical/15 border border-signal-critical/20 transition-all cursor-pointer font-medium text-xs shadow-xs active:scale-[0.99]"
             >
-              <LogOut className="h-3.5 w-3.5" />
-              <span>Sign Out</span>
-            </button>
+              Sign Out
+            </ExpandingButton>
           </div>
         </div>
       )}

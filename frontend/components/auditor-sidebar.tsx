@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Badge } from "@/components/ui/badge";
+import { ExpandingButton } from "@/components/ui/expanding-button";
 import { useAuth } from "@/lib/auth-context";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import { apiClient } from "@/lib/api-client";
@@ -259,17 +260,19 @@ export function AuditorSidebar() {
       {/* Pinned Bottom Controls / Sign Out */}
       <div className="p-2.5 border-t border-border-hairline/40 bg-transparent shrink-0">
         {!isCollapsed ? (
-          <button
-            type="button"
+          <ExpandingButton
+            variant="danger"
+            size="sm"
+            rounded="xl"
+            className="w-full"
+            icon={<LogOut className="h-3.5 w-3.5" />}
             onClick={() => {
               close();
               logout();
             }}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-signal-critical hover:text-red-400 bg-signal-critical/10 hover:bg-signal-critical/15 border border-signal-critical/20 hover:border-signal-critical/30 transition-all cursor-pointer shadow-xs active:scale-[0.99]"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            <span>Sign Out</span>
-          </button>
+            Sign Out
+          </ExpandingButton>
         ) : (
           <button
             type="button"
@@ -277,7 +280,7 @@ export function AuditorSidebar() {
               close();
               logout();
             }}
-            className="w-full flex items-center justify-center p-2 rounded-xl text-signal-critical hover:text-red-400 bg-signal-critical/10 hover:bg-signal-critical/15 border border-signal-critical/20 transition-all cursor-pointer shadow-xs"
+            className="w-full flex items-center justify-center p-2 rounded-xl text-signal-critical hover:text-white bg-signal-critical/10 hover:bg-signal-critical border border-signal-critical/20 hover:border-signal-critical transition-all cursor-pointer shadow-xs active:scale-[0.98]"
             title="Sign Out"
           >
             <LogOut className="h-4 w-4" />
