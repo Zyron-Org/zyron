@@ -11,6 +11,8 @@ import {
   RefreshCw,
   ArrowLeft,
   Clock,
+  Sparkles,
+  ExternalLink,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ExpandingButton } from "@/components/ui/expanding-button";
@@ -33,6 +35,14 @@ function VerifyEmailContent() {
   const [email, setEmail] = React.useState(initialEmail);
   const [isResending, setIsResending] = React.useState(false);
   const [resendSuccess, setResendSuccess] = React.useState(false);
+  const [devVerificationUrl, setDevVerificationUrl] = React.useState<string | null>(null);
+
+  // Synchronize email state if initialEmail arrives from searchParams
+  React.useEffect(() => {
+    if (initialEmail && !email) {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail, email]);
 
   // If token is present, automatically trigger verification on mount
   React.useEffect(() => {
@@ -73,17 +83,21 @@ function VerifyEmailContent() {
     };
   }, [token]);
 
-  const handleResend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
+  const handleResend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const targetEmail = (email || initialEmail || searchParams?.get("email") || "").trim();
+    if (!targetEmail) {
       toast.error("Please enter your email address.");
       return;
     }
 
     setIsResending(true);
     try {
-      const res = await apiClient.post("/auth/resend-verification", { email });
+      const res = await apiClient.post("/auth/resend-verification", { email: targetEmail });
       setResendSuccess(true);
+      if (res.data?.verificationUrl) {
+        setDevVerificationUrl(res.data.verificationUrl);
+      }
       toast.success(res.data?.message || "Verification email sent!");
     } catch (err: any) {
       const msg =
@@ -255,12 +269,49 @@ function VerifyEmailContent() {
         </div>
 
         {resendSuccess ? (
-          <div className="p-3 rounded-xl bg-signal-resolved/10 border border-signal-resolved/30 text-signal-resolved text-xs text-center font-medium">
-            A new verification email has been sent!
+          <div className="space-y-3 pt-2">
+            <div className="p-3.5 rounded-xl bg-signal-resolved/10 border border-signal-resolved/30 text-signal-resolved text-xs text-center font-medium">
+              Verification email successfully resent to <span className="font-bold underline">{email || initialEmail}</span>!
+            </div>
+
+            {devVerificationUrl && (
+              <div className="p-4 rounded-xl bg-accent-scan/10 border border-accent-scan/30 text-left space-y-2.5">
+                <div className="flex items-center gap-1.5 text-accent-scan text-xs font-semibold">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Local Development Environment</span>
+                </div>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Real SMTP is disabled in development (using safe Ethereal Mail). You can activate this account instantly using this local verification link:
+                </p>
+                <div className="pt-1">
+                  <a href={devVerificationUrl} className="block w-full">
+                    <ExpandingButton
+                      type="button"
+                      variant="accent"
+                      size="sm"
+                      rounded="xl"
+                      className="w-full cursor-pointer"
+                      icon={<ArrowRight className="h-4 w-4 stroke-[2.5]" />}
+                    >
+                      Verify & Activate Account Now
+                    </ExpandingButton>
+                  </a>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setResendSuccess(false)}
+              className="text-xs text-text-muted hover:text-text-primary underline cursor-pointer"
+            >
+              Need to send to a different address?
+            </button>
           </div>
         ) : (
           <form onSubmit={handleResend} className="space-y-3 pt-2">
-            {!initialEmail && (
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-medium text-text-muted">Target email address</label>
               <Input
                 type="email"
                 value={email}
@@ -270,7 +321,7 @@ function VerifyEmailContent() {
                 className="rounded-xl h-11 border-border-hairline focus-within:border-accent-scan"
                 required
               />
-            )}
+            </div>
             <ExpandingButton
               type="submit"
               variant="dark"
@@ -280,7 +331,7 @@ function VerifyEmailContent() {
               className="w-full cursor-pointer"
               icon={<RefreshCw className={`h-4 w-4 ${isResending ? "animate-spin text-accent-scan" : ""}`} />}
             >
-              <span>{isResending ? "Sending..." : "Resend Email"}</span>
+              <span>{isResending ? "Sending..." : "Resend Verification Email"}</span>
             </ExpandingButton>
           </form>
         )}
@@ -321,6 +372,33 @@ function VerifyEmailContent() {
               If an account with this email exists, a link has been dispatched to your inbox.
             </p>
           </div>
+
+          {devVerificationUrl && (
+            <div className="p-4 rounded-xl bg-accent-scan/10 border border-accent-scan/30 text-left space-y-2.5">
+              <div className="flex items-center gap-1.5 text-accent-scan text-xs font-semibold">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Local Development Quick Verification</span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Running locally without production SMTP. Click below to verify this account immediately:
+              </p>
+              <div className="pt-1">
+                <a href={devVerificationUrl} className="block w-full">
+                  <ExpandingButton
+                    type="button"
+                    variant="accent"
+                    size="sm"
+                    rounded="xl"
+                    className="w-full cursor-pointer"
+                    icon={<ArrowRight className="h-4 w-4 stroke-[2.5]" />}
+                  >
+                    Verify & Activate Account Now
+                  </ExpandingButton>
+                </a>
+              </div>
+            </div>
+          )}
+
           <Link href="/auth/login" className="block w-full">
             <ExpandingButton
               type="button"
