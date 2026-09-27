@@ -43,6 +43,31 @@ export function getDashboardForRole(role?: string | null): string {
   return "/portal";
 }
 
+export function isRedirectValidForRole(
+  redirectUrl: string | null | undefined,
+  role: string | null | undefined
+): boolean {
+  if (!redirectUrl || !role) return false;
+  try {
+    const decoded = decodeURIComponent(redirectUrl);
+    if (decoded.startsWith("/auth") || decoded === "/") return false;
+
+    const r = role.toUpperCase();
+    if (r === "ADMIN") {
+      return decoded.startsWith("/admin");
+    }
+    if (r === "AUDITOR") {
+      return decoded.startsWith("/auditor");
+    }
+    if (r === "CLIENT") {
+      return decoded.startsWith("/portal");
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   role: string | null;
@@ -115,12 +140,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthCookie(accessToken); // Sync to cookie for edge middleware
 
       const defaultDest = getDashboardForRole(apiUser.role);
-      const isValidRedirect =
-        redirectAfterLogin &&
-        !redirectAfterLogin.startsWith("/auth") &&
-        redirectAfterLogin !== "/";
+      const destination =
+        isRedirectValidForRole(redirectAfterLogin, apiUser.role) && redirectAfterLogin
+          ? redirectAfterLogin
+          : defaultDest;
 
-      const destination = isValidRedirect ? redirectAfterLogin : defaultDest;
       router.push(destination);
       router.replace(destination);
       return apiUser;
@@ -141,7 +165,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("zyron_auth_role", apiUser.role.toLowerCase());
       setAuthCookie(accessToken);
 
-      const dest = getDashboardForRole(apiUser.role);
+      const defaultDest = getDashboardForRole(apiUser.role);
+      const dest =
+        isRedirectValidForRole(redirectAfterLogin, apiUser.role) && redirectAfterLogin
+          ? redirectAfterLogin
+          : defaultDest;
       router.push(dest);
       router.replace(dest);
       return apiUser;
@@ -188,7 +216,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("zyron_auth_role");
       clearAuthCookie(); // Clear edge middleware cookie
     } catch (e) {}
-    router.replace("/auth/login");
+    if (typeof window !== "undefined") {
+      window.location.href = "/auth/login";
+    } else {
+      router.replace("/auth/login");
+    }
   };
 
   return (
