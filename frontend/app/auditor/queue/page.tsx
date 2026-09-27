@@ -473,12 +473,6 @@ export default function AuditorTicketQueuePage() {
 
                     {/* Right Action CTAs */}
                     <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-center">
-                      <Link href={`/portal/track/${ticket.id}`}>
-                        <Button variant="secondary" size="md" className="rounded-xl">
-                          Live Tracker
-                        </Button>
-                      </Link>
-
                       {isUnclaimed ? (
                         <>
                           <Button
