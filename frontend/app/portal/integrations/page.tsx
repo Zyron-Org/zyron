@@ -209,6 +209,67 @@ echo "✅ Zyron local scan passed! Proceeding with git commit."
         </div>
       </div>
 
+      {/* ─── 2.5. DEVELOPER ONBOARDING QUICKSTART ─── */}
+      <div className="rounded-2xl border border-[#E2E6EC] dark:border-border-hairline/80 bg-[#F2F4F7] dark:bg-bg-void/60 p-1.5 shadow-xs">
+        <div className="rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-white dark:bg-bg-panel p-5 sm:p-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border-hairline/60">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-accent-scan/10 text-accent-scan border border-accent-scan/20">
+                  <Sparkles className="h-3 w-3" />
+                  Developer Quickstart
+                </span>
+                <span className="text-xs font-mono text-text-muted">3-Step CI/CD Setup</span>
+              </div>
+              <h2 className="font-display text-base font-bold text-text-primary">
+                Continuous Protocol Verification in 3 Minutes
+              </h2>
+              <p className="text-xs text-text-muted max-w-2xl">
+                Protect your repository against regression bugs and vulnerabilities by embedding automated AST analysis directly into pull request workflows.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
+            <div className="p-3.5 rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-[#F8F9FA] dark:bg-bg-void/40 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
+                <span className="h-5 w-5 rounded-md bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono text-[10px] font-bold">
+                  01
+                </span>
+                <span>Configure Secret</span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Add <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5 font-mono text-[10px]">ZYRON_API_KEY</code> to your GitHub repository secrets under Settings &gt; Secrets.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-[#F8F9FA] dark:bg-bg-void/40 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
+                <span className="h-5 w-5 rounded-md bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono text-[10px] font-bold">
+                  02
+                </span>
+                <span>Drop Workflow File</span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Commit <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5 font-mono text-[10px]">.github/workflows/zyron.yml</code> to run on pull requests against main.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-[#F8F9FA] dark:bg-bg-void/40 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
+                <span className="h-5 w-5 rounded-md bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono text-[10px] font-bold">
+                  03
+                </span>
+                <span>Merge with Confidence</span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Receive instant inline PR comments from @zyron-bot and enforce zero-vulnerability security gates.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ─── 3. TAB CONTROLS ─── */}
       <div className="flex items-center gap-1.5 p-1 rounded-xl bg-bg-void/50 border border-border-hairline/60 w-fit">
         {[

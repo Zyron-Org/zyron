@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Input } from "@/components/ui/input";
 import { ExpandingButton } from "@/components/ui/expanding-button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { apiClient } from "@/lib/api-client";
 import { FindingCodeViewer } from "@/components/finding-code-viewer";
 import { toast } from "sonner";
@@ -549,27 +550,59 @@ export default function OpenFindingsPage() {
       </div>
 
       {/* ─── 4. FINDING CARDS (Layered Gray-White Container Style) ─── */}
-      {filteredFindings.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl bg-[#F2F4F7] dark:bg-bg-void/60 border border-[#E2E6EC] dark:border-border-hairline space-y-3">
-          <div className="h-10 w-10 mx-auto rounded-full bg-signal-resolved/10 text-signal-resolved flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5" />
-          </div>
-          <div className="font-semibold text-text-primary text-sm">
-            No active findings match your criteria
-          </div>
-          <p className="text-xs text-text-muted max-w-sm mx-auto">
-            {searchQuery || filterSeverity !== "all" || filterTicket !== "all"
-              ? "Try clearing your filters or changing your search terms to see other findings."
-              : "All flagged vulnerabilities have been mitigated and verified by the auditing team."}
-          </p>
-          <div className="pt-2">
-            <Link href="/portal/vault">
-              <Button variant="secondary" size="sm" className="rounded-xl">
-                View Resolved in Document Vault
-              </Button>
-            </Link>
-          </div>
-        </div>
+      {audits.length === 0 ? (
+        <EmptyState
+          icon={ShieldAlert}
+          badge="First-Time Protocol Setup"
+          title="No Security Findings Recorded Yet"
+          description="Once you submit your smart contracts for intake, automated AST static analysis, invariant fuzzing, and manual auditor triage findings will populate here in real time."
+          primaryAction={{
+            label: "Start First Audit Request",
+            href: "/portal/new-request",
+            icon: <Plus className="h-4 w-4" />,
+          }}
+          secondaryAction={{
+            label: "Explore Demo Findings",
+            href: "/portal/track/ZYR-9481",
+            icon: <ExternalLink className="h-4 w-4" />,
+          }}
+        />
+      ) : findings.length === 0 ? (
+        <EmptyState
+          icon={ShieldCheck}
+          badge="Clean Security Bill of Health"
+          title="Zero Vulnerability Findings Detected"
+          description="All contracts within your audited scopes have passed automated AST passes and manual triage without open critical, high, or medium severity issues."
+          primaryAction={{
+            label: "View Attestation Vault",
+            href: "/portal/vault",
+            icon: <ArrowRight className="h-4 w-4" />,
+          }}
+        />
+      ) : filteredFindings.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="No findings match your criteria"
+          description={
+            searchQuery || filterSeverity !== "all" || filterTicket !== "all" || filterStatus !== "all"
+              ? "No findings found matching the current search query or filter selection."
+              : "All flagged vulnerabilities have been mitigated and verified by the auditing team."
+          }
+          primaryAction={{
+            label: "View All Resolved in Vault",
+            href: "/portal/vault",
+            icon: <ArrowRight className="h-4 w-4" />,
+          }}
+          secondaryAction={{
+            label: "Reset All Filters",
+            onClick: () => {
+              setFilterStatus("all");
+              setFilterSeverity("all");
+              setFilterTicket("all");
+              setSearchQuery("");
+            },
+          }}
+        />
       ) : (
         <div className="space-y-4">
           {filteredFindings.map((finding) => {

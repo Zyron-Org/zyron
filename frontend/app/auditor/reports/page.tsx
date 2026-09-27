@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { ExpandingButton } from "@/components/ui/expanding-button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -250,20 +251,28 @@ export default function AuditorReportsPage() {
 
       {/* ─── 4. REPORTS LIST (Layered SaaS Cards) ─── */}
       <div className="space-y-4">
-        {filteredAudits.length === 0 ? (
-          <div className="rounded-2xl border border-[#E2E6EC] dark:border-border-hairline/80 bg-[#F2F4F7] dark:bg-bg-void/60 p-1.5 shadow-xs">
-            <div className="rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-white dark:bg-bg-panel p-12 text-center space-y-3">
-              <FileCheck2 className="h-10 w-10 text-text-muted mx-auto" />
-              <h3 className="font-display text-base font-bold text-text-primary">
-                {audits.length === 0 ? "No Sealed Reports Yet" : "No Matching Reports Found"}
-              </h3>
-              <p className="text-xs text-text-muted max-w-sm mx-auto">
-                {audits.length === 0
-                  ? "Audit deliverables appear here once an engagement completes all review rounds and is sealed."
-                  : "Try adjusting your search query to locate historical reports."}
-              </p>
-            </div>
-          </div>
+        {audits.length === 0 ? (
+          <EmptyState
+            icon={FileCheck2}
+            badge="Vault Unpopulated"
+            title="No Sealed Attestation Reports Yet"
+            description="Audit deliverables appear here once an engagement completes all review rounds, fix verifications, and cryptographic sealing."
+            primaryAction={{
+              label: "Go to Active Triage Queue",
+              href: "/auditor/queue",
+              icon: <FileText className="h-4 w-4" />,
+            }}
+          />
+        ) : filteredAudits.length === 0 ? (
+          <EmptyState
+            icon={Search}
+            title="No Matching Reports Found"
+            description="No historical reports matched your search query. Try searching with a different ticket ID or protocol name."
+            secondaryAction={{
+              label: "Clear Search",
+              onClick: () => setSearchQuery(""),
+            }}
+          />
         ) : (
           filteredAudits.map((audit) => {
             const leadAuditorName =

@@ -355,8 +355,32 @@ export default function UserRoleManagementPage() {
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center text-xs text-text-muted">
-                    No registered accounts matching query.
+                  <TableCell colSpan={6} className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-2 max-w-sm mx-auto">
+                      <div className="h-10 w-10 rounded-full bg-accent-scan/10 text-accent-scan flex items-center justify-center">
+                        <Users className="h-5 w-5" />
+                      </div>
+                      <div className="text-xs font-semibold text-text-primary">
+                        No registered accounts found
+                      </div>
+                      <p className="text-[11px] text-text-muted">
+                        {searchQuery
+                          ? `No users matched "${searchQuery}". Try a different email, handle, or organization.`
+                          : "No users currently exist in this role category."}
+                      </p>
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchQuery("");
+                            setRoleFilter("all");
+                          }}
+                          className="mt-2 text-xs font-semibold text-accent-scan hover:underline cursor-pointer"
+                        >
+                          Clear Filters
+                        </button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (

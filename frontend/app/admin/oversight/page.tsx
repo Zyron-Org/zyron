@@ -435,8 +435,32 @@ export default function GlobalTicketOversightPage() {
             <TableBody>
               {filteredTickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center text-xs text-text-muted">
-                    No audit engagements match the selected filters.
+                  <TableCell colSpan={6} className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-2 max-w-sm mx-auto">
+                      <div className="h-10 w-10 rounded-full bg-accent-scan/10 text-accent-scan flex items-center justify-center">
+                        <Shield className="h-5 w-5" />
+                      </div>
+                      <div className="text-xs font-semibold text-text-primary">
+                        No audit engagements found
+                      </div>
+                      <p className="text-[11px] text-text-muted">
+                        {searchQuery
+                          ? `No tickets matched "${searchQuery}". Try a different ticket ID or protocol name.`
+                          : "No audit tickets match the current stage filter."}
+                      </p>
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchQuery("");
+                            setStageFilter("all");
+                          }}
+                          className="mt-2 text-xs font-semibold text-accent-scan hover:underline cursor-pointer"
+                        >
+                          Clear Filters
+                        </button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (

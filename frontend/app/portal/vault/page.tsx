@@ -26,6 +26,7 @@ import {
   Radio,
   Loader2,
   Plus,
+  ArrowRight,
   ArrowUpRight,
   Shield,
   FileText,
@@ -35,6 +36,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Input } from "@/components/ui/input";
 import { ExpandingButton } from "@/components/ui/expanding-button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -410,27 +412,57 @@ export default function DocumentVaultPage() {
       </div>
 
       {/* ─── 4. DELIVERABLE CARDS (Layered Gray-White Container Style) ─── */}
-      {filteredAudits.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl bg-[#F2F4F7] dark:bg-bg-void/60 border border-[#E2E6EC] dark:border-border-hairline space-y-3">
-          <div className="h-10 w-10 mx-auto rounded-full bg-accent-scan/10 text-accent-scan flex items-center justify-center">
-            <FileCheck2 className="h-5 w-5" />
-          </div>
-          <div className="font-semibold text-text-primary text-sm">
-            No attestation deliverables found
-          </div>
-          <p className="text-xs text-text-muted max-w-sm mx-auto">
-            {searchQuery
+      {audits.length === 0 ? (
+        <EmptyState
+          icon={FileCheck2}
+          badge="Immutable Delivery Vault"
+          title="No Cryptographic Attestations Sealed Yet"
+          description="Once your smart contract audit completes automated AST static analysis and manual auditor triage, sealed executive PDF reports, bytecode SHA-256 hashes, and verifiable JSON attestations will be securely anchored here."
+          primaryAction={{
+            label: "Start First Audit Request",
+            href: "/portal/new-request",
+            icon: <Plus className="h-4 w-4" />,
+          }}
+          secondaryAction={{
+            label: "Explore Live Demo Tracker",
+            href: "/portal/track/ZYR-9481",
+            icon: <ExternalLink className="h-4 w-4" />,
+          }}
+        />
+      ) : completedAudits.length === 0 ? (
+        <EmptyState
+          icon={Clock}
+          badge="Audits In Progress"
+          title="Audit Engagements Currently In Review"
+          description="Your smart contracts are actively progressing through automated AST scans and auditor triage. Final attestation deliverables will appear here automatically once the attestation milestone is sealed."
+          primaryAction={{
+            label: "Track Live Engagements",
+            href: "/portal",
+            icon: <ArrowRight className="h-4 w-4" />,
+          }}
+        />
+      ) : filteredAudits.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="No attestation deliverables found"
+          description={
+            searchQuery
               ? `No audit packages matched your search "${searchQuery}".`
-              : "Completed audit reports and cryptographic attestations will appear here once an audit is finalized."}
-          </p>
-          <div className="pt-2">
-            <Link href="/portal/new-request">
-              <ExpandingButton variant="accent" rounded="xl" size="sm" icon={<Plus className="h-4 w-4" />}>
-                Start New Audit Request
-              </ExpandingButton>
-            </Link>
-          </div>
-        </div>
+              : "No packages found matching the selected filter category."
+          }
+          primaryAction={{
+            label: "Start New Audit Request",
+            href: "/portal/new-request",
+            icon: <Plus className="h-4 w-4" />,
+          }}
+          secondaryAction={{
+            label: "Reset All Filters",
+            onClick: () => {
+              setFilterMode("all");
+              setSearchQuery("");
+            },
+          }}
+        />
       ) : (
         <div className="space-y-4">
           {filteredAudits.map((item) => {

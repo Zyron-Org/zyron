@@ -34,6 +34,8 @@ import { StatusPill, type PipelineStatus } from "@/components/ui/status-pill";
 import { ExpandingButton } from "@/components/ui/expanding-button";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import { EmptyState } from "@/components/ui/empty-state";
+import { OnboardingChecklist } from "@/components/portal/onboarding-checklist";
 import { cn } from "@/lib/utils";
 
 interface FormattedAudit {
@@ -251,6 +253,13 @@ export default function ClientDashboardPage() {
         </div>
       </div>
 
+      {/* ─── 1.5. FIRST-TIME ONBOARDING CHECKLIST ─── */}
+      <OnboardingChecklist
+        hasAudits={audits.length > 0}
+        userName={user?.name}
+        orgName={user?.organization?.name}
+      />
+
       {/* ─── 2. METRIC SUMMARY STATS CARDS (Distinguished with outer gray container) ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* Card 1: Active Engagements */}
@@ -426,29 +435,86 @@ export default function ClientDashboardPage() {
       </div>
 
       {/* ─── 4. MAIN AUDIT CONTENT (CARD LIST WITH DISTINGUISHED NESTED GRAY/WHITE STRUCTURE) ─── */}
-      {filteredAudits.length === 0 ? (
-        <div className="p-12 rounded-2xl bg-[#F2F4F7] dark:bg-bg-void/60 border border-[#E2E6EC] dark:border-border-hairline text-center space-y-3">
-          <div className="p-8 rounded-xl bg-white dark:bg-bg-panel border border-[#E8ECF1] dark:border-border-hairline/60 shadow-xs max-w-md mx-auto space-y-3">
-            <CheckCircle2 className="h-8 w-8 text-signal-resolved mx-auto" />
-            <div className="text-sm font-semibold text-text-primary">
-              No audits match your filters
+      {audits.length === 0 ? (
+        <EmptyState
+          icon={FileCode2}
+          badge="First-Time Protocol Setup"
+          title="No Smart Contract Audits Initiated Yet"
+          description="Initiate automated AST vulnerability scanning, invariant fuzzing, and manual double-blind auditor review. Lock your scope to generate your first audit tracker and immutable attestation."
+          primaryAction={{
+            label: "Start First Audit Request",
+            href: "/portal/new-request",
+            icon: <Plus className="h-4 w-4" />,
+          }}
+          secondaryAction={{
+            label: "Explore Live Demo Tracker",
+            href: "/portal/track/ZYR-9481",
+            icon: <ExternalLink className="h-4 w-4" />,
+          }}
+        >
+          {/* 3 Quick-start Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left pt-2">
+            <div className="p-3.5 rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-[#F8F9FA] dark:bg-bg-void/40 space-y-1">
+              <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
+                <span className="h-5 w-5 rounded-md bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono text-[10px] font-bold">
+                  01
+                </span>
+                <span>AST Scanning</span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Automated bytecode taint checks, Slither & Mythril passes execute in seconds upon intake.
+              </p>
             </div>
-            <p className="text-xs text-text-muted">
-              {searchQuery
-                ? `No audit engagements found matching "${searchQuery}".`
-                : filterStage === "in-flight"
-                ? "All your contracts have completed their review cycle."
-                : "No completed audit engagements recorded yet."}
-            </p>
-            <div className="pt-2">
-              <Link href="/portal/new-request">
-                <ExpandingButton variant="accent" rounded="xl" size="sm" icon={<Plus className="h-4 w-4" />}>
-                  Start New Audit Request
-                </ExpandingButton>
-              </Link>
+
+            <div className="p-3.5 rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-[#F8F9FA] dark:bg-bg-void/40 space-y-1">
+              <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
+                <span className="h-5 w-5 rounded-md bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono text-[10px] font-bold">
+                  02
+                </span>
+                <span>Auditor Triage</span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Certified EVM researchers manually analyze invariants, exploit paths, and triage PoCs.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-[#F8F9FA] dark:bg-bg-void/40 space-y-1">
+              <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
+                <span className="h-5 w-5 rounded-md bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono text-[10px] font-bold">
+                  03
+                </span>
+                <span>Attestation Vault</span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Download cryptographically signed PDF reports and immutable SHA-256 bytecode attestations.
+              </p>
             </div>
           </div>
-        </div>
+        </EmptyState>
+      ) : filteredAudits.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="No audits match your filters"
+          description={
+            searchQuery
+              ? `No audit engagements found matching "${searchQuery}".`
+              : filterStage === "in-flight"
+              ? "All your contracts have completed their review cycle."
+              : "No completed audit engagements recorded yet."
+          }
+          primaryAction={{
+            label: "Start New Audit Request",
+            href: "/portal/new-request",
+            icon: <Plus className="h-4 w-4" />,
+          }}
+          secondaryAction={{
+            label: "Reset All Filters",
+            onClick: () => {
+              setFilterStage("all");
+              setSearchQuery("");
+            },
+          }}
+        />
       ) : viewMode === "cards" ? (
         /* Layered Nested Cards (Outer Gray Container -> Inner White Card -> Bottom Gray Metadata) */
         <div className="space-y-4">

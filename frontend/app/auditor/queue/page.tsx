@@ -18,6 +18,7 @@ import {
   Shield,
   Layers,
   FileCode2,
+  FileCheck2,
   RefreshCw,
   Loader2,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import { ExpandingButton } from "@/components/ui/expanding-button";
 import { Badge } from "@/components/ui/badge";
 import { StatusPill, type PipelineStatus } from "@/components/ui/status-pill";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -388,18 +390,36 @@ export default function AuditorTicketQueuePage() {
 
       {/* ─── 4. TICKET LIST (Layered SaaS Cards) ─── */}
       <div className="space-y-4">
-        {filteredTickets.length === 0 ? (
-          <div className="rounded-2xl border border-[#E2E6EC] dark:border-border-hairline/80 bg-[#F2F4F7] dark:bg-bg-void/60 p-1.5 shadow-xs">
-            <div className="rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-white dark:bg-bg-panel p-12 text-center space-y-3">
-              <CheckCircle2 className="h-10 w-10 text-signal-resolved mx-auto" />
-              <h3 className="font-display text-base font-bold text-text-primary">
-                No matching tickets in queue
-              </h3>
-              <p className="text-xs text-text-muted max-w-sm mx-auto">
-                No tickets found matching the selected filter or search query. You are all caught up!
-              </p>
-            </div>
-          </div>
+        {audits.length === 0 ? (
+          <EmptyState
+            icon={Inbox}
+            badge="Triage Queue Clear"
+            title="All Triage Queues Are Clear"
+            description="There are currently no smart contract audits awaiting claim or review. You can review your qualification status or calibrate your weekly review capacity."
+            primaryAction={{
+              label: "Auditor Onboarding & Capacity",
+              href: "/auditor/onboarding",
+              icon: <User className="h-4 w-4" />,
+            }}
+            secondaryAction={{
+              label: "View Sealed Reports Vault",
+              href: "/auditor/reports",
+              icon: <FileCheck2 className="h-4 w-4" />,
+            }}
+          />
+        ) : filteredTickets.length === 0 ? (
+          <EmptyState
+            icon={Search}
+            title="No tickets match your filters"
+            description="No audit tickets match the current queue tab or search query. Try clearing search filters."
+            secondaryAction={{
+              label: "Reset All Filters",
+              onClick: () => {
+                setActiveTab("all");
+                setSearchQuery("");
+              },
+            }}
+          />
         ) : (
           filteredTickets.map((ticket) => {
             const isAssignedToMe =
