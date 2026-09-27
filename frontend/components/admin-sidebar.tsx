@@ -23,11 +23,39 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { useSidebar } from "@/components/ui/sidebar-context";
+import { apiClient } from "@/lib/api-client";
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { isOpen, close, isCollapsed, toggleCollapse } = useSidebar();
+  const [usersCount, setUsersCount] = React.useState<number | null>(null);
+  const [oversightCount, setOversightCount] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    apiClient
+      .get("/users")
+      .then((res) => {
+        if (isMounted && Array.isArray(res.data)) {
+          setUsersCount(res.data.length);
+        }
+      })
+      .catch(() => {});
+
+    apiClient
+      .get("/audits")
+      .then((res) => {
+        if (isMounted && Array.isArray(res.data)) {
+          setOversightCount(res.data.length);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const navLinks = [
     {
@@ -37,15 +65,15 @@ export function AdminSidebar() {
           href: "/admin/users",
           label: "User & Role Management",
           icon: Users,
-          badge: "8 ACCOUNTS",
+          badge: usersCount !== null ? `${usersCount} ACCOUNTS` : "ACCOUNTS",
           badgeType: "muted" as const,
         },
         {
           href: "/admin/oversight",
           label: "Global Ticket Oversight",
           icon: Activity,
-          badge: "1 SLA ALERT",
-          badgeType: "critical" as const,
+          badge: oversightCount !== null ? `${oversightCount} SCOPES` : "OVERSIGHT",
+          badgeType: "scan" as const,
         },
       ],
     },
