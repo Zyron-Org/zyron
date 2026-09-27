@@ -136,15 +136,13 @@ export function PortalSidebar() {
           href: "/portal/integrations",
           label: "CI/CD & CLI Hooks",
           icon: Code2,
-          badge: "COMING SOON",
-          badgeColor: "muted" as const,
+          badge: null,
         },
         {
           href: "/portal/team",
           label: "Team & Role Access",
           icon: Users,
-          badge: "COMING SOON",
-          badgeColor: "muted" as const,
+          badge: null,
         },
         {
           href: "/portal/settings",
@@ -217,9 +215,6 @@ export function PortalSidebar() {
                 <span className="font-display text-xs font-semibold text-text-primary truncate">
                   {user?.organization?.name || user?.name || "Client Workspace"}
                 </span>
-                <span className="font-mono text-[9px] text-accent-scan bg-accent-scan/10 px-1 py-0.5 rounded-[4px] border border-accent-scan/20">
-                  {user?.role || "CLIENT"}
-                </span>
               </div>
 
               <div className="flex items-center justify-between font-mono text-[10px] text-text-muted">
@@ -290,41 +285,20 @@ export function PortalSidebar() {
         </div>
       </div>
 
-      {/* Sidebar Bottom / Auditor Support & User Session */}
-      <div className={`p-2.5 border-t border-border-hairline/40 ${isCollapsed ? "flex justify-center" : "space-y-2.5"} bg-transparent`}>
+      {/* Sidebar Bottom / Sign Out */}
+      <div className="p-2.5 border-t border-border-hairline/40 bg-transparent shrink-0">
         {!isCollapsed ? (
-          <>
-            {/* Dedicated Auditor Hotline */}
-            <div className="p-2.5 rounded-xl bg-white/40 dark:bg-bg-panel-raised/50 border border-border-hairline/60 space-y-1.5 shadow-xs">
-              <div className="flex items-center justify-between text-[11px] font-mono">
-                <span className="text-text-primary font-semibold flex items-center gap-1.5">
-                  <LifeBuoy className="h-3 w-3 text-accent-scan" />
-                  Lead Auditor War Room
-                </span>
-              </div>
-              <p className="text-[10px] text-text-muted leading-tight">
-                Direct communication channel with {audits[0]?.leadAuditor?.name || audits[0]?.leadAuditor?.email || "assigned lead auditor"}.
-              </p>
-            </div>
-
-            {/* Sign Out / Links */}
-            <div className="flex items-center justify-between text-[11px] font-mono text-text-muted pt-0.5">
-              <span className="text-[10px] text-text-muted truncate">
-                {user?.role ? `ROLE: ${user.role}` : "CLIENT SESSION"}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  close();
-                  logout();
-                }}
-                className="hover:text-signal-critical flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <LogOut className="h-3 w-3" />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          </>
+          <button
+            type="button"
+            onClick={() => {
+              close();
+              logout();
+            }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-signal-critical hover:text-red-400 bg-signal-critical/10 hover:bg-signal-critical/15 border border-signal-critical/20 hover:border-signal-critical/30 transition-all cursor-pointer shadow-xs active:scale-[0.99]"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Sign Out</span>
+          </button>
         ) : (
           <button
             type="button"
@@ -332,7 +306,7 @@ export function PortalSidebar() {
               close();
               logout();
             }}
-            className="p-2 rounded-lg text-text-muted hover:text-signal-critical hover:bg-bg-panel/60 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-center p-2 rounded-xl text-signal-critical hover:text-red-400 bg-signal-critical/10 hover:bg-signal-critical/15 border border-signal-critical/20 transition-all cursor-pointer shadow-xs"
             title="Sign Out"
           >
             <LogOut className="h-4 w-4" />

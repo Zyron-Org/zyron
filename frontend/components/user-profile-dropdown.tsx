@@ -99,11 +99,13 @@ export function UserProfileDropdown({ align = "right" }: UserProfileDropdownProp
                       ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`
                       : "user@zyron.security")}
                 </div>
-                <div className="mt-1">
-                  <span className="inline-block px-1.5 py-0.5 text-[9px] font-mono font-medium rounded-md bg-accent-scan/10 text-accent-scan border border-accent-scan/20">
-                    {role}
-                  </span>
-                </div>
+                {role !== "CLIENT" && (
+                  <div className="mt-1">
+                    <span className="inline-block px-1.5 py-0.5 text-[9px] font-mono font-medium rounded-md bg-accent-scan/10 text-accent-scan border border-accent-scan/20">
+                      {role}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -148,10 +150,10 @@ export function UserProfileDropdown({ align = "right" }: UserProfileDropdownProp
                 setIsOpen(false);
                 logout();
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-muted hover:text-signal-critical hover:bg-signal-critical/10 transition-colors cursor-pointer text-left"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-signal-critical hover:text-red-400 bg-signal-critical/10 hover:bg-signal-critical/15 border border-signal-critical/20 transition-all cursor-pointer font-medium text-xs shadow-xs active:scale-[0.99]"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span className="font-medium">Sign Out</span>
+              <span>Sign Out</span>
             </button>
           </div>
         </div>

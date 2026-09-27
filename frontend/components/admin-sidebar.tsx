@@ -200,24 +200,20 @@ export function AdminSidebar() {
         </div>
       </div>
 
-      {/* Pinned Bottom Controls */}
-      <div className={`p-3 border-t border-border-hairline/40 ${isCollapsed ? "flex justify-center" : "space-y-3"} bg-transparent shrink-0 font-mono text-xs`}>
+      {/* Pinned Bottom Controls / Sign Out */}
+      <div className="p-2.5 border-t border-border-hairline/40 bg-transparent shrink-0">
         {!isCollapsed ? (
-          <div className="flex items-center justify-between text-[11px] text-text-muted">
-            <span className="text-[10px] text-text-muted truncate">
-              {user?.role ? `ROLE: ${user.role}` : "SEC_OPS // SESSION ACTIVE"}
-            </span>
-            <button
-              onClick={() => {
-                close();
-                logout();
-              }}
-              className="hover:text-signal-critical flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <LogOut className="h-3 w-3" />
-              <span>Sign Out</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              close();
+              logout();
+            }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-signal-critical hover:text-red-400 bg-signal-critical/10 hover:bg-signal-critical/15 border border-signal-critical/20 hover:border-signal-critical/30 transition-all cursor-pointer shadow-xs active:scale-[0.99]"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Sign Out</span>
+          </button>
         ) : (
           <button
             type="button"
@@ -225,7 +221,7 @@ export function AdminSidebar() {
               close();
               logout();
             }}
-            className="p-2 rounded-lg text-text-muted hover:text-signal-critical hover:bg-bg-panel/60 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-center p-2 rounded-xl text-signal-critical hover:text-red-400 bg-signal-critical/10 hover:bg-signal-critical/15 border border-signal-critical/20 transition-all cursor-pointer shadow-xs"
             title="Sign Out"
           >
             <LogOut className="h-4 w-4" />
