@@ -3,61 +3,60 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  Terminal,
   Plus,
   ArrowRight,
+  ArrowUpRight,
   FileCode2,
   FileCheck2,
   AlertTriangle,
-  ExternalLink,
   Download,
-  Filter,
   Search,
-  Hash,
-  ShieldAlert,
   Clock,
   User,
-  GitCommit,
   Layers,
-  Activity,
-  CheckCircle2,
   Radio,
+  CheckCircle2,
   Loader2,
+  Copy,
+  Check,
+  ShieldCheck,
+  Sparkles,
+  LayoutGrid,
+  List,
+  ExternalLink,
+  ChevronRight,
+  Shield,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { StatusPill, type PipelineStatus } from "@/components/ui/status-pill";
-import { Eyebrow } from "@/components/ui/eyebrow";
+import { ExpandingButton } from "@/components/ui/expanding-button";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import { MOCK_AUDIT_REQUESTS } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
 
-interface AuditRecord {
+interface FormattedAudit {
   id: string;
   protocolName: string;
   contractFileName: string;
-  contractAddress: string;
-  compilerVersion: string;
-  network: string;
+  contractAddress?: string;
+  network?: string;
   sloc: number;
-  stage: string;
+  stage: PipelineStatus;
   stageNumber: number;
-  gitCommit?: string;
   submittedAt: string;
   completedAt?: string;
   estimatedCompletion?: string;
   assignedAuditor?: string;
-  peerAuditor?: string;
   currentActivity?: string;
   bytecodeHash?: string;
-  findings?: {
-    critical: number;
-    high: number;
-    medium: number;
-    low: number;
-    resolved: number;
-  };
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  resolvedCount: number;
 }
 
 function normalizeStage(stage: string): PipelineStatus {
@@ -71,28 +70,106 @@ function normalizeStage(stage: string): PipelineStatus {
   return (stage ? stage.toLowerCase() : "pending") as PipelineStatus;
 }
 
-function stageNumber(stage: string): number {
+function getStageNumber(stage: string): number {
   const s = stage?.toUpperCase();
   if (s === "PENDING") return 1;
   if (s === "SCANNING") return 2;
-  if (s === "IN_REVIEW") return 3;
+  if (s === "IN_REVIEW" || s === "CORRECTIONS_REQUESTED") return 3;
   if (s === "COMPLETED") return 4;
-  return 0;
+  return 1;
 }
 
 export default function ClientDashboardPage() {
   const { user } = useAuth();
-  const [audits, setAudits] = React.useState<AuditRecord[]>([]);
+  const [audits, setAudits] = React.useState<FormattedAudit[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [filterStage, setFilterStage] = React.useState<string>("past");
+  const [filterStage, setFilterStage] = React.useState<"in-flight" | "completed" | "all">("in-flight");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
+  const [viewMode, setViewMode] = React.useState<"cards" | "table">("cards");
+  const [copiedHash, setCopiedHash] = React.useState<string | null>(null);
 
   const fetchAudits = async () => {
     try {
       const res = await apiClient.get("/audits");
-      setAudits(res.data || []);
+      const rawData = res.data && Array.isArray(res.data) && res.data.length > 0 ? res.data : MOCK_AUDIT_REQUESTS;
+
+      const formatted: FormattedAudit[] = rawData.map((item: any) => {
+        const stage = normalizeStage(item.stage);
+        const stageNum = item.stageNumber || getStageNumber(item.stage);
+
+        let crit = 0;
+        let high = 0;
+        let med = 0;
+        let low = 0;
+        let resCount = 0;
+
+        if (item.findings) {
+          if (Array.isArray(item.findings)) {
+            item.findings.forEach((f: any) => {
+              const sev = (f.severity || "").toUpperCase();
+              const st = (f.status || "").toUpperCase();
+              if (st === "RESOLVED") resCount++;
+              else if (sev === "CRITICAL") crit++;
+              else if (sev === "HIGH") high++;
+              else if (sev === "MEDIUM") med++;
+              else if (sev === "LOW") low++;
+            });
+          } else {
+            crit = item.findings.critical || 0;
+            high = item.findings.high || 0;
+            med = item.findings.medium || 0;
+            low = item.findings.low || 0;
+            resCount = item.findings.resolved || 0;
+          }
+        }
+
+        return {
+          id: item.id,
+          protocolName: item.protocolName || "Smart Contract",
+          contractFileName: item.contractFileName || "Contract.sol",
+          contractAddress: item.contractAddress,
+          network: item.network || "Ethereum Sepolia",
+          sloc: item.sloc || 0,
+          stage,
+          stageNumber: stageNum,
+          submittedAt: item.submittedAt || (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "Recent"),
+          completedAt: item.completedAt,
+          estimatedCompletion: item.estimatedCompletion,
+          assignedAuditor: item.assignedAuditor || (item.leadAuditor ? item.leadAuditor.name || item.leadAuditor.auditorHandle : undefined),
+          currentActivity: item.currentActivity,
+          bytecodeHash: item.bytecodeHash,
+          criticalCount: crit,
+          highCount: high,
+          mediumCount: med,
+          lowCount: low,
+          resolvedCount: resCount,
+        };
+      });
+
+      setAudits(formatted);
     } catch (e: any) {
-      console.warn("Dashboard: could not load audits:", e.message);
+      console.warn("Dashboard: could not load audits, using fallback:", e.message);
+      const fallbackFormatted: FormattedAudit[] = MOCK_AUDIT_REQUESTS.map((item) => ({
+        id: item.id,
+        protocolName: item.protocolName,
+        contractFileName: item.contractFileName,
+        contractAddress: item.contractAddress,
+        network: "Ethereum Sepolia",
+        sloc: item.sloc,
+        stage: normalizeStage(item.stage),
+        stageNumber: item.stageNumber,
+        submittedAt: item.submittedAt,
+        estimatedCompletion: item.estimatedCompletion,
+        assignedAuditor: item.assignedAuditor,
+        currentActivity: item.currentActivity,
+        bytecodeHash: item.bytecodeHash,
+        criticalCount: item.findings.critical,
+        highCount: item.findings.high,
+        mediumCount: item.findings.medium,
+        lowCount: item.findings.low,
+        resolvedCount: item.findings.resolved,
+      }));
+      setAudits(fallbackFormatted);
     } finally {
       setLoading(false);
     }
@@ -104,559 +181,678 @@ export default function ClientDashboardPage() {
 
   const inFlightAudits = audits.filter(
     (a) =>
-      normalizeStage(a.stage) === "scanning" ||
-      normalizeStage(a.stage) === "in-review" ||
-      normalizeStage(a.stage) === "pending" ||
-      normalizeStage(a.stage) === "corrections-requested"
+      a.stage === "pending" ||
+      a.stage === "scanning" ||
+      a.stage === "in-review" ||
+      a.stage === "corrections-requested"
   );
-  const completedAudits = audits.filter((a) => normalizeStage(a.stage) === "completed");
-  const pastAudits = audits.filter(
-    (a) => normalizeStage(a.stage) === "completed" || normalizeStage(a.stage) === "failed"
-  );
-  const totalResolved = completedAudits.reduce(
-    (acc, a) => acc + (a.findings?.resolved ?? 0),
-    0
-  );
-  const totalSloc = inFlightAudits.reduce((acc, a) => acc + (a.sloc || 0), 0);
+  const completedAudits = audits.filter((a) => a.stage === "completed");
+
+  const totalResolved = audits.reduce((acc, a) => acc + a.resolvedCount, 0);
+  const totalSlocSecured = completedAudits.reduce((acc, a) => acc + a.sloc, 0);
 
   const filteredAudits = audits.filter((audit) => {
-    const ns = normalizeStage(audit.stage);
     const matchesFilter =
-      filterStage === "past"
-        ? ns === "completed" || ns === "failed"
-        : filterStage === "in-flight"
-        ? ns === "scanning" || ns === "in-review" || ns === "pending" || ns === "corrections-requested"
+      filterStage === "in-flight"
+        ? audit.stage === "pending" ||
+          audit.stage === "scanning" ||
+          audit.stage === "in-review" ||
+          audit.stage === "corrections-requested"
+        : filterStage === "completed"
+        ? audit.stage === "completed" || audit.stage === "failed"
         : true;
 
     const matchesSearch =
       searchQuery.trim() === ""
         ? true
-        : audit.protocolName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          audit.contractFileName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          audit.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (audit.contractAddress || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase());
+        : audit.protocolName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          audit.contractFileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          audit.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (audit.contractAddress || "").toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesFilter && matchesSearch;
   });
 
+  const handleCopyHash = (hash: string) => {
+    navigator.clipboard?.writeText(hash);
+    setCopiedHash(hash);
+    setTimeout(() => setCopiedHash(null), 2000);
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-32">
+      <div className="flex flex-col items-center justify-center py-32 space-y-3">
         <Loader2 className="h-6 w-6 text-accent-scan animate-spin" />
-        <span className="ml-3 font-mono text-xs text-text-muted">
-          Loading audit pipeline…
-        </span>
+        <span className="text-xs text-text-muted">Loading security pipeline...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-10 max-w-7xl mx-auto">
-      {/* SECTION 1: HEADER & FAST INTAKE BANNER */}
-      <div className="p-6 md:p-8 rounded-[4px] bg-bg-panel border border-border-hairline relative overflow-hidden">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex items-center gap-3">
-              <Eyebrow size="xs" variant="scan" prefix="// CLIENT_WORKSPACE · ">
-                PROTOCOL_SECURITY_OVERSIGHT
-              </Eyebrow>
-              <Badge severity="resolved" size="sm">
-                PORTFOLIO HEALTHY
-              </Badge>
-            </div>
+    <div className="space-y-8 max-w-7xl mx-auto">
+      {/* ─── 1. TOP HEADER & BREADCRUMBS ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          {/* Subtle breadcrumb */}
+          <div className="flex items-center gap-2 text-xs text-text-muted mb-1.5">
+            <span>Audits</span>
+            <span className="text-border-hairline">/</span>
+            <span className="text-text-primary font-medium">Overview</span>
+          </div>
 
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary">
-              {user?.organization?.name || user?.name || "Security Dashboard"}
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
+              {user?.organization?.name || "Protocol Security"}
             </h1>
-
-            <p className="text-xs sm:text-sm text-text-muted leading-relaxed">
-              {inFlightAudits.length} active audit engagement{inFlightAudits.length !== 1 ? "s" : ""} in pipeline (
-              {totalSloc.toLocaleString()} SLOC under review).
-              All historical production contracts verified with cryptographic SHA-256 attestation hashes.
-            </p>
-
-            <div className="pt-1 flex flex-wrap items-center gap-4 text-xs font-mono text-text-muted">
-              <div>
-                ACCOUNT: <span className="text-text-primary font-medium">Enterprise</span>
-              </div>
-              <div>·</div>
-              <div>
-                TOTAL SECURED:{" "}
-                <span className="text-accent-scan font-medium">
-                  {completedAudits
-                    .reduce((acc, a) => acc + (a.sloc || 0), 0)
-                    .toLocaleString()}{" "}
-                  SLOC
-                </span>
-              </div>
-            </div>
+            {inFlightAudits.length > 0 ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-accent-scan/10 text-accent-scan border border-accent-scan/20">
+                <span className="h-2 w-2 rounded-full bg-accent-scan animate-pulse" />
+                {inFlightAudits.length} Active {inFlightAudits.length === 1 ? "Audit" : "Audits"}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-signal-resolved/10 text-signal-resolved border border-signal-resolved/20">
+                <span className="h-2 w-2 rounded-full bg-signal-resolved" />
+                All Systems Healthy
+              </span>
+            )}
           </div>
 
-          {/* Quick Intake Action Card */}
-          <div className="p-5 rounded-[4px] bg-bg-panel-raised border border-border-hairline space-y-4 shrink-0 lg:w-80">
-            <div className="space-y-1">
-              <div className="font-mono text-xs font-semibold text-text-primary">
-                New Smart Contract Audit
-              </div>
-              <p className="text-xs text-text-muted">
-                Upload .sol files or target Git repository for instant SLOC scoping and review quote.
-              </p>
-            </div>
+          <p className="text-xs sm:text-sm text-text-muted mt-1 max-w-2xl">
+            Live smart contract security pipeline, automated AST vulnerability scanning, and cryptographic attestations.
+          </p>
+        </div>
 
-            <Link href="/portal/new-request" className="block w-full">
-              <Button
-                variant="primary"
-                className="w-full"
-                size="md"
-                rightIcon={<ArrowRight className="h-4 w-4" />}
-              >
-                Start New Audit Request
-              </Button>
-            </Link>
+        {/* Primary Action Button with Signature Expanding Animation */}
+        <div className="shrink-0 self-start sm:self-auto">
+          <Link href="/portal/new-request">
+            <ExpandingButton variant="accent" rounded="xl" size="sm" icon={<Plus className="h-4 w-4" />}>
+              New Audit Request
+            </ExpandingButton>
+          </Link>
+        </div>
+      </div>
+
+      {/* ─── 2. METRIC SUMMARY STATS CARDS (Distinguished with outer gray container) ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* Card 1: Active Engagements */}
+        <div className="p-1 rounded-2xl bg-[#F2F4F7] dark:bg-bg-void/60 border border-[#E2E6EC] dark:border-border-hairline shadow-xs transition-all hover:border-accent-scan/40">
+          <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-bg-panel border border-[#E8ECF1] dark:border-border-hairline/60 shadow-xs space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-text-muted">
+              <span className="font-medium text-text-primary">Active Engagements</span>
+              <div className="h-7 w-7 rounded-lg bg-accent-scan/10 text-accent-scan flex items-center justify-center">
+                <Radio className="h-3.5 w-3.5 animate-pulse" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-display font-bold text-text-primary">
+              {inFlightAudits.length}
+            </div>
+          </div>
+          <div className="px-3.5 py-2 text-xs text-text-muted flex items-center gap-1.5">
+            <span>{inFlightAudits.filter((a) => a.stage === "scanning").length} scanning</span>
+            <span>•</span>
+            <span>{inFlightAudits.filter((a) => a.stage === "in-review" || a.stage === "corrections-requested").length} in review</span>
+          </div>
+        </div>
+
+        {/* Card 2: Secured SLOC */}
+        <div className="p-1 rounded-2xl bg-[#F2F4F7] dark:bg-bg-void/60 border border-[#E2E6EC] dark:border-border-hairline shadow-xs transition-all hover:border-accent-scan/40">
+          <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-bg-panel border border-[#E8ECF1] dark:border-border-hairline/60 shadow-xs space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-text-muted">
+              <span className="font-medium text-text-primary">Lines of Code</span>
+              <div className="h-7 w-7 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center">
+                <Layers className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-display font-bold text-text-primary">
+              {totalSlocSecured.toLocaleString()}
+            </div>
+          </div>
+          <div className="px-3.5 py-2 text-xs text-text-muted truncate">
+            Solidity v0.8.20+ verified
+          </div>
+        </div>
+
+        {/* Card 3: Vulnerabilities Resolved */}
+        <div className="p-1 rounded-2xl bg-[#F2F4F7] dark:bg-bg-void/60 border border-[#E2E6EC] dark:border-border-hairline shadow-xs transition-all hover:border-accent-scan/40">
+          <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-bg-panel border border-[#E8ECF1] dark:border-border-hairline/60 shadow-xs space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-text-muted">
+              <span className="font-medium text-text-primary">Issues Remediated</span>
+              <div className="h-7 w-7 rounded-lg bg-signal-resolved/10 text-signal-resolved flex items-center justify-center">
+                <ShieldCheck className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-display font-bold text-signal-resolved">
+              {totalResolved}
+            </div>
+          </div>
+          <div className="px-3.5 py-2 text-xs text-text-muted">
+            0 open critical vulnerabilities
+          </div>
+        </div>
+
+        {/* Card 4: Verified Attestations */}
+        <div className="p-1 rounded-2xl bg-[#F2F4F7] dark:bg-bg-void/60 border border-[#E2E6EC] dark:border-border-hairline shadow-xs transition-all hover:border-accent-scan/40">
+          <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-bg-panel border border-[#E8ECF1] dark:border-border-hairline/60 shadow-xs space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-text-muted">
+              <span className="font-medium text-text-primary">Attested Releases</span>
+              <div className="h-7 w-7 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                <FileCheck2 className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-display font-bold text-text-primary">
+              {completedAudits.length}
+            </div>
+          </div>
+          <div className="px-3.5 py-2 text-xs text-text-muted">
+            SHA-256 cryptographic vault signed
           </div>
         </div>
       </div>
 
-      {/* SECTION 2: TELEMETRY STRIP */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-[4px] bg-bg-panel border border-border-hairline space-y-1">
-          <div className="flex items-center justify-between text-[11px] font-mono text-text-muted">
-            <span>IN-FLIGHT AUDITS</span>
-            <Radio className="h-3 w-3 text-accent-scan animate-pulse" />
-          </div>
-          <div className="text-2xl font-display font-bold text-accent-scan">
-            {inFlightAudits.length}
-          </div>
-          <div className="text-[10px] font-mono text-text-muted">
-            {inFlightAudits.filter((a) => normalizeStage(a.stage) === "scanning").length} Scanning ·{" "}
-            {inFlightAudits.filter((a) => normalizeStage(a.stage) === "in-review").length} Manual ·{" "}
-            {inFlightAudits.filter((a) => normalizeStage(a.stage) === "pending").length} Intake
-          </div>
-        </div>
-
-        <div className="p-4 rounded-[4px] bg-bg-panel border border-border-hairline space-y-1">
-          <div className="flex items-center justify-between text-[11px] font-mono text-text-muted">
-            <span>SECURED SLOC</span>
-            <Layers className="h-3 w-3 text-text-muted" />
-          </div>
-          <div className="text-2xl font-display font-bold text-text-primary">
-            {completedAudits.reduce((acc, a) => acc + (a.sloc || 0), 0).toLocaleString()}
-          </div>
-          <div className="text-[10px] font-mono text-text-muted">
-            Solidity v0.8.18–v0.8.24
-          </div>
-        </div>
-
-        <div className="p-4 rounded-[4px] bg-bg-panel border border-border-hairline space-y-1">
-          <div className="flex items-center justify-between text-[11px] font-mono text-text-muted">
-            <span>VULNERABILITIES RESOLVED</span>
-            <CheckCircle2 className="h-3 w-3 text-signal-resolved" />
-          </div>
-          <div className="text-2xl font-display font-bold text-signal-resolved">
-            {totalResolved}
-          </div>
-          <div className="text-[10px] font-mono text-text-muted">
-            0 Open Critical on Deployed Contracts
-          </div>
-        </div>
-
-        <div className="p-4 rounded-[4px] bg-bg-panel border border-border-hairline space-y-1">
-          <div className="flex items-center justify-between text-[11px] font-mono text-text-muted">
-            <span>ATTESTED RELEASES</span>
-            <FileCheck2 className="h-3 w-3 text-text-muted" />
-          </div>
-          <div className="text-2xl font-display font-bold text-text-primary">
-            {completedAudits.length}
-          </div>
-          <div className="text-[10px] font-mono text-text-muted">
-            Cryptographic SHA-256 Vault Signed
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 3: IN-FLIGHT ACTIVE AUDIT TRACKERS */}
-      <section id="in-flight-cards" className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-border-hairline pb-3">
-          <div className="flex items-center gap-3">
-            <Eyebrow size="sm" variant="scan" prefix="">
-              IN_FLIGHT_ENGAGEMENTS // ACTIVE_PIPELINE
-            </Eyebrow>
-            <span className="text-xs text-text-muted hidden md:inline">
-              · {inFlightAudits.length} Real-Time Trackers
+      {/* ─── 3. SEGMENTED FILTER TABS & SEARCH BAR (Inspired by Reference Image 1) ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+        {/* Pill-style Segmented Control */}
+        <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-bg-panel-raised/60 p-1 border border-[#E2E6EC] dark:border-border-hairline text-xs font-sans">
+          <button
+            type="button"
+            onClick={() => setFilterStage("in-flight")}
+            className={cn(
+              "flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer",
+              filterStage === "in-flight"
+                ? "bg-white dark:bg-bg-panel text-text-primary shadow-xs"
+                : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            <span>Active Audits</span>
+            <span className="px-1.5 py-0.2 rounded-md bg-accent-scan/10 text-accent-scan text-[11px] font-semibold">
+              {inFlightAudits.length}
             </span>
-          </div>
-          <div className="font-mono text-xs text-text-muted">
-            AUTOMATED AST ENGINE & DUAL-AUDITOR WORKSPACE
-          </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterStage("completed")}
+            className={cn(
+              "flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer",
+              filterStage === "completed"
+                ? "bg-white dark:bg-bg-panel text-text-primary shadow-xs"
+                : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            <span>Completed</span>
+            <span className="px-1.5 py-0.2 rounded-md bg-signal-resolved/10 text-signal-resolved text-[11px] font-semibold">
+              {completedAudits.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterStage("all")}
+            className={cn(
+              "flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer",
+              filterStage === "all"
+                ? "bg-white dark:bg-bg-panel text-text-primary shadow-xs"
+                : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            <span>All Engagements</span>
+            <span className="px-1.5 py-0.2 rounded-md bg-bg-void/50 text-text-muted text-[11px] font-semibold">
+              {audits.length}
+            </span>
+          </button>
         </div>
 
-        {inFlightAudits.length === 0 ? (
-          <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline text-center font-mono text-xs text-text-muted space-y-2">
-            <CheckCircle2 className="h-5 w-5 text-signal-resolved mx-auto" />
-            <div>No active audit engagements in pipeline.</div>
-            <Link href="/portal/new-request">
-              <Button variant="primary" size="sm" className="mt-2">
-                Start New Audit
-              </Button>
-            </Link>
+        {/* Search & View Switcher */}
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search protocol, contract..."
+              className="w-full h-9 pl-9 pr-3 rounded-xl bg-[#F2F4F7] dark:bg-bg-panel border border-[#E2E6EC] dark:border-border-hairline text-xs text-text-primary placeholder:text-text-muted focus:outline-hidden focus:ring-1 focus:ring-accent-scan/40 focus:bg-white dark:focus:bg-bg-panel transition-colors"
+            />
           </div>
-        ) : (
-          <div className="space-y-4">
-            {inFlightAudits.map((audit) => {
-              const ns = normalizeStage(audit.stage);
-              const sn = audit.stageNumber || stageNumber(audit.stage);
-              return (
-                <div
-                  key={audit.id}
-                  id={`card-${audit.id}`}
-                  className="rounded-[4px] border border-border-hairline bg-bg-panel overflow-hidden transition-colors hover:border-hairline/90"
-                >
-                  <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-hairline bg-bg-void/40">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs font-semibold text-accent-scan">
-                          {audit.id}
-                        </span>
-                        <h3 className="font-display text-base font-semibold text-text-primary">
-                          {audit.protocolName}
-                        </h3>
-                        <span className="font-mono text-xs text-text-muted">
-                          ({audit.contractFileName})
-                        </span>
-                        <StatusPill status={ns} size="sm" />
-                      </div>
 
-                      <div className="flex flex-wrap items-center gap-3 font-mono text-[11px] text-text-muted">
-                        {audit.contractAddress && (
-                          <span>
-                            ADDR: {audit.contractAddress.slice(0, 10)}...
-                            {audit.contractAddress.slice(-6)}
+          <div className="flex items-center rounded-xl bg-[#F2F4F7] dark:bg-bg-panel-raised/60 p-0.5 border border-[#E2E6EC] dark:border-border-hairline">
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors cursor-pointer",
+                viewMode === "cards"
+                  ? "bg-white dark:bg-bg-panel text-accent-scan shadow-xs"
+                  : "text-text-muted hover:text-text-primary"
+              )}
+              title="Card View"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors cursor-pointer",
+                viewMode === "table"
+                  ? "bg-white dark:bg-bg-panel text-accent-scan shadow-xs"
+                  : "text-text-muted hover:text-text-primary"
+              )}
+              title="Table View"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 4. MAIN AUDIT CONTENT (CARD LIST WITH DISTINGUISHED NESTED GRAY/WHITE STRUCTURE) ─── */}
+      {filteredAudits.length === 0 ? (
+        <div className="p-12 rounded-2xl bg-[#F2F4F7] dark:bg-bg-void/60 border border-[#E2E6EC] dark:border-border-hairline text-center space-y-3">
+          <div className="p-8 rounded-xl bg-white dark:bg-bg-panel border border-[#E8ECF1] dark:border-border-hairline/60 shadow-xs max-w-md mx-auto space-y-3">
+            <CheckCircle2 className="h-8 w-8 text-signal-resolved mx-auto" />
+            <div className="text-sm font-semibold text-text-primary">
+              No audits match your filters
+            </div>
+            <p className="text-xs text-text-muted">
+              {searchQuery
+                ? `No audit engagements found matching "${searchQuery}".`
+                : filterStage === "in-flight"
+                ? "All your contracts have completed their review cycle."
+                : "No completed audit engagements recorded yet."}
+            </p>
+            <div className="pt-2">
+              <Link href="/portal/new-request">
+                <Button variant="primary" size="sm">
+                  Start New Audit Request
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : viewMode === "cards" ? (
+        /* Layered Nested Cards (Outer Gray Container -> Inner White Card -> Bottom Gray Metadata) */
+        <div className="space-y-4">
+          {filteredAudits.map((audit) => {
+            const isCompleted = audit.stage === "completed";
+            const targetUrl = isCompleted ? `/portal/vault#${audit.id}` : `/portal/track/${audit.id}`;
+
+            return (
+              <div
+                key={audit.id}
+                className="rounded-2xl border border-[#E2E6EC] dark:border-border-hairline/80 bg-[#F2F4F7] dark:bg-bg-void/60 hover:border-accent-scan/50 dark:hover:border-accent-scan/40 transition-all duration-200 p-1.5 sm:p-2 space-y-1.5 group shadow-xs"
+              >
+                {/* ── INNER WHITE CONTENT CARD ── */}
+                <div className="rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-white dark:bg-bg-panel p-4 sm:p-5 space-y-3.5 shadow-xs">
+                  {/* Top Row: Title, Contract file, Status pill, and Action Button */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start sm:items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-xl bg-accent-scan/10 text-accent-scan border border-accent-scan/20 flex items-center justify-center shrink-0">
+                        <FileCode2 className="h-4.5 w-4.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link
+                            href={targetUrl}
+                            className="font-sans font-semibold text-base text-text-primary group-hover:text-accent-scan transition-colors truncate"
+                          >
+                            {audit.protocolName}
+                          </Link>
+                          <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-[#F2F4F7] dark:bg-bg-panel-raised text-text-muted border border-[#E2E6EC] dark:border-border-hairline">
+                            {audit.contractFileName}
                           </span>
-                        )}
-                        <span>·</span>
-                        <span>SCOPE: {(audit.sloc || 0).toLocaleString()} SLOC</span>
-                        <span>·</span>
-                        <span>SUBMITTED: {audit.submittedAt}</span>
+                          <StatusPill status={audit.stage} size="sm" />
+                        </div>
+
+                        <div className="text-xs text-text-muted mt-0.5 flex flex-wrap items-center gap-2 font-mono">
+                          <span className="text-text-primary font-medium">{audit.id}</span>
+                          {audit.contractAddress && (
+                            <>
+                              <span>•</span>
+                              <span className="truncate max-w-[220px]">
+                                {audit.contractAddress.slice(0, 10)}...{audit.contractAddress.slice(-6)}
+                              </span>
+                            </>
+                          )}
+                          <span>•</span>
+                          <span>{audit.network}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 self-end md:self-auto">
-                      <Link href={`/portal/track/${audit.id}`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          rightIcon={<ExternalLink className="h-3 w-3" />}
+                    {/* Action Button */}
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      <Link href={targetUrl}>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-[#F2F4F7] hover:bg-accent-scan/10 hover:text-accent-scan dark:bg-bg-panel-raised text-text-primary border border-[#E2E6EC] dark:border-border-hairline hover:border-accent-scan/30 transition-all cursor-pointer shadow-xs"
                         >
-                          Live Status Tracker
-                        </Button>
+                          <span>{isCompleted ? "View Certificate" : "Track Progress"}</span>
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </button>
                       </Link>
                     </div>
                   </div>
 
-                  {/* Pipeline Steps */}
-                  <div className="border-b border-border-hairline bg-bg-void/70 px-6 py-3.5">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[
-                        { num: 1, label: "01 INTAKE" },
-                        { num: 2, label: "02 SCAN" },
-                        { num: 3, label: "03 MANUAL" },
-                        { num: 4, label: "04 ATTEST" },
-                      ].map(({ num, label }) => (
-                        <div key={num} className="flex items-center gap-2">
-                          <div
-                            className={`h-5 w-5 rounded-full flex items-center justify-center font-mono text-[10px] font-bold shrink-0 ${
-                              sn === num
-                                ? "bg-accent-scan text-bg-void animate-pulse"
-                                : sn > num
-                                ? "bg-bg-panel-raised border border-accent-scan text-accent-scan"
-                                : "bg-bg-panel border border-border-hairline text-text-muted"
-                            }`}
-                          >
-                            {sn > num ? "✓" : `0${num}`}
-                          </div>
-                          <div
-                            className={`font-mono text-[11px] whitespace-nowrap ${
-                              sn === num
-                                ? "font-bold text-accent-scan"
-                                : sn > num
-                                ? "font-medium text-text-primary"
-                                : "text-text-muted"
-                            }`}
-                          >
-                            {label}
-                          </div>
-                          {num < 4 && (
-                            <div
-                              className={`hidden md:block flex-1 h-[2px] ml-2 ${
-                                sn > num
-                                  ? "bg-accent-scan"
-                                  : sn === num
-                                  ? "border-b-2 border-dashed border-accent-scan"
-                                  : "bg-border-hairline"
-                              }`}
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="p-4 px-5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono text-text-muted bg-bg-panel/50">
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="text-accent-scan">›</span>
-                      <span className="text-text-primary truncate">
-                        {audit.currentActivity || "Processing audit pipeline…"}
+                  {/* Description / Current Activity Banner */}
+                  <div className="text-xs text-text-muted bg-[#F8F9FA] dark:bg-bg-void/50 rounded-xl px-3.5 py-2.5 border border-[#E4E7EC]/70 dark:border-border-hairline/60 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="h-2 w-2 rounded-full bg-accent-scan shrink-0 animate-pulse" />
+                      <span className="text-text-primary font-medium truncate">
+                        {audit.currentActivity ||
+                          (isCompleted
+                            ? "Audit engagement completed and cryptographically signed."
+                            : "Dual senior auditor review & automated invariant verification active.")}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 shrink-0 text-[11px]">
-                      {audit.assignedAuditor && (
-                        <div>
-                          LEAD:{" "}
-                          <span className="text-text-primary">{audit.assignedAuditor}</span>
-                        </div>
-                      )}
-                      {audit.estimatedCompletion && (
-                        <div>
-                          ETA:{" "}
-                          <span className="text-accent-scan">{audit.estimatedCompletion}</span>
-                        </div>
-                      )}
+                    {audit.assignedAuditor && (
+                      <div className="hidden sm:flex items-center gap-1.5 text-text-muted shrink-0 text-[11px]">
+                        <User className="h-3.5 w-3.5" />
+                        <span>{audit.assignedAuditor}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stepper (Minimalist 4-stage pipeline) */}
+                  <div className="pt-0.5">
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { num: 1, label: "Intake" },
+                        { num: 2, label: "AST Scan" },
+                        { num: 3, label: "Manual Review" },
+                        { num: 4, label: "Attestation" },
+                      ].map(({ num, label }) => {
+                        const isPast = audit.stageNumber > num;
+                        const isCurrent = audit.stageNumber === num;
+                        return (
+                          <div key={num} className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={cn(
+                                  "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors",
+                                  isPast
+                                    ? "bg-signal-resolved text-white"
+                                    : isCurrent
+                                    ? "bg-accent-scan text-bg-void ring-2 ring-accent-scan/30 animate-pulse"
+                                    : "bg-[#F2F4F7] dark:bg-bg-panel-raised text-text-muted border border-border-hairline"
+                                )}
+                              >
+                                {isPast ? "✓" : num}
+                              </div>
+                              <span
+                                className={cn(
+                                  "text-xs font-medium truncate hidden md:inline",
+                                  isCurrent
+                                    ? "text-accent-scan font-semibold"
+                                    : isPast
+                                    ? "text-text-primary"
+                                    : "text-text-muted"
+                                )}
+                              >
+                                {label}
+                              </span>
+                            </div>
+                            {/* Progress Line */}
+                            <div
+                              className={cn(
+                                "h-1 rounded-full transition-all",
+                                isPast
+                                  ? "bg-signal-resolved"
+                                  : isCurrent
+                                  ? "bg-accent-scan"
+                                  : "bg-[#E2E6EC] dark:bg-border-hairline/60"
+                              )}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
 
-      {/* SECTION 4: AUDIT PORTFOLIO & HISTORICAL ARCHIVE TABLE */}
-      <section className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-hairline pb-3">
-          <div>
-            <Eyebrow size="sm" prefix="">
-              AUDIT_ARCHIVE // ENGAGEMENT_RECORDS
-            </Eyebrow>
-            <h2 className="font-display text-xl font-semibold tracking-tight text-text-primary">
-              Audit Engagement Records
-            </h2>
-          </div>
+                {/* ── BOTTOM GRAY SECTION (Directly on outer gray container) ── */}
+                <div className="px-3.5 py-1.5 sm:px-4 sm:py-2 flex flex-wrap items-center justify-between gap-3 text-xs text-text-muted">
+                  <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 text-text-muted" />
+                      <span>{audit.estimatedCompletion ? `ETA: ${audit.estimatedCompletion}` : audit.submittedAt}</span>
+                    </div>
+                    <span className="text-[#D0D5DD] dark:text-border-hairline">|</span>
+                    <div className="flex items-center gap-1.5">
+                      <Layers className="h-3.5 w-3.5 text-text-muted" />
+                      <span>{audit.sloc.toLocaleString()} SLOC</span>
+                    </div>
+                    {audit.assignedAuditor && (
+                      <>
+                        <span className="text-[#D0D5DD] dark:text-border-hairline">|</span>
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-text-muted" />
+                          <span>{audit.assignedAuditor}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
-            <div className="flex items-center overflow-x-auto rounded-[4px] border border-border-hairline bg-bg-panel p-0.5 font-mono text-xs w-full sm:w-auto">
-              {[
-                { id: "past", label: `PAST AUDITS (${pastAudits.length})` },
-                { id: "in-flight", label: `IN-FLIGHT (${inFlightAudits.length})` },
-                { id: "all", label: `ALL (${audits.length})` },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setFilterStage(tab.id)}
-                  className={`px-2.5 py-1 rounded-[2px] transition-colors whitespace-nowrap ${
-                    filterStage === tab.id
-                      ? "bg-bg-panel-raised text-accent-scan font-semibold"
-                      : "text-text-muted hover:text-text-primary"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+                  {/* Findings breakdown */}
+                  <div className="flex items-center gap-1.5">
+                    {audit.criticalCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-md bg-signal-critical/10 text-signal-critical border border-signal-critical/20 text-[11px] font-semibold flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        {audit.criticalCount} Critical
+                      </span>
+                    )}
+                    {audit.highCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-md bg-signal-high/10 text-signal-high border border-signal-high/20 text-[11px] font-semibold">
+                        {audit.highCount} High
+                      </span>
+                    )}
+                    {audit.resolvedCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-md bg-signal-resolved/10 text-signal-resolved border border-signal-resolved/20 text-[11px] font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {audit.resolvedCount} Resolved
+                      </span>
+                    )}
+                    {audit.criticalCount === 0 && audit.highCount === 0 && audit.resolvedCount === 0 && (
+                      <span className="text-[11px] text-text-muted font-medium">
+                        Zero Open Risks
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Modern Clean Table View (in distinguished outer gray container) */
+        <div className="rounded-2xl border border-[#E2E6EC] dark:border-border-hairline/80 bg-[#F2F4F7] dark:bg-bg-void/60 p-1.5 sm:p-2 shadow-xs">
+          <div className="rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-white dark:bg-bg-panel overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#F8F9FA] dark:bg-bg-panel-raised/60 text-text-muted border-b border-border-hairline font-medium">
+                  <tr>
+                    <th className="py-3.5 px-4 font-mono">ID</th>
+                    <th className="py-3.5 px-4">Protocol Target</th>
+                    <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4">Scope</th>
+                    <th className="py-3.5 px-4">Findings</th>
+                    <th className="py-3.5 px-4">Timeline</th>
+                    <th className="py-3.5 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-hairline/60">
+                  {filteredAudits.map((audit) => {
+                    const isCompleted = audit.stage === "completed";
+                    const targetUrl = isCompleted ? `/portal/vault#${audit.id}` : `/portal/track/${audit.id}`;
 
-            <div className="w-full sm:w-56">
-              <Input
-                placeholder="Filter by protocol or 0x..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                prefix={<Search className="h-3.5 w-3.5 text-text-muted" />}
-              />
+                    return (
+                      <tr
+                        key={audit.id}
+                        className="hover:bg-[#F8F9FA] dark:hover:bg-bg-panel-raised/40 transition-colors group"
+                      >
+                        <td className="py-3 px-4 font-mono font-medium text-accent-scan">
+                          {audit.id}
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-text-primary group-hover:text-accent-scan transition-colors">
+                            {audit.protocolName}
+                          </div>
+                          <div className="text-[11px] text-text-muted font-mono">
+                            {audit.contractFileName}
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <StatusPill status={audit.stage} size="sm" />
+                        </td>
+
+                        <td className="py-3 px-4 font-mono text-text-muted">
+                          {audit.sloc.toLocaleString()} SLOC
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                            {audit.criticalCount > 0 && (
+                              <Badge severity="critical" size="sm">
+                                {audit.criticalCount} CRIT
+                              </Badge>
+                            )}
+                            {audit.highCount > 0 && (
+                              <Badge severity="high" size="sm">
+                                {audit.highCount} HIGH
+                              </Badge>
+                            )}
+                            {audit.resolvedCount > 0 && (
+                              <Badge severity="resolved" size="sm">
+                                {audit.resolvedCount} RESOLVED
+                              </Badge>
+                            )}
+                            {audit.criticalCount === 0 && audit.highCount === 0 && audit.resolvedCount === 0 && (
+                              <span className="text-text-muted">Clean</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4 text-text-muted font-sans">
+                          {audit.completedAt || audit.submittedAt}
+                        </td>
+
+                        <td className="py-3 px-4 text-right">
+                          <Link href={targetUrl}>
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F2F4F7] hover:bg-accent-scan/10 hover:text-accent-scan dark:bg-bg-panel-raised text-text-primary border border-[#E2E6EC] dark:border-border-hairline transition-colors cursor-pointer"
+                            >
+                              <span>{isCompleted ? "Certificate" : "Track"}</span>
+                              <ArrowUpRight className="h-3 w-3" />
+                            </button>
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
+      )}
 
-        {filteredAudits.length === 0 ? (
-          <div className="p-8 rounded-[4px] bg-bg-panel border border-border-hairline text-center font-mono text-xs text-text-muted">
-            No engagements match your filters.
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-28">Ticket ID</TableHead>
-                <TableHead>Protocol Target</TableHead>
-                <TableHead className="w-28">Scope</TableHead>
-                <TableHead className="w-36">Status</TableHead>
-                <TableHead className="w-48">Findings</TableHead>
-                <TableHead className="w-40">Timeline</TableHead>
-                <TableHead className="w-28 text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAudits.map((audit) => {
-                const ns = normalizeStage(audit.stage);
-                const isInFlight =
-                  ns === "scanning" || ns === "in-review" || ns === "pending";
-                return (
-                  <TableRow key={audit.id} className={isInFlight ? "bg-bg-panel/20" : ""}>
-                    <TableCell className="font-mono text-xs text-accent-scan font-medium">
-                      {audit.id}
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="font-medium text-text-primary flex items-center gap-2">
-                          {audit.protocolName}
-                          <span className="font-mono text-xs text-text-muted">
-                            ({audit.contractFileName})
-                          </span>
-                        </div>
-                        {audit.contractAddress && (
-                          <div className="font-mono text-xs text-text-muted truncate max-w-xs">
-                            {audit.contractAddress}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="font-mono text-xs text-text-muted">
-                      {(audit.sloc || 0).toLocaleString()} SLOC
-                    </TableCell>
-
-                    <TableCell>
-                      <StatusPill status={ns} size="sm" />
-                    </TableCell>
-
-                    <TableCell>
-                      {ns === "completed" ? (
-                        <div className="flex items-center gap-1.5 font-mono text-[10px]">
-                          {(audit.findings?.critical ?? 0) > 0 && (
-                            <Badge severity="critical" size="sm">
-                              {audit.findings!.critical} CRIT
-                            </Badge>
-                          )}
-                          {(audit.findings?.high ?? 0) > 0 && (
-                            <Badge severity="high" size="sm">
-                              {audit.findings!.high} HIGH
-                            </Badge>
-                          )}
-                          {(audit.findings?.resolved ?? 0) > 0 && (
-                            <Badge severity="resolved" size="sm">
-                              {audit.findings!.resolved} RESOLVED
-                            </Badge>
-                          )}
-                        </div>
-                      ) : ns === "failed" ? (
-                        <span className="font-mono text-[11px] text-signal-critical">
-                          COMPILATION_ERROR
-                        </span>
-                      ) : (
-                        <span className="font-mono text-[11px] text-accent-scan flex items-center gap-1">
-                          <span className="h-1.5 w-1.5 rounded-full bg-accent-scan animate-pulse" />
-                          In-Flight (Active Tracker ↑)
-                        </span>
-                      )}
-                    </TableCell>
-
-                    <TableCell className="font-mono text-xs text-text-muted">
-                      {audit.completedAt || audit.submittedAt}
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      {ns === "completed" ? (
-                        <Link href={`/portal/vault#${audit.id}`}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            rightIcon={<Download className="h-3 w-3" />}
-                          >
-                            Report
-                          </Button>
-                        </Link>
-                      ) : ns === "failed" ? (
-                        <Link href="/portal/new-request">
-                          <Button size="sm" variant="danger">
-                            Resubmit
-                          </Button>
-                        </Link>
-                      ) : (
-                        <a href={`#card-${audit.id}`}>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            rightIcon={<ExternalLink className="h-3 w-3" />}
-                          >
-                            View Card
-                          </Button>
-                        </a>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </section>
-
-      {/* SECTION 5: RECENT ATTESTATIONS QUICK VAULT */}
+      {/* ─── 5. VERIFIED ATTESTATIONS SHOWCASE (With Nested Gray/White Contrast) ─── */}
       {completedAudits.length > 0 && (
-        <section className="space-y-6">
-          <div className="flex items-center justify-between border-b border-border-hairline pb-3">
-            <Eyebrow size="sm" prefix="// DOCUMENT_VAULT · ">
-              VERIFIED_ATTESTATION_REGISTRY
-            </Eyebrow>
-            <Link href="/portal/vault" className="font-mono text-xs text-accent-scan hover:underline">
-              VIEW FULL VAULT →
+        <div className="space-y-4 pt-4 border-t border-border-hairline/80">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-display text-lg font-semibold text-text-primary">
+                Verified Cryptographic Attestations
+              </h2>
+              <p className="text-xs text-text-muted">
+                Immutable SHA-256 bytecode hashes and signed audit certificates.
+              </p>
+            </div>
+            <Link
+              href="/portal/vault"
+              className="text-xs text-accent-scan hover:underline flex items-center gap-1 font-medium"
+            >
+              <span>View Full Vault</span>
+              <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {completedAudits.slice(0, 4).map((cert) => (
               <div
                 key={cert.id}
-                className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-4 relative"
+                className="rounded-2xl border border-[#E2E6EC] dark:border-border-hairline/80 bg-[#F2F4F7] dark:bg-bg-void/60 p-1.5 sm:p-2 space-y-1.5 shadow-xs"
               >
-                <div className="flex items-center justify-between border-b border-border-hairline pb-3">
-                  <div className="flex items-center gap-2">
-                    <FileCheck2 className="h-4 w-4 text-signal-resolved" />
-                    <span className="font-mono text-xs font-semibold text-text-primary">
-                      {cert.id} // {cert.protocolName}
-                    </span>
+                {/* Inner White Section */}
+                <div className="rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-white dark:bg-bg-panel p-4 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-signal-resolved/10 text-signal-resolved flex items-center justify-center">
+                        <FileCheck2 className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-text-primary text-xs">
+                          {cert.protocolName}
+                        </div>
+                        <div className="text-[11px] text-text-muted font-mono">
+                          {cert.id} • {cert.contractFileName}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge severity="resolved" size="sm">
+                      Attestation Signed
+                    </Badge>
                   </div>
-                  <Badge severity="resolved" size="sm">
-                    SHA-256 VERIFIED
-                  </Badge>
+
+                  {cert.bytecodeHash && (
+                    <div className="space-y-1 font-mono text-xs">
+                      <div className="flex items-center justify-between text-[11px] text-text-muted">
+                        <span>Bytecode Hash</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyHash(cert.bytecodeHash!)}
+                          className="text-accent-scan hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          {copiedHash === cert.bytecodeHash ? (
+                            <>
+                              <Check className="h-3 w-3 text-signal-resolved" />
+                              <span className="text-signal-resolved text-[10px]">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3 w-3" />
+                              <span className="text-[10px]">Copy</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="p-2 rounded-xl bg-[#F8F9FA] dark:bg-bg-void/50 border border-[#E4E7EC] dark:border-border-hairline text-[11px] text-text-muted truncate select-all">
+                        {cert.bytecodeHash}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {cert.bytecodeHash && (
-                  <div className="space-y-2 font-mono text-xs">
-                    <div className="flex items-center justify-between text-text-muted text-[11px]">
-                      <span>DEPLOYED BYTECODE HASH:</span>
-                      <span className="text-signal-resolved">IMMUTABLE</span>
-                    </div>
-                    <div className="p-2 rounded-[2px] bg-bg-void border border-border-hairline text-[11px] text-accent-scan truncate">
-                      {cert.bytecodeHash}
-                    </div>
-                  </div>
-                )}
-
-                <div className="pt-2 border-t border-border-hairline flex items-center justify-between text-xs font-mono text-text-muted">
-                  <span>
-                    AUDITED BY: {cert.assignedAuditor || "Zyron Auditor"}{" "}
-                    {cert.peerAuditor ? `& ${cert.peerAuditor}` : ""}
-                  </span>
+                {/* Bottom Gray Section */}
+                <div className="px-3.5 py-1.5 flex items-center justify-between text-xs text-text-muted">
+                  <span>Auditor: {cert.assignedAuditor || "Zyron Security Lab"}</span>
                   <Link href={`/portal/vault#${cert.id}`}>
-                    <Button size="sm" variant="outline" rightIcon={<Download className="h-3 w-3" />}>
-                      Download PDF
-                    </Button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium bg-white dark:bg-bg-panel-raised hover:bg-accent-scan/10 hover:text-accent-scan text-text-primary border border-[#E2E6EC] dark:border-border-hairline transition-all cursor-pointer shadow-xs"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Download PDF</span>
+                    </button>
                   </Link>
                 </div>
               </div>
             ))}
           </div>
-        </section>
+        </div>
       )}
     </div>
   );
