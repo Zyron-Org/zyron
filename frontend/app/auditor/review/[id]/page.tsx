@@ -1019,7 +1019,7 @@ mitigated or verified false positives before production deployment.
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-2">
       {/* SUCCESS BANNER WHEN REPORT IS FINALIZED */}
       {isFinalized && (
         <div className="rounded-2xl border border-signal-resolved/40 bg-signal-resolved/10 p-2 sm:p-2.5 shadow-sm animate-in fade-in duration-200">
@@ -1094,8 +1094,8 @@ mitigated or verified false positives before production deployment.
       )}
 
       {/* TOP AUDITOR BREADCRUMB & SCOPE HEADER */}
-      <div className="rounded-2xl border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-panel/40 p-1.5 sm:p-2 shadow-sm">
-        <div className="bg-white dark:bg-bg-panel rounded-xl p-4 sm:p-5 border border-gray-200/60 dark:border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs shadow-xs">
+      <div className="rounded-xl border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-panel/40 p-1 shadow-xs">
+        <div className="bg-white dark:bg-bg-panel rounded-lg px-3 py-2 border border-gray-200/60 dark:border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 font-mono text-xs shadow-xs">
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/auditor/queue"
@@ -1182,14 +1182,14 @@ mitigated or verified false positives before production deployment.
       </div>
 
       {/* DUAL-PANE CODE REVIEW & VULNERABILITY TRIAGE SURFACE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-2.5 items-start">
         {/* ========================================================================= */}
         {/* LEFT 7 COLS: CODE PANE (FILE TREE + COMMIT DIFF / FULL SOURCE)             */}
         {/* ========================================================================= */}
-        <div className="lg:col-span-7 rounded-2xl border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-panel/40 p-1.5 sm:p-2 shadow-sm flex flex-col">
-          <div className="bg-white dark:bg-bg-panel rounded-xl border border-gray-200/60 dark:border-border-hairline overflow-hidden flex flex-col flex-1">
+        <div className="lg:col-span-7 rounded-xl border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-panel/40 p-1 shadow-xs flex flex-col">
+          <div className="bg-white dark:bg-bg-panel rounded-lg border border-gray-200/60 dark:border-border-hairline overflow-hidden flex flex-col flex-1">
             {/* Top Control Bar */}
-            <div className="border-b border-gray-200/70 dark:border-border-hairline bg-[#F9FAFB] dark:bg-bg-void/90 flex flex-wrap items-center justify-between font-mono text-xs px-3.5 py-2.5 gap-2">
+            <div className="border-b border-gray-200/70 dark:border-border-hairline bg-[#F9FAFB] dark:bg-bg-void/90 flex flex-wrap items-center justify-between font-mono text-xs px-2.5 py-1.5 gap-2">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowFileTree(!showFileTree)}
@@ -1260,7 +1260,7 @@ mitigated or verified false positives before production deployment.
             </div>
 
           {/* Sub-Header Metadata */}
-          <div className="p-2.5 px-4 bg-bg-panel-raised/50 border-b border-border-hairline flex flex-wrap items-center justify-between font-mono text-[11px] text-text-muted gap-2">
+          <div className="py-1.5 px-3 bg-bg-panel-raised/50 border-b border-border-hairline flex flex-wrap items-center justify-between font-mono text-[11px] text-text-muted gap-2">
             <div className="flex items-center gap-2">
               <span className="text-text-primary font-medium">{activeFile.path}</span>
               <span className="text-accent-scan font-medium">({activeFile.sloc} SLOC)</span>
@@ -1343,7 +1343,7 @@ mitigated or verified false positives before production deployment.
             <div className="flex-1 overflow-hidden flex flex-col bg-bg-void">
               {/* Diff View */}
               {viewMode === "diff" && (
-                <div className="p-4 bg-bg-void font-mono text-xs leading-relaxed overflow-x-auto select-text space-y-0.5 max-h-[580px] overflow-y-auto divide-y divide-border-hairline/20">
+                <div className="p-1.5 sm:p-2 bg-bg-void font-mono text-xs leading-relaxed overflow-x-auto select-text space-y-0.5 min-h-[640px] max-h-[calc(100vh-175px)] overflow-y-auto divide-y divide-border-hairline/20">
                   {activeFile.diffLines.map((row, idx) => {
                     if (row.type === "header") {
                       return (
@@ -1385,7 +1385,7 @@ mitigated or verified false positives before production deployment.
 
               {/* Full Source View with Line Gutter & Inline Finding Ribbons */}
               {viewMode === "full" && (
-                <div className="p-4 bg-bg-void font-mono text-xs leading-relaxed overflow-x-auto select-text space-y-0.5 max-h-[580px] overflow-y-auto">
+                <div className="p-1.5 sm:p-2 bg-bg-void font-mono text-xs leading-relaxed overflow-x-auto select-text space-y-0.5 min-h-[640px] max-h-[calc(100vh-175px)] overflow-y-auto">
                   {activeFile.lines.map((row) => {
                     const lineFindings = findings.filter(
                       (f) => (f.file.includes(activeFile.name) || f.file.includes(activeFile.path)) && f.line === row.line
@@ -1493,16 +1493,16 @@ mitigated or verified false positives before production deployment.
       {/* ========================================================================= */}
       {/* RIGHT 5 COLS: AUDITOR TRIAGE & VERIFICATION WORKBENCH                     */}
       {/* ========================================================================= */}
-      <div className="lg:col-span-5 rounded-2xl border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-panel/40 p-1.5 sm:p-2 shadow-sm flex flex-col">
-        <div className="bg-white dark:bg-bg-panel rounded-xl border border-gray-200/60 dark:border-border-hairline p-4 sm:p-5 shadow-xs space-y-4 font-mono text-xs flex-1">
+      <div className="lg:col-span-5 rounded-xl border border-gray-200/80 dark:border-border-hairline bg-[#F2F4F7] dark:bg-bg-panel/40 p-1 shadow-xs flex flex-col">
+        <div className="bg-white dark:bg-bg-panel rounded-lg border border-gray-200/60 dark:border-border-hairline p-2 sm:p-2.5 shadow-xs space-y-2.5 font-mono text-xs flex-1">
 
           {/* ------------------------------------------------------------------ */}
           {/* VIEW A: FINDINGS LIST — shown when no finding is open in detail      */}
           {/* ------------------------------------------------------------------ */}
           {findingView === "list" && (
-            <div className="space-y-4 font-mono text-xs">
+            <div className="space-y-2.5 font-mono text-xs">
               {/* Triage Header & Filter Tabs */}
-              <div className="p-3.5 rounded-xl bg-gray-50/80 dark:bg-bg-panel-raised/50 border border-gray-200/80 dark:border-border-hairline space-y-3">
+              <div className="p-2 sm:p-2.5 rounded-lg bg-gray-50/80 dark:bg-bg-panel-raised/50 border border-gray-200/80 dark:border-border-hairline space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-text-primary flex items-center gap-1.5 text-xs font-sans">
                     <ShieldCheck className="h-4 w-4 text-accent-scan" />
@@ -1570,7 +1570,7 @@ mitigated or verified false positives before production deployment.
                           if (target) setSelectedFilePath(target.path);
                         }
                       }}
-                      className="w-full p-3.5 rounded-xl border transition-all text-left bg-white dark:bg-bg-panel border-gray-200/80 dark:border-border-hairline hover:border-accent-scan/50 dark:hover:border-accent-scan/50 hover:shadow-xs group"
+                      className="w-full p-2.5 rounded-lg border transition-all text-left bg-white dark:bg-bg-panel border-gray-200/80 dark:border-border-hairline hover:border-accent-scan/50 dark:hover:border-accent-scan/50 hover:shadow-xs group"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="space-y-1.5 flex-1 min-w-0">
@@ -1639,9 +1639,9 @@ mitigated or verified false positives before production deployment.
           {/* VIEW B: FULL FINDING DETAIL — replaces list when a finding is open  */}
           {/* ------------------------------------------------------------------ */}
           {findingView === "detail" && selectedFinding && (
-            <div className="space-y-4 font-mono text-xs animate-in fade-in duration-150">
+            <div className="space-y-2.5 font-mono text-xs animate-in fade-in duration-150">
               {/* Back navigation bar */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/80 dark:bg-bg-panel-raised/50 border border-gray-200/80 dark:border-border-hairline">
+              <div className="flex items-center justify-between p-2 px-2.5 rounded-lg bg-gray-50/80 dark:bg-bg-panel-raised/50 border border-gray-200/80 dark:border-border-hairline">
                 <button
                   onClick={() => setFindingView("list")}
                   className="flex items-center gap-1.5 text-text-muted hover:text-accent-scan transition-colors text-xs font-sans font-medium"
@@ -1680,7 +1680,7 @@ mitigated or verified false positives before production deployment.
               {/* Finding Detail Panel */}
               <div className="rounded-xl bg-white dark:bg-bg-panel border border-gray-200/80 dark:border-border-hairline overflow-hidden shadow-xs">
                 {/* Finding Header */}
-                <div className="p-4 sm:p-5 border-b border-gray-200/70 dark:border-border-hairline space-y-2.5">
+                <div className="p-3 sm:p-3.5 border-b border-gray-200/70 dark:border-border-hairline space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
@@ -1729,14 +1729,14 @@ mitigated or verified false positives before production deployment.
                   )}
 
                   {/* Impact & Description */}
-                  <div className="p-4 sm:p-5 space-y-3">
+                  <div className="p-3 sm:p-3.5 space-y-2">
                     {selectedFinding.impact && (
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans">EXPLOIT IMPACT</div>
                         <div className="text-xs text-signal-high font-sans font-medium">{selectedFinding.impact}</div>
                       </div>
                     )}
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans">ROOT CAUSE & ANALYSIS</div>
                       <p className="text-xs text-text-muted font-sans leading-relaxed">
                         {selectedFinding.description || <span className="italic">No description provided.</span>}
@@ -1746,9 +1746,9 @@ mitigated or verified false positives before production deployment.
 
                   {/* Vulnerable Code */}
                   {selectedFinding.vulnerableCode && (
-                    <div className="p-4 sm:p-5 space-y-2">
+                    <div className="p-3 sm:p-3.5 space-y-1.5">
                       <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans">FLAGGED VULNERABLE CODE</div>
-                      <div className="p-3 rounded-lg bg-gray-50 dark:bg-bg-void border border-signal-critical/30 text-[11px] overflow-x-auto">
+                      <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-bg-void border border-signal-critical/30 text-[11px] overflow-x-auto">
                         <HighlightedSolidityBlock code={selectedFinding.vulnerableCode} />
                       </div>
                     </div>
@@ -1756,7 +1756,7 @@ mitigated or verified false positives before production deployment.
 
                   {/* Remediation */}
                   {selectedFinding.remediation && (
-                    <div className="p-4 sm:p-5 space-y-2">
+                    <div className="p-3 sm:p-3.5 space-y-1.5">
                       <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans">REMEDIATION GUIDANCE</div>
                       <p className="text-xs text-signal-resolved font-sans leading-relaxed">
                         {selectedFinding.remediation}
@@ -1765,7 +1765,7 @@ mitigated or verified false positives before production deployment.
                   )}
 
                   {/* Triage Actions */}
-                  <div className="p-4 sm:p-5 space-y-3">
+                  <div className="p-3 sm:p-3.5 space-y-2.5">
                     <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans">TRIAGE ACTIONS</div>
 
                     {isCorrectionsStage ? (
@@ -1875,7 +1875,7 @@ mitigated or verified false positives before production deployment.
                   </div>
 
                   {/* ── DISCUSSION THREAD ─────────────────────────────────── */}
-                  <div className="p-4 sm:p-5 space-y-3">
+                  <div className="p-3 sm:p-3.5 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold font-sans flex items-center gap-1.5">
                         <MessageSquare className="h-3.5 w-3.5 text-accent-scan" />
