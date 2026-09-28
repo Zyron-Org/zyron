@@ -59,7 +59,7 @@ const SLIDES_META: SlideData[] = [
     id: "cover",
     badge: "Executive Pitch Deck",
     title: "The Cryptographic Security Infrastructure for Web3",
-    subtitle: "Deterministic AST Static Analysis, Dual-Auditor Verification, and On-Chain Bytecode Attestation.",
+    subtitle: "Autonomous AI Red-Team Agent, Virtual Blockchain Exploit Simulation, and On-Chain Bytecode Attestation.",
     category: "Vision",
   },
   {
@@ -73,14 +73,21 @@ const SLIDES_META: SlideData[] = [
     id: "solution",
     badge: "The Solution",
     title: "Zyron: Continuous, Verifiable Protocol Security",
-    subtitle: "Replacing static PDFs with real-time automated AST scans, double-blind human triage, and immutable attestations.",
+    subtitle: "Combining automated AST passes with autonomous virtual blockchain exploit simulation and calibrated human triage.",
     category: "Product",
   },
   {
     id: "product-engine",
-    badge: "Core Technology",
+    badge: "Compiler Technology",
     title: "14-Pass AST & Symbolic Execution Engine",
     subtitle: "Enterprise-grade static analysis, taint tracking, and CFG graph reconstruction executing in sub-minute runs.",
+    category: "Product",
+  },
+  {
+    id: "ai-sandbox",
+    badge: "Adversarial AI Simulation",
+    title: "Autonomous AI Red-Team Agent & Virtual Sandbox",
+    subtitle: "Deploying bytecode to an ephemeral virtual EVM fork to dynamically synthesize real exploits and generate executable Foundry PoCs.",
     category: "Product",
   },
   {
@@ -115,7 +122,7 @@ const SLIDES_META: SlideData[] = [
     id: "competition",
     badge: "Competitive Moat",
     title: "Why Zyron Wins Against Legacy Firms",
-    subtitle: "70% lower turnaround times, 50% cost efficiency, and the only platform with verifiable on-chain attestations.",
+    subtitle: "Virtual blockchain exploit simulation, 70% lower turnaround, 50% cost efficiency, and on-chain attestations.",
     category: "Business",
   },
   {
@@ -129,7 +136,7 @@ const SLIDES_META: SlideData[] = [
     id: "roadmap",
     badge: "Vision & Ask",
     title: "The Roadmap to Universal Web3 Security",
-    subtitle: "Scaling the decentralized security protocol, automated exploit synthesis, and institutional risk oracles.",
+    subtitle: "Scaling autonomous exploit synthesis, multi-chain attestation oracles, and decentralized auditor staking.",
     category: "Vision",
   },
 ];
@@ -326,13 +333,14 @@ export default function PitchDeckPage() {
           {currentSlide === 1 && <SlideProblem />}
           {currentSlide === 2 && <SlideSolution />}
           {currentSlide === 3 && <SlideEngine />}
-          {currentSlide === 4 && <SlideDualAuditor />}
-          {currentSlide === 5 && <SlideAttestation />}
-          {currentSlide === 6 && <SlideMarket />}
-          {currentSlide === 7 && <SlideBusinessModel />}
-          {currentSlide === 8 && <SlideCompetition />}
-          {currentSlide === 9 && <SlideTraction />}
-          {currentSlide === 10 && <SlideRoadmap onRestart={() => setCurrentSlide(0)} />}
+          {currentSlide === 4 && <SlideExploitSandbox />}
+          {currentSlide === 5 && <SlideDualAuditor />}
+          {currentSlide === 6 && <SlideAttestation />}
+          {currentSlide === 7 && <SlideMarket />}
+          {currentSlide === 8 && <SlideBusinessModel />}
+          {currentSlide === 9 && <SlideCompetition />}
+          {currentSlide === 10 && <SlideTraction />}
+          {currentSlide === 11 && <SlideRoadmap onRestart={() => setCurrentSlide(0)} />}
         </div>
       </main>
 
@@ -747,7 +755,131 @@ function SlideEngine() {
   );
 }
 
-// --- SLIDE 5: DUAL-AUDITOR WORKBENCH ---
+// --- SLIDE 5: AUTONOMOUS AI RED-TEAM & VIRTUAL BLOCKCHAIN SANDBOX ---
+function SlideExploitSandbox() {
+  return (
+    <div className="space-y-6">
+      <SlideHeader
+        badge="Adversarial AI Simulation"
+        title="Autonomous AI Red-Team Agent & Virtual Sandbox"
+        description="Our AI agent doesn't just lint syntax — it deploys target contracts to an isolated virtual EVM fork, synthesizes stateful exploits, and executes simulated attacks to prove vulnerabilities."
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Left: 4-Step Exploit Synthesis Loop */}
+        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-4">
+          <h3 className="font-semibold text-sm text-white flex items-center gap-2">
+            <Cpu className="h-4 w-4 text-signal-critical animate-pulse" />
+            <span>The 4-Step Autonomous Exploit Loop</span>
+          </h3>
+
+          <div className="space-y-3 text-xs">
+            <div className="flex items-start gap-3">
+              <div className="h-6 w-6 rounded-full bg-signal-critical/20 text-signal-critical flex items-center justify-center font-mono font-bold shrink-0 text-[11px]">
+                1
+              </div>
+              <div>
+                <div className="font-semibold text-white">Ephemeral Virtual EVM Fork</div>
+                <p className="text-text-muted text-[11px]">
+                  Spins up an isolated Anvil virtual blockchain in sub-second time, populated with mock liquidity pools, price feeds, and flash loan facilities.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="h-6 w-6 rounded-full bg-signal-critical/20 text-signal-critical flex items-center justify-center font-mono font-bold shrink-0 text-[11px]">
+                2
+              </div>
+              <div>
+                <div className="font-semibold text-white">Target Bytecode Deployment</div>
+                <p className="text-text-muted text-[11px]">
+                  Compiles and instantiates the contract bytecode directly onto the virtual chain, initializing real state and storage slots.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="h-6 w-6 rounded-full bg-signal-critical/20 text-signal-critical flex items-center justify-center font-mono font-bold shrink-0 text-[11px]">
+                3
+              </div>
+              <div>
+                <div className="font-semibold text-white">Dynamic Adversarial Exploit Execution</div>
+                <p className="text-text-muted text-[11px]">
+                  AI agent synthesizes multi-transaction attack payloads (reentrancy loops, flash-loan manipulation, storage collisions) and fires them at the virtual chain.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="h-6 w-6 rounded-full bg-signal-critical/20 text-signal-critical flex items-center justify-center font-mono font-bold shrink-0 text-[11px]">
+                4
+              </div>
+              <div>
+                <div className="font-semibold text-white">Executable Foundry PoC Generation</div>
+                <p className="text-text-muted text-[11px]">
+                  Confirmed exploits emit executable, turn-key Foundry/Hardhat test files with EVM state traces for human auditor verification with zero false alarms.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Live Simulated Exploit Console UI */}
+        <div className="p-5 rounded-xl bg-black/70 border border-white/15 space-y-3 font-mono text-xs shadow-xl">
+          <div className="flex items-center justify-between text-[11px] pb-2 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <Terminal className="h-3.5 w-3.5 text-signal-critical animate-pulse" />
+              <span className="text-white font-bold">VIRTUAL_EVM_FORK // ANVIL_SANDBOX</span>
+            </div>
+            <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded text-[10px]">
+              LIVE SIMULATION
+            </span>
+          </div>
+
+          <div className="space-y-1.5 text-[10px] leading-relaxed">
+            <div className="text-text-muted">
+              <span className="text-accent-scan font-bold">[EVM_FORK]</span> Ephemeral fork initialized @ block #19,482,014
+            </div>
+            <div className="text-text-muted">
+              <span className="text-accent-scan font-bold">[DEPLOY]</span> Deployed VaultCore.sol (0x71C8364...) + 500k USDC liquidity
+            </div>
+            <div className="text-amber-400">
+              <span className="text-accent-scan font-bold">[AI_AGENT]</span> Synthesizing adversarial vector: SWC-107 Reentrancy
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-signal-critical/15 text-signal-critical border border-signal-critical/30 space-y-1 my-1.5">
+              <div className="font-bold flex items-center justify-between text-[11px]">
+                <span>💥 SIMULATED EXPLOIT EXECUTED</span>
+                <span className="bg-signal-critical/20 px-1.5 py-0.5 rounded">FUNDS DRAINED</span>
+              </div>
+              <div className="text-[9px] text-signal-critical/90 leading-normal">
+                ▸ tx1: flashLoan(250_000 USDC) via Balancer Vault<br />
+                ▸ tx2: deposit(10_000 USDC) -&gt; reenter withdraw() before userBal zeroed<br />
+                ▸ tx3: extracted $250,000 USDC from protocol reserves in block simulation
+              </div>
+            </div>
+
+            <div className="text-emerald-400">
+              <span className="text-accent-scan font-bold">[POC_OUT]</span> Emitted Foundry test: test_reentrancy_drain.sol
+            </div>
+            <div className="text-text-muted">
+              <span className="text-accent-scan font-bold">[DISPATCH]</span> Exploit payload & state trace routed to Lead Auditor
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-text-muted font-sans">
+            <span className="text-white font-medium">Mathematical Proof of Exploitability</span>
+            <Badge severity="critical" size="sm">
+              Zero False Positives
+            </Badge>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- SLIDE 6: DUAL-AUDITOR WORKBENCH ---
 function SlideDualAuditor() {
   return (
     <div className="space-y-6">
@@ -1096,6 +1228,13 @@ function SlideCompetition() {
               <td className="py-2.5 px-4 text-signal-critical">None (PDF Only)</td>
               <td className="py-2.5 px-4 text-signal-critical">None</td>
               <td className="py-2.5 px-4 text-signal-critical">None (Github PR)</td>
+            </tr>
+            <tr>
+              <td className="py-2.5 px-4 font-semibold text-white">Virtual Blockchain Exploit Execution</td>
+              <td className="py-2.5 px-4 font-bold text-accent-scan">Autonomous Fork & PoC</td>
+              <td className="py-2.5 px-4 text-signal-critical">None (Manual Only)</td>
+              <td className="py-2.5 px-4 text-signal-critical">None (Static Only)</td>
+              <td className="py-2.5 px-4 text-text-muted">Crowd Contests Only</td>
             </tr>
             <tr>
               <td className="py-2.5 px-4 font-semibold text-white">Continuous CI/CD Gate</td>

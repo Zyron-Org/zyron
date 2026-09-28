@@ -454,8 +454,8 @@ export default function ClientDashboardPage() {
             icon: <Users className="h-4 w-4" />,
           }}
         >
-          {/* 3 Quick-start Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left pt-2">
+          {/* 4 Quick-start Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-left pt-2">
             <div className="p-3.5 rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-[#F8F9FA] dark:bg-bg-void/40 space-y-1">
               <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
                 <span className="h-5 w-5 rounded-md bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono text-[10px] font-bold">
@@ -470,13 +470,13 @@ export default function ClientDashboardPage() {
 
             <div className="p-3.5 rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-[#F8F9FA] dark:bg-bg-void/40 space-y-1">
               <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
-                <span className="h-5 w-5 rounded-md bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono text-[10px] font-bold">
+                <span className="h-5 w-5 rounded-md bg-signal-critical/10 text-signal-critical flex items-center justify-center font-mono text-[10px] font-bold">
                   02
                 </span>
-                <span>Auditor Triage</span>
+                <span>AI Sandbox Exploit</span>
               </div>
               <p className="text-[11px] text-text-muted leading-relaxed">
-                Certified EVM researchers manually analyze invariants, exploit paths, and triage PoCs.
+                AI agent deploys to virtual EVM fork and dynamically simulates exploits to prove vulnerabilities.
               </p>
             </div>
 
@@ -484,6 +484,18 @@ export default function ClientDashboardPage() {
               <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
                 <span className="h-5 w-5 rounded-md bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono text-[10px] font-bold">
                   03
+                </span>
+                <span>Auditor Triage</span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Certified EVM researchers manually analyze invariants, verify exploit PoCs, and calibrate severity.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-[#E4E7EC] dark:border-border-hairline/60 bg-[#F8F9FA] dark:bg-bg-void/40 space-y-1">
+              <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
+                <span className="h-5 w-5 rounded-md bg-signal-resolved/10 text-signal-resolved flex items-center justify-center font-mono text-[10px] font-bold">
+                  04
                 </span>
                 <span>Attestation Vault</span>
               </div>

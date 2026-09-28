@@ -29,6 +29,8 @@ import {
   ChevronRight,
   Info,
   CheckCircle2,
+  Cpu,
+  Terminal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -958,6 +960,24 @@ export default function NewAuditRequestPage() {
                 </h2>
                 <p className="text-xs text-text-muted">
                   Configure specific vulnerability classes, invariant checkers, and mathematical assertions to prioritize.
+                </p>
+              </div>
+
+              {/* Autonomous AI Red-Team & Virtual Blockchain Sandbox Banner */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-signal-critical/10 via-accent-scan/5 to-transparent border border-signal-critical/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
+                    <div className="h-6 w-6 rounded-md bg-signal-critical/15 text-signal-critical flex items-center justify-center">
+                      <Cpu className="h-3.5 w-3.5" />
+                    </div>
+                    <span>Autonomous AI Red-Team & Virtual Blockchain Sandbox</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-signal-critical/15 text-signal-critical border border-signal-critical/20 font-bold">
+                    INCLUDED ON ALL INTAKES
+                  </span>
+                </div>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Your contracts will be deployed to an isolated virtual EVM fork, where an autonomous AI agent dynamically simulates real-world attack vectors (flash-loan reentrancy, price oracle spoofing, balance draining) to mathematically prove vulnerabilities with executable Foundry PoCs before human auditor review.
                 </p>
               </div>
 

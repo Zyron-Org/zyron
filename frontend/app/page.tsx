@@ -559,20 +559,20 @@ export default function LandingPage() {
 
             {/* Badge Text */}
             <span className="relative z-10 text-xs font-mono font-medium text-text-primary tracking-wide">
-              AI-Powered Security Engine
+              Autonomous AI Red-Team & Virtual Sandbox Engine
             </span>
           </div>
 
           {/* Headline */}
           <h1 className="hero-title-anim font-display text-4xl sm:text-5xl md:text-6xl font-normal tracking-tight text-text-primary leading-[1.12]">
-            Securing the future of
+            Deploy to a virtual blockchain.
             <br />
-            <span className="text-accent-scan font-normal">decentralized finance.</span>
+            <span className="text-accent-scan font-normal">Synthesize real exploits.</span>
           </h1>
 
           {/* Subheading */}
-          <p className="hero-subhead-anim text-sm sm:text-base text-text-muted max-w-xl mx-auto leading-relaxed">
-            Instantly audit smart contracts with AI. Detect vulnerabilities, triage risks, and ship safer code in minutes.
+          <p className="hero-subhead-anim text-sm sm:text-base text-text-muted max-w-2xl mx-auto leading-relaxed">
+            Zyron deploys your smart contracts to an ephemeral virtual EVM sandbox, where an autonomous AI agent simulates dynamic adversarial attacks to prove critical vulnerabilities with executable Foundry PoCs before human auditor review.
           </p>
 
           {/* Dual Interactive Expanding CTA Buttons */}
@@ -1254,7 +1254,7 @@ export default function LandingPage() {
             </h2>
 
             <p className="text-sm sm:text-base text-text-muted font-sans leading-relaxed">
-              Our 4-stage verification lifecycle guarantees cryptographic parity and transparent milestone releases at every step.
+              Our 5-stage verification lifecycle guarantees cryptographic parity, autonomous dynamic exploit simulation, and transparent milestone releases at every step.
             </p>
           </div>
 
@@ -1351,14 +1351,109 @@ export default function LandingPage() {
             </div>
 
             {/* ================================================================= */}
-            {/* STACK CARD 2: DUAL-PANE CODE REVIEW & RED-TEAM WORKSPACE          */}
+            {/* STACK CARD 2: AUTONOMOUS AI RED-TEAM & VIRTUAL BLOCKCHAIN SANDBOX */}
             {/* ================================================================= */}
-            <div className="sticky top-[148px] z-20 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
+            <div className="sticky top-[138px] z-15 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
+              {/* Top Tab Bar Header (Visible when stacked) */}
+              <div className="px-6 sm:px-8 py-3.5 bg-bg-panel-raised border-b border-border-hairline flex items-center justify-between font-mono text-xs text-text-muted">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-signal-critical animate-pulse" />
+                  <span className="font-semibold text-text-primary">02 SIMULATE</span>
+                  <span className="text-text-muted/40">·</span>
+                  <span className="text-[11px]">Autonomous AI red-team & virtual blockchain sandbox</span>
+                </div>
+                <span className="text-[10px] text-signal-critical uppercase tracking-wider hidden sm:inline">
+                  VIRTUAL_EVM_FORK_ACTIVE
+                </span>
+              </div>
+
+              {/* Card Body */}
+              <div className="p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                {/* Left Column: Headline & Bullets */}
+                <div className="lg:col-span-6 space-y-6">
+                  <div className="space-y-3">
+                    <h3 className="font-display text-2xl sm:text-3xl font-semibold text-text-primary tracking-tight leading-snug">
+                      Deploy to a virtual blockchain. Synthesize and execute real exploits.
+                    </h3>
+                    <p className="text-xs sm:text-sm text-text-muted leading-relaxed font-sans">
+                      Our autonomous AI red-team agent doesn't just lint code — it spins up an ephemeral virtual EVM fork, deploys your smart contracts into realistic liquidity environments, and dynamically synthesizes multi-transaction attack vectors (flash-loan reentrancy, oracle arbitrage, storage clobbering) to mathematically prove vulnerabilities with zero false alarms.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 text-xs sm:text-[13px] text-text-muted">
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-4 w-4 text-accent-scan shrink-0" />
+                      <span>Ephemeral Anvil virtual EVM fork deployed in sub-second sandboxes</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-4 w-4 text-accent-scan shrink-0" />
+                      <span>Autonomous dynamic exploit synthesis & stateful attack execution</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-4 w-4 text-accent-scan shrink-0" />
+                      <span>Automated Foundry executable PoC generation with complete trace outputs</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Virtual Sandbox Exploit Terminal UI */}
+                <div className="lg:col-span-6 rounded-[10px] bg-bg-void p-4 space-y-3 font-mono text-xs shadow-inner border border-white/5">
+                  <div className="flex items-center justify-between pb-2 border-b border-border-hairline/60 text-[11px]">
+                    <div className="flex items-center gap-2">
+                      <Terminal className="h-3.5 w-3.5 text-signal-critical animate-pulse" />
+                      <span className="text-text-primary font-semibold">AI_ADVERSARIAL_AGENT // FORK_#19482</span>
+                    </div>
+                    <span className="text-signal-critical text-[10px] px-2 py-0.5 rounded bg-signal-critical/10 font-bold">
+                      EXPLOIT SIMULATION
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-[10px] leading-relaxed">
+                    <div className="text-text-muted">
+                      <span className="text-accent-scan">[0.4s]</span> Initializing ephemeral Anvil EVM fork at block #19,482,014...
+                    </div>
+                    <div className="text-text-muted">
+                      <span className="text-accent-scan">[0.8s]</span> Deployed VaultCore.sol @ 0x71C8364... with 500k USDC mock liquidity
+                    </div>
+                    <div className="text-amber-400">
+                      <span className="text-accent-scan">[1.2s]</span> AI Agent synthesized dynamic exploit vector: Flash-Loan Reentrancy
+                    </div>
+                    <div className="p-2 rounded bg-signal-critical/15 text-signal-critical border border-signal-critical/30 space-y-1 my-1">
+                      <div className="font-bold flex items-center justify-between">
+                        <span>💥 SIMULATED EXPLOIT SUCCESS (Block #19,482,015)</span>
+                        <span>DRAINED: $250,000</span>
+                      </div>
+                      <div className="text-[9px] text-signal-critical/90">
+                        ▸ tx1: flashLoan(250_000 USDC) via Balancer<br />
+                        ▸ tx2: deposit() -&gt; reenter withdraw() before userBal state zeroed<br />
+                        ▸ tx3: repay flash loan -&gt; profit extracted: +250,000 USDC
+                      </div>
+                    </div>
+                    <div className="text-emerald-400">
+                      <span className="text-accent-scan">[1.6s]</span> Emitted reproducible Foundry PoC: test_exploit_drain.sol
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded bg-bg-panel/60 flex items-center justify-between text-[10px] text-text-muted border border-border-hairline/60">
+                    <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3 w-3" />
+                      PoC Confirmed Reproducible
+                    </span>
+                    <span className="text-text-muted">Zero False Positives</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ================================================================= */}
+            {/* STACK CARD 3: DUAL-PANE CODE REVIEW & RED-TEAM WORKSPACE          */}
+            {/* ================================================================= */}
+            <div className="sticky top-[176px] z-20 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
               {/* Top Tab Bar Header (Visible when stacked) */}
               <div className="px-6 sm:px-8 py-3.5 bg-bg-panel-raised border-b border-border-hairline flex items-center justify-between font-mono text-xs text-text-muted">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2 h-2 rounded-full bg-signal-high" />
-                  <span className="font-semibold text-text-primary">02 REVIEW</span>
+                  <span className="font-semibold text-text-primary">03 REVIEW</span>
                   <span className="text-text-muted/40">·</span>
                   <span className="text-[11px]">Dual-pane auditor workspace & red-team triage</span>
                 </div>
@@ -1444,14 +1539,14 @@ export default function LandingPage() {
             </div>
 
             {/* ================================================================= */}
-            {/* STACK CARD 3: 4-STAGE PIPELINE & MILESTONE ESCROW                 */}
+            {/* STACK CARD 4: 5-STAGE PIPELINE & MILESTONE ESCROW                 */}
             {/* ================================================================= */}
-            <div className="sticky top-[196px] z-30 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
+            <div className="sticky top-[214px] z-30 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
               {/* Top Tab Bar Header (Visible when stacked) */}
               <div className="px-6 sm:px-8 py-3.5 bg-bg-panel-raised border-b border-border-hairline flex items-center justify-between font-mono text-xs text-text-muted">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2 h-2 rounded-full bg-accent-scan animate-pulse" />
-                  <span className="font-semibold text-text-primary">03 PIPELINE</span>
+                  <span className="font-semibold text-text-primary">04 PIPELINE</span>
                   <span className="text-text-muted/40">·</span>
                   <span className="text-[11px]">Live milestone escrow & stage tracking</span>
                 </div>
@@ -1476,7 +1571,7 @@ export default function LandingPage() {
                   <div className="space-y-3 text-xs sm:text-[13px] text-text-muted">
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-4 w-4 text-accent-scan shrink-0" />
-                      <span>Deterministic 4-stage pipeline with real-time status webhooks</span>
+                      <span>Deterministic 5-stage pipeline with real-time status webhooks</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-4 w-4 text-accent-scan shrink-0" />
@@ -1518,16 +1613,24 @@ export default function LandingPage() {
                       <span className="text-text-muted text-[9px]">DONE</span>
                     </div>
 
+                    <div className="flex items-center justify-between text-signal-resolved">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3 w-3" />
+                        03 · AI Red-Team Virtual Sandbox
+                      </span>
+                      <span className="text-text-muted text-[9px]">DONE</span>
+                    </div>
+
                     <div className="flex items-center justify-between bg-bg-panel-raised border border-border-hairline/60 p-1.5 rounded text-accent-scan font-medium">
                       <span className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-accent-scan animate-pulse" />
-                        03 · Manual Adversarial Triage
+                        04 · Manual Adversarial Triage
                       </span>
                       <span className="text-[9px] font-bold">IN PROGRESS</span>
                     </div>
 
                     <div className="flex items-center justify-between text-text-muted/60">
-                      <span>04 · Final Signed Attestation</span>
+                      <span>05 · Final Signed Attestation</span>
                       <span className="text-[9px]">PENDING</span>
                     </div>
                   </div>
@@ -1541,14 +1644,14 @@ export default function LandingPage() {
             </div>
 
             {/* ================================================================= */}
-            {/* STACK CARD 4: IMMUTABLE DOCUMENT VAULT & VERIFIED PROOFS          */}
+            {/* STACK CARD 5: IMMUTABLE DOCUMENT VAULT & VERIFIED PROOFS          */}
             {/* ================================================================= */}
-            <div className="sticky top-[244px] z-40 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
+            <div className="sticky top-[252px] z-40 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
               {/* Top Tab Bar Header (Visible when stacked) */}
               <div className="px-6 sm:px-8 py-3.5 bg-bg-panel-raised border-b border-border-hairline flex items-center justify-between font-mono text-xs text-text-muted">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2 h-2 rounded-full bg-signal-resolved" />
-                  <span className="font-semibold text-text-primary">04 ATTEST</span>
+                  <span className="font-semibold text-text-primary">05 ATTEST</span>
                   <span className="text-text-muted/40">·</span>
                   <span className="text-[11px]">Immutable document vault & verified proofs</span>
                 </div>
@@ -1951,6 +2054,11 @@ export default function LandingPage() {
               },
               {
                 id: 4,
+                q: "How does Zyron's AI adversarial red-team agent and virtual blockchain sandbox work?",
+                a: "Unlike superficial LLM prompt wrappers or static linters, Zyron's autonomous AI agent compiles and deploys your smart contract bytecode directly into an isolated, ephemeral virtual EVM fork. The agent analyzes AST control-flow invariants, synthesizes realistic stateful exploit transactions (e.g. multi-step flash loan reentrancy, oracle arbitrage, access control bypasses), and dynamically executes the simulated attack against the virtual chain. If an exploit succeeds in draining balances or violating state assertions, the agent emits an executable, reproducible Foundry/Hardhat test suite with complete execution traces for the auditor team to verify with zero false positives.",
+              },
+              {
+                id: 5,
                 q: "How are audit deliverables verified by exchanges, launchpads, and institutional LPs?",
                 a: "Every final report is hashed using SHA-256 and anchored to the Zyron Document Vault on L1. Anyone can verify the exact git commit, bytecode hash, auditor signatures, and passing test invariants by entering the engagement ID (e.g., ZYR-9481) or scanning the on-chain verification badge.",
               },
