@@ -27,6 +27,7 @@ import {
   Code2,
   Check,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -562,9 +563,9 @@ export default function OpenFindingsPage() {
             icon: <Plus className="h-4 w-4" />,
           }}
           secondaryAction={{
-            label: "Explore Demo Findings",
-            href: "/portal/track/ZYR-9481",
-            icon: <ExternalLink className="h-4 w-4" />,
+            label: "Invite Engineering Team & Multisig",
+            href: "/portal/team",
+            icon: <Users className="h-4 w-4" />,
           }}
         />
       ) : findings.length === 0 ? (

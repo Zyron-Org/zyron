@@ -13,6 +13,7 @@ import {
   Search,
   Clock,
   User,
+  Users,
   Layers,
   Radio,
   CheckCircle2,
@@ -256,6 +257,7 @@ export default function ClientDashboardPage() {
       {/* ─── 1.5. FIRST-TIME ONBOARDING CHECKLIST ─── */}
       <OnboardingChecklist
         hasAudits={audits.length > 0}
+        hasResolvedIssues={totalResolved > 0}
         userName={user?.name}
         orgName={user?.organization?.name}
       />
@@ -447,9 +449,9 @@ export default function ClientDashboardPage() {
             icon: <Plus className="h-4 w-4" />,
           }}
           secondaryAction={{
-            label: "Explore Live Demo Tracker",
-            href: "/portal/track/ZYR-9481",
-            icon: <ExternalLink className="h-4 w-4" />,
+            label: "Invite Engineering Team & Multisig",
+            href: "/portal/team",
+            icon: <Users className="h-4 w-4" />,
           }}
         >
           {/* 3 Quick-start Cards */}

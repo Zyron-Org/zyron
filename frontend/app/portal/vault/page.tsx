@@ -15,6 +15,7 @@ import {
   Hash,
   GitCommit,
   User,
+  Users,
   Clock,
   Layers,
   ChevronDown,
@@ -424,9 +425,9 @@ export default function DocumentVaultPage() {
             icon: <Plus className="h-4 w-4" />,
           }}
           secondaryAction={{
-            label: "Explore Live Demo Tracker",
-            href: "/portal/track/ZYR-9481",
-            icon: <ExternalLink className="h-4 w-4" />,
+            label: "Invite Engineering Team & Multisig",
+            href: "/portal/team",
+            icon: <Users className="h-4 w-4" />,
           }}
         />
       ) : completedAudits.length === 0 ? (

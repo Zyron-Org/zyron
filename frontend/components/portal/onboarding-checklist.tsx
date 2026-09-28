@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
+  ShieldAlert,
   CheckCircle2,
   Circle,
   ArrowRight,
@@ -34,6 +35,7 @@ interface OnboardingStep {
 
 interface OnboardingChecklistProps {
   hasAudits: boolean;
+  hasResolvedIssues?: boolean;
   userName?: string;
   orgName?: string;
   className?: string;
@@ -41,6 +43,7 @@ interface OnboardingChecklistProps {
 
 export function OnboardingChecklist({
   hasAudits,
+  hasResolvedIssues = false,
   userName,
   orgName,
   className,
@@ -79,6 +82,20 @@ export function OnboardingChecklist({
     }
   }, [hasAudits]);
 
+  // If user has resolved issues, step 3 is automatically marked complete
+  React.useEffect(() => {
+    if (hasResolvedIssues) {
+      setCompletedSteps((prev) => {
+        if (prev["solve_first_issue"]) return prev;
+        const updated = { ...prev, solve_first_issue: true };
+        try {
+          localStorage.setItem("zyron_onboarding_steps", JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+    }
+  }, [hasResolvedIssues]);
+
   const toggleStep = (stepId: string) => {
     setCompletedSteps((prev) => {
       const updated = { ...prev, [stepId]: !prev[stepId] };
@@ -100,38 +117,38 @@ export function OnboardingChecklist({
     {
       id: "submit_audit",
       title: "Request your first smart contract audit",
-      description: "Upload Solidity contracts or provide a repository commit to launch automated AST scans.",
+      description: "Submit Solidity contracts or link a repository commit to trigger automated AST vulnerability scanning and auditor triage.",
       actionText: "New Request",
       actionHref: "/portal/new-request",
       icon: Plus,
       isComplete: hasAudits || !!completedSteps["submit_audit"],
     },
     {
-      id: "configure_cicd",
-      title: "Set up CI/CD GitHub Action & developer tooling",
-      description: "Embed automated pull-request security gates and local pre-commit invariant checks.",
-      actionText: "Configure",
-      actionHref: "/portal/integrations",
-      icon: Code2,
-      isComplete: !!completedSteps["configure_cicd"],
-    },
-    {
       id: "invite_team",
       title: "Invite engineering team & multisig signers",
-      description: "Grant role-based access to protocol developers and security team members.",
-      actionText: "Manage Team",
+      description: "Grant role-based access to protocol developers, internal reviewers, and multisig threshold signers.",
+      actionText: "Invite Team",
       actionHref: "/portal/team",
       icon: Users,
       isComplete: !!completedSteps["invite_team"],
     },
     {
-      id: "explore_demo",
-      title: "Explore the live deterministic tracker demo",
-      description: "See how multi-stage AST scans, auditor triage, and attestation sealing works in real time.",
-      actionText: "View Live Demo",
-      actionHref: "/portal/track/ZYR-9481",
-      icon: ShieldCheck,
-      isComplete: !!completedSteps["explore_demo"],
+      id: "solve_first_issue",
+      title: "Review & resolve your first security finding",
+      description: "Investigate vulnerability alerts, collaborate with auditors in remediation threads, and submit fix patches.",
+      actionText: "View Findings",
+      actionHref: "/portal/findings",
+      icon: ShieldAlert,
+      isComplete: hasResolvedIssues || !!completedSteps["solve_first_issue"],
+    },
+    {
+      id: "configure_cicd",
+      title: "Set up CI/CD GitHub Action & developer tooling",
+      description: "Embed automated pull-request security gates and local pre-commit invariant checks into your repository.",
+      actionText: "Configure CI/CD",
+      actionHref: "/portal/integrations",
+      icon: Code2,
+      isComplete: !!completedSteps["configure_cicd"],
     },
   ];
 

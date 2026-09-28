@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Radio, Plus, ArrowLeft, Loader2, ExternalLink } from "lucide-react";
+import { Radio, Plus, ArrowLeft, Loader2, ExternalLink, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpandingButton } from "@/components/ui/expanding-button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -71,9 +71,9 @@ export default function TrackIndexPage() {
           icon: <Plus className="h-4 w-4" />,
         }}
         secondaryAction={{
-          label: "Explore Demo Tracker",
-          href: "/portal/track/ZYR-9481",
-          icon: <ExternalLink className="h-4 w-4" />,
+          label: "Invite Engineering Team & Multisig",
+          href: "/portal/team",
+          icon: <Users className="h-4 w-4" />,
         }}
       />
     </div>
