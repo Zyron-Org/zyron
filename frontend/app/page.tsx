@@ -47,6 +47,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExpandingButton } from "@/components/ui/expanding-button";
 import { ChainLogo } from "@/components/ui/chain-logos";
+import { SupportedChainsShowcase } from "@/components/supported-chains-showcase";
 import { InteractiveDashboardDemo } from "@/components/interactive-dashboard-demo";
 import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -270,38 +271,40 @@ export default function LandingPage() {
       });
 
       // 9. Parallax 3-Row Blockchain Stream (Scroll Direction Controlled with Scrub)
-      gsap.to(".chain-row-1", {
-        x: -280,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".chains-section",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1.2,
-        },
-      });
+      if (document.querySelector(".chains-section")) {
+        gsap.to(".chain-row-1", {
+          x: -280,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ".chains-section",
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 1.2,
+          },
+        });
 
-      gsap.to(".chain-row-2", {
-        x: 280,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".chains-section",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1.2,
-        },
-      });
+        gsap.to(".chain-row-2", {
+          x: 280,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ".chains-section",
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 1.2,
+          },
+        });
 
-      gsap.to(".chain-row-3", {
-        x: -220,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".chains-section",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1.2,
-        },
-      });
+        gsap.to(".chain-row-3", {
+          x: -220,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ".chains-section",
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 1.2,
+          },
+        });
+      }
 
       // 10. High-Impact Animated Number Count-Up
       const statsObj = { stolen: 0, secured: 0, vulns: 0, speed: 0 };
@@ -626,11 +629,16 @@ export default function LandingPage() {
         </div>
       </main>
 
+      {/* Infinite-Scrolling Supported Chains Ribbon attached to bottom of Hero */}
+      <div id="ecosystem" className="w-full relative z-20">
+        <SupportedChainsShowcase />
+      </div>
+
       {/* ========================================================================= */}
-      {/* SECTION 2: 3-ROW PARALLAX SUPPORTED BLOCKCHAINS & RUNTIMES               */}
+      {/* SECTION 2: 3-ROW PARALLAX SUPPORTED BLOCKCHAINS & RUNTIMES (COMMENTED OUT)*/}
       {/* ========================================================================= */}
-      <section id="ecosystem" className="chains-section relative py-20 border-t border-border-hairline bg-bg-void/80 overflow-hidden">
-        {/* Section Header */}
+      {/*
+      <section className="chains-section relative py-20 border-t border-border-hairline bg-bg-void/80 overflow-hidden">
         <div className="reveal-on-scroll max-w-4xl mx-auto px-4 text-center space-y-4 mb-14">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[4px] bg-bg-panel border border-border-hairline text-accent-scan font-mono text-xs">
             <Cpu className="h-3.5 w-3.5 text-accent-scan" />
@@ -647,13 +655,10 @@ export default function LandingPage() {
           </p>
         </div>
 
-        {/* 3-Row Parallax Marquee Wrapper with Side Cut-out Fade Vignettes */}
         <div className="relative w-full overflow-hidden space-y-3.5 py-4">
-          {/* Left & Right Edge Cut-Out Gradient Masks */}
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-24 sm:w-44 bg-gradient-to-r from-bg-void via-bg-void/80 to-transparent z-20" />
           <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-24 sm:w-44 bg-gradient-to-l from-bg-void via-bg-void/80 to-transparent z-20" />
 
-          {/* ROW 1: Scrolls Left on Scroll Down, Right on Scroll Up */}
           <div className="chain-row-1 flex items-center gap-3.5 whitespace-nowrap will-change-transform">
             {[...row1Chains, ...row1Chains].map((name, index) => (
               <div
@@ -668,7 +673,6 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* ROW 2: Scrolls Right on Scroll Down, Left on Scroll Up */}
           <div className="chain-row-2 flex items-center gap-3.5 whitespace-nowrap will-change-transform -translate-x-64">
             {[...row2Chains, ...row2Chains].map((name, index) => (
               <div
@@ -683,7 +687,6 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* ROW 3: Scrolls Left on Scroll Down, Right on Scroll Up */}
           <div className="chain-row-3 flex items-center gap-3.5 whitespace-nowrap will-change-transform -translate-x-20">
             {[...row3Chains, ...row3Chains].map((name, index) => (
               <div
@@ -699,6 +702,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      */}
 
       {/* ========================================================================= */}
       {/* SECTION 3: ON-CHAIN SECURITY BENCHMARKS (CURATED MULTI-TONE CARDS)        */}

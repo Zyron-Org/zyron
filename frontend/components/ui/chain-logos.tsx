@@ -269,6 +269,16 @@ export function ChainLogo({ name, className = "h-5 w-5" }: { name: string; class
           <path d="M8 16V8l4 4 4-4v8h-2V11l-2 2-2-2v5H8z" fill="#000000" />
         </svg>
       );
+    case "Robinhood":
+      return (
+        <svg viewBox="0 0 24 24" className={className} fill="none">
+          <circle cx="12" cy="12" r="10" fill="#00C805" />
+          <path
+            d="M14.5 6.5c-2.8 0-4.6 2.5-5.2 4.7-.3 1.1-.4 2.4.2 3.4.6 1.1 1.7 1.7 2.9 1.7.3 0 .6 0 .9-.1l-1.7 1.6.9.9 3.4-3.1c1-1 1.6-2.2 1.6-3.6 0-3-1.6-5.5-2.8-5.5z"
+            fill="#FFFFFF"
+          />
+        </svg>
+      );
     default:
       return (
         <div className="w-5 h-5 rounded-full bg-accent-scan/20 text-accent-scan font-mono text-[10px] flex items-center justify-center font-bold">
