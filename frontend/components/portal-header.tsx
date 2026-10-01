@@ -21,6 +21,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ExpandingButton } from "@/components/ui/expanding-button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -241,9 +242,9 @@ export function PortalHeader() {
 
         {/* Primary CTA Action */}
         <Link href="/portal/new-request">
-          <Button variant="primary" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />}>
+          <ExpandingButton variant="accent" rounded="xl" size="sm" icon={<Plus className="h-3.5 w-3.5" />}>
             New Request
-          </Button>
+          </ExpandingButton>
         </Link>
 
         {/* Profile Picture with Dropdown Menu & Sign Out */}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { useAuth, getDashboardForRole, isRedirectValidForRole } from "@/lib/auth-context";
 
 export default function GitHubCallbackPage() {
   const router = useRouter();
@@ -32,13 +32,11 @@ export default function GitHubCallbackPage() {
     try {
       loginWithToken(token, role ?? "CLIENT");
       const redirectParam = params.get("redirect");
-      const defaultDest =
-        role === "AUDITOR"
-          ? "/auditor"
-          : role === "ADMIN"
-          ? "/auditor"
-          : "/portal";
-      const dest = redirectParam && redirectParam.startsWith("/") ? redirectParam : defaultDest;
+      const defaultDest = getDashboardForRole(role);
+      const dest =
+        isRedirectValidForRole(redirectParam, role) && redirectParam
+          ? redirectParam
+          : defaultDest;
       router.replace(dest);
     } catch {
       setErrorMsg("Failed to complete GitHub login. Please try again.");

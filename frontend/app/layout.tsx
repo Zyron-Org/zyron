@@ -19,6 +19,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ThemedToaster } from "@/components/themed-toaster";
 import { Web3ErrorHandler } from "@/components/web3-error-handler";
+import { TopLoader } from "@/components/top-loader";
 
 export const metadata: Metadata = {
   title: "Zyron — Smart Contract Security & Auditing",
@@ -61,6 +62,7 @@ export default function RootLayout({
       </head>
       <body className="bg-bg-void text-text-primary font-sans antialiased min-h-screen selection:bg-accent-scan/20 selection:text-accent-scan">
         <ThemeProvider>
+          <TopLoader />
           <Web3ErrorHandler />
           <React.Suspense fallback={null}>
             <AuthProvider>{children}</AuthProvider>

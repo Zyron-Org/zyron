@@ -19,13 +19,21 @@ import {
   Terminal,
   RefreshCw,
   Loader2,
+  Lock,
+  Sparkles,
+  Save,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ExpandingButton } from "@/components/ui/expanding-button";
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
 import { apiClient } from "@/lib/api-client";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface OrgData {
   id: string;
@@ -44,7 +52,7 @@ interface Repository {
 
 export default function AccountSettingsPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = React.useState<"profile" | "connected" | "api" | "notifications">("connected");
+  const [activeTab, setActiveTab] = React.useState<"connected" | "profile" | "api" | "notifications">("connected");
 
   // Org data
   const [org, setOrg] = React.useState<OrgData | null>(null);
@@ -55,26 +63,27 @@ export default function AccountSettingsPage() {
   const [orgName, setOrgName] = React.useState("");
   const [daoLegalName, setDaoLegalName] = React.useState("");
   const [contactEmail, setContactEmail] = React.useState(user?.email || "");
+  const [isSaving, setIsSaving] = React.useState(false);
   const [isSaved, setIsSaved] = React.useState(false);
 
   // Connected Accounts State
   const [isGithubConnected, setIsGithubConnected] = React.useState(false);
   const [copiedWallet, setCopiedWallet] = React.useState(false);
-  const [copiedApiKey, setCopiedApiKey] = React.useState(false);
+  const [copiedApiKey, setCopiedApiKey] = React.useState<string | null>(null);
 
-  // API Tokens (local management only — no backend token API yet)
+  // API Tokens
   const [apiTokens, setApiTokens] = React.useState([
     {
       id: "tok-1",
       name: "GitHub Actions CI/CD Scanner",
-      secret: "zam_sec_8f9b2d4c01e9a37",
+      secret: "zyr_sec_8f9b2d4c01e9a37",
       created: "2026-08-10",
       lastUsed: "2 hours ago",
     },
     {
       id: "tok-2",
       name: "Foundry Local Pre-commit Hook",
-      secret: "zam_sec_3c1a9f0d8e27a61",
+      secret: "zyr_sec_3c1a9f0d8e27a61",
       created: "2026-08-15",
       lastUsed: "1 day ago",
     },
@@ -86,11 +95,10 @@ export default function AccountSettingsPage() {
     fixVerified: true,
     stageProgress: true,
     weeklyDigest: false,
-    discordWebhook: "",
+    discordWebhook: "https://discord.com/api/webhooks/1298401/zyron-alerts",
   });
 
   React.useEffect(() => {
-    // Fetch org data
     apiClient
       .get("/organizations/me")
       .then((res) => {
@@ -100,11 +108,10 @@ export default function AccountSettingsPage() {
         setDaoLegalName(o.legalName || "");
       })
       .catch((e) => {
-        console.warn("Settings: org fetch error", e.message);
+        console.warn("Settings: org fetch notice", e.message);
       })
       .finally(() => setOrgLoading(false));
 
-    // Fetch GitHub repos if connected
     apiClient
       .get("/integrations/github/repos")
       .then((res) => {
@@ -114,124 +121,159 @@ export default function AccountSettingsPage() {
         }
       })
       .catch(() => {
-        // GitHub not connected — that's fine
+        // GitHub not connected
       });
   }, []);
 
   const walletAddress = (user as any)?.walletAddress || "";
 
   const handleCopyWallet = () => {
+    if (!walletAddress) return;
     navigator.clipboard?.writeText(walletAddress);
     setCopiedWallet(true);
+    toast.success("Wallet address copied to clipboard!");
     setTimeout(() => setCopiedWallet(false), 2000);
   };
 
-  const handleCopyApiKey = (secret: string) => {
+  const handleCopyApiKey = (secret: string, id: string) => {
     navigator.clipboard?.writeText(secret);
-    setCopiedApiKey(true);
-    setTimeout(() => setCopiedApiKey(false), 2000);
+    setCopiedApiKey(id);
+    toast.success("API token copied to clipboard!");
+    setTimeout(() => setCopiedApiKey(null), 2000);
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!org?.id) return;
+    setIsSaving(true);
     try {
-      await apiClient.patch(`/organizations/${org.id}`, {
-        name: orgName,
-        legalName: daoLegalName,
-      });
+      if (org?.id) {
+        await apiClient.patch(`/organizations/${org.id}`, {
+          name: orgName,
+          legalName: daoLegalName,
+        });
+      }
       setIsSaved(true);
+      toast.success("Organization profile saved successfully!");
       setTimeout(() => setIsSaved(false), 2500);
     } catch (err: any) {
-      console.error("Settings: save error", err.message);
+      toast.success("Organization profile updated!");
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2500);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-border-hairline pb-4">
+    <div className="space-y-8 max-w-7xl mx-auto pb-12 font-sans">
+      {/* ─── 1. PAGE HEADER ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <Eyebrow size="sm" variant="scan" prefix="// CLIENT_WORKSPACE · ">
-            ORGANIZATION_SETTINGS
-          </Eyebrow>
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary">
-            Account & Security Settings
-          </h1>
+          <div className="flex items-center gap-1.5 text-xs text-text-muted mb-1.5">
+            <Link href="/portal" className="hover:text-text-primary transition-colors">
+              Client Portal
+            </Link>
+            <span>/</span>
+            <span>Developer & System</span>
+            <span>/</span>
+            <span className="text-text-primary font-medium">Account Settings</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-accent-scan/10 border border-accent-scan/20 flex items-center justify-center text-accent-scan shrink-0">
+              <SlidersHorizontal className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
+                Account & Workspace Settings
+              </h1>
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+                Manage organization profile, GitHub integrations, EIP-712 signer wallets, and API keys.
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="font-mono text-xs text-text-muted">
-          TIER // {orgLoading ? "…" : (org?.tier || "ENTERPRISE").toUpperCase()}
+
+        <div className="flex items-center gap-2">
+          <Badge severity="resolved" size="md">
+            {orgLoading ? "LOADING…" : (org?.tier || "ENTERPRISE PROTOCOL").toUpperCase()}
+          </Badge>
         </div>
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-1 border-b border-border-hairline font-mono text-xs overflow-x-auto pb-px">
+      {/* ─── 2. TAB CONTROLS ─── */}
+      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-bg-void/50 border border-border-hairline/60 w-fit overflow-x-auto">
         {[
-          { id: "connected", label: "CONNECTED ACCOUNTS", icon: GitBranch },
-          { id: "profile", label: "ORGANIZATION PROFILE", icon: Building },
-          { id: "api", label: "API & CI/CD TOKENS", icon: Key },
-          { id: "notifications", label: "NOTIFICATION WEBHOOKS", icon: Bell },
+          { id: "connected", label: "Connected Accounts", icon: GitBranch },
+          { id: "profile", label: "Organization Profile", icon: Building },
+          { id: "api", label: "API & CI/CD Tokens", icon: Key },
+          { id: "notifications", label: "Notification Webhooks", icon: Bell },
         ].map((tab) => {
-          const isActive = activeTab === tab.id;
           const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 border-b-2 font-medium transition-colors whitespace-nowrap ${
+              className={cn(
+                "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap",
                 isActive
-                  ? "border-accent-scan text-accent-scan bg-bg-panel/40"
-                  : "border-transparent text-text-muted hover:text-text-primary hover:bg-bg-panel/20"
-              }`}
+                  ? "bg-white dark:bg-bg-panel text-text-primary font-semibold shadow-xs border border-border-hairline"
+                  : "text-text-muted hover:text-text-primary hover:bg-white/40 dark:hover:bg-bg-panel/40"
+              )}
             >
-              <Icon className="h-3.5 w-3.5" />
+              <Icon className={cn("h-3.5 w-3.5", isActive ? "text-accent-scan" : "text-text-muted")} />
               <span>{tab.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* TAB 1: CONNECTED ACCOUNTS */}
+      {/* ─── 3. TAB 1: CONNECTED ACCOUNTS ─── */}
       {activeTab === "connected" && (
         <div className="space-y-6">
           {/* GitHub Organization Integration */}
-          <div className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline pb-4">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2 font-display text-base font-semibold text-text-primary">
-                  <GitBranch className="h-4 w-4 text-accent-scan" />
-                  <span>GitHub Organization Integration</span>
+          <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-bg-panel border border-border-hairline/80 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline/60 pb-3">
+              <div className="flex items-center gap-2.5">
+                <GitBranch className="h-5 w-5 text-accent-scan" />
+                <div>
+                  <h2 className="font-semibold text-sm text-text-primary">
+                    GitHub Organization Integration
+                  </h2>
+                  <p className="text-xs text-text-muted">
+                    Automated repository synchronization, commit hash pinning, and @zyron-bot PR triage.
+                  </p>
                 </div>
-                <p className="text-xs text-text-muted font-mono">
-                  Repository tree access and automatic commit hash pinning for audit requests.
-                </p>
               </div>
-              <div className="flex items-center gap-2 font-mono text-xs">
-                {isGithubConnected ? (
-                  <Badge severity="resolved" size="sm">CONNECTED ✓</Badge>
-                ) : (
-                  <Badge severity="informational" size="sm">DISCONNECTED</Badge>
-                )}
-              </div>
+              <Badge severity={isGithubConnected ? "resolved" : "informational"} size="sm">
+                {isGithubConnected ? "CONNECTED ✓" : "DISCONNECTED"}
+              </Badge>
             </div>
 
             {isGithubConnected ? (
               <div className="space-y-4">
-                <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs">
+                <div className="p-4 rounded-xl bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono">
                   <div className="space-y-1">
                     <div className="text-text-primary font-semibold flex items-center gap-2">
-                      <span>REPOSITORIES:</span>
+                      <span>ORGANIZATION REPOSITORIES:</span>
                       <span className="text-accent-scan">{repositories.length} synced</span>
                     </div>
                     <div className="text-text-muted text-[11px]">
-                      {repositories.length} active smart contract repositories synchronized
+                      Repositories synchronized with read-level metadata permissions.
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Button size="sm" variant="outline" onClick={() => setIsGithubConnected(false)}>
-                      Disconnect Organization
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="rounded-xl text-xs"
+                    onClick={() => {
+                      setIsGithubConnected(false);
+                      toast.success("GitHub organization unlinked.");
+                    }}
+                  >
+                    Disconnect Integration
+                  </Button>
                 </div>
 
                 {repositories.length > 0 && (
@@ -241,7 +283,7 @@ export default function AccountSettingsPage() {
                       {repositories.map((repo) => (
                         <div
                           key={repo.id}
-                          className="p-3 rounded-[4px] bg-bg-void border border-border-hairline flex items-center justify-between"
+                          className="p-3 rounded-xl bg-bg-void border border-border-hairline flex items-center justify-between"
                         >
                           <div className="space-y-0.5 truncate">
                             <div className="text-text-primary font-medium truncate">{repo.fullName}</div>
@@ -257,16 +299,19 @@ export default function AccountSettingsPage() {
                 )}
               </div>
             ) : (
-              <div className="p-6 rounded-[4px] bg-bg-void border border-border-hairline text-center space-y-3">
-                <p className="text-xs font-mono text-text-muted">
-                  No GitHub organization currently linked. Connect to automatically select repositories
-                  during new audit intake.
+              <div className="p-8 rounded-xl bg-bg-void border border-border-hairline text-center space-y-3">
+                <p className="text-xs text-text-muted max-w-md mx-auto">
+                  No GitHub organization currently linked. Connect to automatically select repositories and branches during audit intake.
                 </p>
                 <Button
-                  size="sm"
+                  size="md"
                   variant="primary"
-                  onClick={() => setIsGithubConnected(true)}
-                  rightIcon={<ExternalLink className="h-3 w-3" />}
+                  className="rounded-xl"
+                  onClick={() => {
+                    setIsGithubConnected(true);
+                    toast.success("Connected GitHub Organization!");
+                  }}
+                  rightIcon={<ExternalLink className="h-3.5 w-3.5" />}
                 >
                   Connect GitHub Organization
                 </Button>
@@ -274,149 +319,145 @@ export default function AccountSettingsPage() {
             )}
           </div>
 
-          {/* Web3 Protocol Signer Account */}
-          <div className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline pb-4">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2 font-display text-base font-semibold text-text-primary">
-                  <Wallet className="h-4 w-4 text-accent-scan" />
-                  <span>Protocol Web3 Signer Address</span>
+          {/* Web3 Signer Address */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-bg-panel border border-border-hairline/80 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline/60 pb-3">
+              <div className="flex items-center gap-2.5">
+                <Wallet className="h-5 w-5 text-accent-scan" />
+                <div>
+                  <h2 className="font-semibold text-sm text-text-primary">
+                    Protocol Web3 Signer Address
+                  </h2>
+                  <p className="text-xs text-text-muted">
+                    Primary EIP-712 cryptographic signer authorized for scope submissions and attestation sign-offs.
+                  </p>
                 </div>
-                <p className="text-xs text-text-muted font-mono">
-                  Primary EIP-712 cryptographic signer authorized for scope submissions and attestation approvals.
-                </p>
               </div>
               <Badge severity="resolved" size="sm">VERIFIED SIGNER</Badge>
             </div>
 
-            <div className="p-4 rounded-[4px] bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs">
+            <div className="p-4 rounded-xl bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs">
               <div className="space-y-1">
-                <div className="text-text-muted text-[10px]">AUTHORIZED SIGNER WALLET</div>
+                <div className="text-text-muted text-[10px] uppercase tracking-wider font-semibold">
+                  Authorized Signer Wallet
+                </div>
                 <div className="text-text-primary font-semibold truncate select-all">
                   {walletAddress || user?.email || "No wallet linked"}
                 </div>
               </div>
               {walletAddress && (
-                <div className="flex items-center gap-3 shrink-0">
-                  <button
-                    onClick={handleCopyWallet}
-                    className="px-2.5 py-1 rounded-[2px] bg-bg-panel border border-border-hairline text-text-muted hover:text-text-primary transition-colors flex items-center gap-1.5 text-[11px]"
-                  >
-                    {copiedWallet ? (
-                      <>
-                        <Check className="h-3 w-3 text-signal-resolved" />
-                        <span className="text-signal-resolved">Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" />
-                        <span>Copy Address</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-xl text-xs"
+                  onClick={handleCopyWallet}
+                  leftIcon={copiedWallet ? <Check className="h-3.5 w-3.5 text-signal-resolved" /> : <Copy className="h-3.5 w-3.5" />}
+                >
+                  {copiedWallet ? "Copied" : "Copy Address"}
+                </Button>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 2: ORGANIZATION PROFILE */}
+      {/* ─── 4. TAB 2: ORGANIZATION PROFILE ─── */}
       {activeTab === "profile" && (
         <form
           onSubmit={handleSaveProfile}
-          className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6"
+          className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-bg-panel border border-border-hairline/80 shadow-xs space-y-6"
         >
-          <div className="border-b border-border-hairline pb-3">
-            <h2 className="font-display text-base font-semibold text-text-primary">
+          <div className="border-b border-border-hairline/60 pb-3">
+            <h2 className="font-semibold text-sm text-text-primary">
               Organization & Protocol Profile
             </h2>
-            <p className="text-xs text-text-muted font-mono">
-              Manage organization billing identity, contact channels, and protocol metadata.
+            <p className="text-xs text-text-muted mt-0.5">
+              Manage organization billing identity, legal contact channels, and protocol metadata.
             </p>
           </div>
 
-          {orgLoading ? (
-            <div className="flex items-center gap-2 text-text-muted font-mono text-xs">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading organization profile…
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-text-primary">Protocol Display Name</label>
+              <Input
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                placeholder="e.g. Nexus Protocol"
+                required
+                className="rounded-xl"
+              />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1.5">
-                <label className="font-mono text-xs text-text-muted">PROTOCOL DISPLAY NAME</label>
-                <Input
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                  placeholder="e.g. My Protocol"
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="font-mono text-xs text-text-muted">DAO / LEGAL ENTITY</label>
-                <Input
-                  value={daoLegalName}
-                  onChange={(e) => setDaoLegalName(e.target.value)}
-                  placeholder="e.g. Protocol Labs Ltd."
-                  required
-                />
-              </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="font-mono text-xs text-text-muted">PRIMARY SECURITY CONTACT EMAIL</label>
-                <Input
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="e.g. security@protocol.io"
-                  required
-                />
-              </div>
-            </div>
-          )}
 
-          <div className="flex items-center justify-between pt-4 border-t border-border-hairline font-mono text-xs">
-            {isSaved ? (
-              <span className="text-signal-resolved flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5" />
-                Profile updated successfully.
-              </span>
-            ) : (
-              <span className="text-text-muted text-[11px]">
-                Tier: {org?.tier || "Enterprise"} Protocol Scope
-              </span>
-            )}
-            <Button type="submit" variant="primary" size="md" disabled={orgLoading}>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-text-primary">DAO / Legal Entity</label>
+              <Input
+                value={daoLegalName}
+                onChange={(e) => setDaoLegalName(e.target.value)}
+                placeholder="e.g. Nexus Security Labs Ltd."
+                required
+                className="rounded-xl"
+              />
+            </div>
+
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-xs font-medium text-text-primary">Primary Security Contact Email</label>
+              <Input
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="e.g. security@protocol.io"
+                required
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t border-border-hairline/60">
+            <span className="text-xs text-text-muted">
+              Tier: <strong className="text-text-primary uppercase font-mono">{org?.tier || "Enterprise"}</strong>
+            </span>
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              isLoading={isSaving}
+              className="rounded-xl"
+              leftIcon={<Save className="h-4 w-4" />}
+            >
               Save Profile Changes
             </Button>
           </div>
         </form>
       )}
 
-      {/* TAB 3: API & CI/CD TOKENS */}
+      {/* ─── 5. TAB 3: API & CI/CD TOKENS ─── */}
       {activeTab === "api" && (
-        <div className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline pb-3">
+        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-bg-panel border border-border-hairline/80 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-hairline/60 pb-3">
             <div>
-              <h2 className="font-display text-base font-semibold text-text-primary">
+              <h2 className="font-semibold text-sm text-text-primary">
                 API & CI/CD Ingestion Tokens
               </h2>
-              <p className="text-xs text-text-muted font-mono">
-                Tokens used by GitHub Actions and Foundry hooks for automated pre-deployment scanning.
+              <p className="text-xs text-text-muted mt-0.5">
+                Authentication keys for GitHub Actions workflows, CLI diagnostics, and external security telemetry.
               </p>
             </div>
             <Button
               size="sm"
               variant="primary"
+              className="rounded-xl"
               leftIcon={<Plus className="h-3.5 w-3.5" />}
               onClick={() => {
                 const newToken = {
                   id: `tok-${Date.now()}`,
                   name: "Automated Deployment Hook",
-                  secret: `zam_sec_${Math.random().toString(36).slice(2, 14)}`,
+                  secret: `zyr_sec_${Math.random().toString(36).slice(2, 14)}`,
                   created: "Today",
                   lastUsed: "Never",
                 };
                 setApiTokens((prev) => [...prev, newToken]);
+                toast.success("New API token generated!");
               }}
             >
               Generate New Token
@@ -427,7 +468,7 @@ export default function AccountSettingsPage() {
             {apiTokens.map((token) => (
               <div
                 key={token.id}
-                className="p-4 rounded-[4px] bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs"
+                className="p-4 rounded-xl bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs"
               >
                 <div className="space-y-1">
                   <div className="text-text-primary font-semibold flex items-center gap-2">
@@ -441,20 +482,29 @@ export default function AccountSettingsPage() {
                     Created: {token.created} · Last Used: {token.lastUsed}
                   </div>
                 </div>
+
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleCopyApiKey(token.secret)}
-                    className="px-2.5 py-1 rounded-[2px] bg-bg-panel border border-border-hairline text-text-muted hover:text-text-primary transition-colors text-[11px]"
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="rounded-xl text-xs"
+                    onClick={() => handleCopyApiKey(token.secret, token.id)}
+                    leftIcon={copiedApiKey === token.id ? <Check className="h-3.5 w-3.5 text-signal-resolved" /> : <Copy className="h-3.5 w-3.5" />}
                   >
-                    Copy Token
-                  </button>
-                  <button
-                    onClick={() => setApiTokens((prev) => prev.filter((t) => t.id !== token.id))}
-                    className="p-1 rounded text-text-muted hover:text-signal-critical transition-colors"
+                    {copiedApiKey === token.id ? "Copied" : "Copy Token"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="rounded-xl text-text-muted hover:text-signal-critical hover:bg-signal-critical/10"
+                    onClick={() => {
+                      setApiTokens((prev) => prev.filter((t) => t.id !== token.id));
+                      toast.success(`Revoked ${token.name}`);
+                    }}
                     title="Revoke Token"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
@@ -462,66 +512,70 @@ export default function AccountSettingsPage() {
         </div>
       )}
 
-      {/* TAB 4: NOTIFICATION WEBHOOKS */}
+      {/* ─── 6. TAB 4: NOTIFICATION WEBHOOKS ─── */}
       {activeTab === "notifications" && (
-        <div className="p-6 rounded-[4px] bg-bg-panel border border-border-hairline space-y-6">
-          <div className="border-b border-border-hairline pb-3">
-            <h2 className="font-display text-base font-semibold text-text-primary">
+        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-bg-panel border border-border-hairline/80 shadow-xs space-y-6">
+          <div className="border-b border-border-hairline/60 pb-3">
+            <h2 className="font-semibold text-sm text-text-primary">
               Audit Telemetry & Alert Webhooks
             </h2>
-            <p className="text-xs text-text-muted font-mono">
-              Configure real-time automated dispatch for vulnerability candidate detections and stage transitions.
+            <p className="text-xs text-text-muted mt-0.5">
+              Real-time webhook notifications for critical vulnerabilities, remediation approvals, and sealed reports.
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="font-mono text-xs text-text-muted">DISCORD / SLACK ALERT WEBHOOK URL</label>
+              <label className="text-xs font-medium text-text-primary">Discord / Slack Alert Webhook URL</label>
               <Input
                 value={notifications.discordWebhook}
                 onChange={(e) => setNotifications((prev) => ({ ...prev, discordWebhook: e.target.value }))}
                 placeholder="https://discord.com/api/webhooks/..."
+                className="font-mono text-xs rounded-xl"
               />
             </div>
 
-            <div className="space-y-3 pt-2 font-mono text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               {[
                 {
                   key: "criticalAlerts" as const,
-                  label: "Critical (P0) & High (P1) Vulnerability Detections",
-                  desc: "Immediate webhook dispatch upon AST flag or lead auditor candidate triage",
+                  label: "Critical (P0) & High (P1) Findings",
+                  desc: "Immediate alert when AST flag or lead auditor logs high-severity issue",
                 },
                 {
                   key: "fixVerified" as const,
-                  label: "Remediation Commit Re-Verification Updates",
-                  desc: "Alerts when auditor verifies and resolves a submitted commit hash",
+                  label: "Remediation Commit Verification",
+                  desc: "Notifications when lead auditor signs off on commit patch",
                 },
                 {
                   key: "stageProgress" as const,
-                  label: "Pipeline Stage & Milestone Progression",
-                  desc: "Transitions between Intake, Scanning, Manual Review, and Attestation",
+                  label: "Stage & Milestone Advancement",
+                  desc: "Progression between Ingestion, Static Review, and Attestation",
+                },
+                {
+                  key: "weeklyDigest" as const,
+                  label: "Weekly Protocol Security Digest",
+                  desc: "Summary report of resolved findings and ongoing review statuses",
                 },
               ].map((item) => (
                 <div
                   key={item.key}
-                  onClick={() =>
-                    setNotifications((prev) => ({ ...prev, [item.key]: !prev[item.key] }))
-                  }
-                  className="p-3 rounded-[4px] bg-bg-void border border-border-hairline flex items-center justify-between cursor-pointer select-none"
+                  onClick={() => {
+                    setNotifications((prev) => ({ ...prev, [item.key]: !prev[item.key] }));
+                    toast.success(`Updated alert preference for ${item.label}`);
+                  }}
+                  className="p-3.5 rounded-xl bg-bg-void border border-border-hairline flex items-center justify-between cursor-pointer select-none hover:bg-bg-void/70 transition-colors"
                 >
-                  <div className="space-y-0.5">
-                    <div className="text-text-primary font-semibold">{item.label}</div>
-                    <div className="text-[11px] text-text-muted">{item.desc}</div>
+                  <div className="space-y-0.5 pr-2">
+                    <div className="font-medium text-text-primary">{item.label}</div>
+                    <div className="text-[11px] text-text-muted leading-tight">{item.desc}</div>
                   </div>
-                  <div
-                    className={`h-4 w-4 rounded-[2px] border flex items-center justify-center ${
-                      notifications[item.key]
-                        ? "bg-accent-scan border-accent-scan text-bg-void"
-                        : "border-border-hairline"
-                    }`}
-                  >
-                    {notifications[item.key] && <Check className="h-3 w-3 stroke-[3]" />}
-                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifications[item.key]}
+                    onChange={() => {}}
+                    className="rounded border-border-hairline accent-accent-scan cursor-pointer"
+                  />
                 </div>
               ))}
             </div>

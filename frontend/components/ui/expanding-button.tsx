@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export interface ExpandingButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "light" | "dark" | "accent";
+  variant?: "light" | "dark" | "accent" | "danger";
   size?: "sm" | "md" | "lg";
   rounded?: "default" | "md" | "lg" | "xl" | "full";
   icon?: React.ReactNode;
@@ -131,6 +131,51 @@ export const ExpandingButton = React.forwardRef<
           <span
             className={cn(
               "relative z-10 flex items-center justify-center shrink-0 transition-all duration-300 ease-out text-bg-void group-hover:-translate-x-1.5 group-hover:text-accent-scan",
+              iconBoxWidth
+            )}
+          >
+            {defaultIcon}
+          </span>
+        </button>
+      );
+    }
+
+    // Danger / Red Variant (Dark background with red border -> Solid red expanding on hover)
+    if (variant === "danger") {
+      const defaultIcon = icon || <ArrowRight className="h-4 w-4" />;
+      return (
+        <button
+          ref={ref}
+          disabled={disabled}
+          className={cn(
+            "relative group overflow-hidden inline-flex items-center justify-between font-mono font-medium select-none shadow-xs transition-all cursor-pointer",
+            radiusClasses.outer,
+            "bg-bg-void/90 dark:bg-bg-void text-text-primary border border-signal-critical/50 hover:border-signal-critical active:scale-[0.99]",
+            containerClasses,
+            className
+          )}
+          {...props}
+        >
+          {/* Expanding Red Background: exactly 2px margin on all sides, no border */}
+          <span
+            aria-hidden="true"
+            className={cn(
+              "absolute right-[2px] top-[2px] bottom-[2px] bg-signal-critical/15 pointer-events-none transition-all duration-300 ease-out",
+              radiusClasses.inner,
+              iconBoxWidth,
+              "group-hover:w-[calc(100%-4px)] group-hover:bg-signal-critical"
+            )}
+          />
+
+          {/* Button Text: moves right toward icon on hover, turns white on red */}
+          <span className="relative z-10 tracking-tight transition-all duration-300 ease-out group-hover:translate-x-1.5 group-hover:text-white group-hover:font-semibold">
+            {children}
+          </span>
+
+          {/* Icon Badge: moves left toward text on hover, turns white on red */}
+          <span
+            className={cn(
+              "relative z-10 flex items-center justify-center shrink-0 transition-all duration-300 ease-out text-signal-critical group-hover:-translate-x-1.5 group-hover:text-white",
               iconBoxWidth
             )}
           >

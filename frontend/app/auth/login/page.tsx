@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ExpandingButton } from "@/components/ui/expanding-button";
-import { useAuth, getDashboardForRole } from "@/lib/auth-context";
+import { useAuth, getDashboardForRole, isRedirectValidForRole } from "@/lib/auth-context";
 import { apiClient } from "@/lib/api-client";
 import { getAddress } from "ethers";
 import { toast } from "sonner";
@@ -33,11 +33,8 @@ export default function LoginPage() {
   React.useEffect(() => {
     if (!loading && user) {
       const redirectParam = searchParams?.get("redirect");
-      const isValidRedirect =
-        redirectParam &&
-        !redirectParam.startsWith("/auth") &&
-        redirectParam !== "/";
-      const dest = isValidRedirect ? redirectParam : getDashboardForRole(user.role);
+      const isValidRedirect = isRedirectValidForRole(redirectParam, user.role);
+      const dest = isValidRedirect && redirectParam ? redirectParam : getDashboardForRole(user.role);
       router.replace(dest);
     }
   }, [user, loading, router, searchParams]);
@@ -50,11 +47,8 @@ export default function LoginPage() {
       const loggedUser = await login(email, password);
       toast.success("Welcome back! Redirecting to workspace...");
       const redirectParam = searchParams?.get("redirect");
-      const isValidRedirect =
-        redirectParam &&
-        !redirectParam.startsWith("/auth") &&
-        redirectParam !== "/";
-      const dest = isValidRedirect ? redirectParam : getDashboardForRole(loggedUser?.role);
+      const isValidRedirect = isRedirectValidForRole(redirectParam, loggedUser?.role);
+      const dest = isValidRedirect && redirectParam ? redirectParam : getDashboardForRole(loggedUser?.role);
       router.replace(dest);
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || "Invalid email or password";
@@ -134,7 +128,11 @@ export default function LoginPage() {
 
         toast.success(`Wallet connected: ${address.substring(0, 6)}...${address.substring(38)}`);
         const loggedUser = await loginWithSiwe(message, signature);
-        const dest = getDashboardForRole(loggedUser?.role);
+        const redirectParam = searchParams?.get("redirect");
+        const dest =
+          isRedirectValidForRole(redirectParam, loggedUser?.role) && redirectParam
+            ? redirectParam
+            : getDashboardForRole(loggedUser?.role);
         router.replace(dest);
       } else {
         toast.error("Please install MetaMask or another EVM wallet extension.");

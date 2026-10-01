@@ -9,6 +9,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { ExpandingButton } from "@/components/ui/expanding-button";
 
 interface UserProfileDropdownProps {
   align?: "left" | "right";
@@ -97,13 +98,15 @@ export function UserProfileDropdown({ align = "right" }: UserProfileDropdownProp
                   {user?.email ||
                     (user?.walletAddress
                       ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`
-                      : "user@zyron.security")}
+                      : "user@zyron.tools")}
                 </div>
-                <div className="mt-1">
-                  <span className="inline-block px-1.5 py-0.5 text-[9px] font-mono font-medium rounded-md bg-accent-scan/10 text-accent-scan border border-accent-scan/20">
-                    {role}
-                  </span>
-                </div>
+                {role !== "CLIENT" && (
+                  <div className="mt-1">
+                    <span className="inline-block px-1.5 py-0.5 text-[9px] font-mono font-medium rounded-md bg-accent-scan/10 text-accent-scan border border-accent-scan/20">
+                      {role}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -142,17 +145,19 @@ export function UserProfileDropdown({ align = "right" }: UserProfileDropdownProp
 
           {/* Footer / Sign Out */}
           <div className="p-1.5 border-t border-border-hairline/70 bg-bg-void/20">
-            <button
-              type="button"
+            <ExpandingButton
+              variant="danger"
+              size="sm"
+              rounded="lg"
+              className="w-full text-xs"
+              icon={<LogOut className="h-3.5 w-3.5" />}
               onClick={() => {
                 setIsOpen(false);
                 logout();
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-text-muted hover:text-signal-critical hover:bg-signal-critical/10 transition-colors cursor-pointer text-left"
             >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="font-medium">Sign Out</span>
-            </button>
+              Sign Out
+            </ExpandingButton>
           </div>
         </div>
       )}

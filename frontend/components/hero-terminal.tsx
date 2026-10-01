@@ -18,28 +18,33 @@ const SCAN_SEQUENCE: TerminalLine[] = [
     type: "info",
   },
   {
-    prefix: "[0.42s]",
-    text: "Disassembling 1,842 EVM opcodes — AST tree verified (14 levels).",
+    prefix: "[0.38s]",
+    text: "Disassembling 1,842 EVM opcodes — AST taint tree verified (14 levels).",
     type: "info",
   },
   {
-    prefix: "[0.89s]",
-    text: "Checking reentrancy guards and state transition invariants...",
+    prefix: "[0.72s]",
+    text: "Deploying target to ephemeral virtual EVM sandbox fork (Block #19,482,014)...",
     type: "info",
   },
   {
-    prefix: "[1.35s]",
-    text: "⚠ CRITICAL: Unchecked external call before balance reset — Line 142",
-    type: "critical",
-  },
-  {
-    prefix: "[1.78s]",
-    text: "⚠ HIGH: Missing return value check on ERC20 transfer — Line 189",
+    prefix: "[1.15s]",
+    text: "AI Red-Team Agent synthesizing adversarial exploit vectors (Flash-Loan Reentrancy)...",
     type: "warn",
   },
   {
-    prefix: "[2.15s]",
-    text: "Automated scan complete: 1 Critical, 1 High finding routed to Lead Auditor.",
+    prefix: "[1.58s]",
+    text: "💥 SIMULATED EXPLOIT SUCCESS: Drained $250,000 USDC on virtual fork — Line 142",
+    type: "critical",
+  },
+  {
+    prefix: "[1.95s]",
+    text: "Foundry PoC test generated (test_reentrancy_drain.sol) with full EVM execution trace.",
+    type: "info",
+  },
+  {
+    prefix: "[2.30s]",
+    text: "Automated scan & exploit simulation complete: Verified PoC routed to Lead Auditor.",
     type: "success",
   },
 ];

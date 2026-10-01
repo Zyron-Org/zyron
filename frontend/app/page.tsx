@@ -47,6 +47,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExpandingButton } from "@/components/ui/expanding-button";
 import { ChainLogo } from "@/components/ui/chain-logos";
+import { SupportedChainsShowcase } from "@/components/supported-chains-showcase";
+import { InteractiveDashboardDemo } from "@/components/interactive-dashboard-demo";
 import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useRouter } from "next/navigation";
@@ -159,12 +161,11 @@ export default function LandingPage() {
     }
   };
 
-  const handleScanToken = () => {
+  const handleViewDashboard = () => {
     if (!user) {
-      toast.error("Authentication Required: Please sign in to access the Token Risk & AI Audit Analyzer.");
       router.push("/auth/login");
     } else {
-      router.push("/portal/token-risk");
+      router.push("/portal");
     }
   };
 
@@ -270,38 +271,40 @@ export default function LandingPage() {
       });
 
       // 9. Parallax 3-Row Blockchain Stream (Scroll Direction Controlled with Scrub)
-      gsap.to(".chain-row-1", {
-        x: -280,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".chains-section",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1.2,
-        },
-      });
+      if (document.querySelector(".chains-section")) {
+        gsap.to(".chain-row-1", {
+          x: -280,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ".chains-section",
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 1.2,
+          },
+        });
 
-      gsap.to(".chain-row-2", {
-        x: 280,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".chains-section",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1.2,
-        },
-      });
+        gsap.to(".chain-row-2", {
+          x: 280,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ".chains-section",
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 1.2,
+          },
+        });
 
-      gsap.to(".chain-row-3", {
-        x: -220,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".chains-section",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1.2,
-        },
-      });
+        gsap.to(".chain-row-3", {
+          x: -220,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ".chains-section",
+            start: "top bottom",
+            end: "bottom top",
+            scrub: 1.2,
+          },
+        });
+      }
 
       // 10. High-Impact Animated Number Count-Up
       const statsObj = { stolen: 0, secured: 0, vulns: 0, speed: 0 };
@@ -591,15 +594,15 @@ export default function LandingPage() {
                 </ExpandingButton>
               </div>
 
-              {/* Button 2: Scan Token Security */}
-              <div onClick={handleScanToken} className="hero-cta-anim w-full sm:w-auto cursor-pointer">
+              {/* Button 2: Explore Dashboard */}
+              <div onClick={handleViewDashboard} className="hero-cta-anim w-full sm:w-auto cursor-pointer">
                 <ExpandingButton
                   variant="dark"
                   size="md"
                   className="w-full sm:w-auto"
                   icon={<ArrowUpRight className="h-4 w-4 stroke-[2.5]" />}
                 >
-                  Scan a Token Free
+                  Explore Dashboard
                 </ExpandingButton>
               </div>
             </div>
@@ -611,296 +614,31 @@ export default function LandingPage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* HERO SHOWCASE CARD: NON-RESPONSIVE UNIFORM SCALING IMAGE BEHAVIOR         */}
+        {/* HERO SHOWCASE CARD: LIVE INTERACTIVE DASHBOARD WORKBENCH                  */}
         {/* ========================================================================= */}
         <div
           ref={demoRef}
-          className="hero-card-anim relative max-w-5xl mx-auto pt-4 w-full flex justify-center"
-          style={{
-            height: `${Math.round(520 * demoScale)}px`,
-          }}
+          className="hero-card-anim relative max-w-5xl mx-auto pt-4 w-full"
         >
-          {/* Fixed-width Canvas Scaling Wrapper acting strictly like an image */}
-          <div
-            className="w-[1024px] min-w-[1024px] origin-top transition-transform duration-75 shrink-0 select-none relative"
-            style={{
-              transform: `scale(${demoScale})`,
-            }}
-          >
-            {/* Deep atmospheric wide outer glow (spreading outward around the entire card) */}
-            <div className="absolute -inset-10 sm:-inset-16 bg-accent-scan/15 rounded-[40px] blur-3xl animate-glow-pulse pointer-events-none -z-10" />
+          {/* Deep atmospheric wide outer glow */}
+          <div className="absolute -inset-6 sm:-inset-12 bg-accent-scan/15 rounded-[40px] blur-3xl animate-glow-pulse pointer-events-none -z-10" />
+          <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-b from-accent-scan/20 via-accent-scan/5 to-transparent rounded-[24px] blur-xl pointer-events-none -z-10" />
 
-            {/* Mid-range ambient blue halo */}
-            <div className="absolute -inset-5 sm:-inset-8 bg-gradient-to-b from-accent-scan/20 via-accent-scan/10 to-transparent rounded-t-[32px] rounded-b-none blur-2xl animate-glow-pulse pointer-events-none -z-10" />
-
-            {/* Soft perimeter blur layer */}
-            <div className="absolute -inset-2 bg-accent-scan/10 rounded-t-[22px] rounded-b-none blur-md pointer-events-none" />
-
-            {/* Main Dashboard Surface with Top-Only Border/Radius and Bottom Crop */}
-            <div className="relative rounded-t-[14px] rounded-b-none border-t border-x border-b-0 border-border-hairline bg-bg-panel-raised shadow-2xl overflow-hidden text-xs font-sans p-3 pb-0 h-[520px]">
-              {/* Soft inner glow radiating inside the dashboard surface */}
-              <div className="pointer-events-none absolute inset-0 rounded-t-[14px] rounded-b-none shadow-[inset_0_1px_30px_rgba(94,200,255,0.06),inset_0_0_15px_rgba(94,200,255,0.03)] z-10" />
-
-              {/* Bottom Gradient Fade Cutoff */}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg-void via-bg-void/70 to-transparent z-20" />
-
-              <div className="grid grid-cols-12 h-full rounded-t-[10px] rounded-b-none overflow-hidden pb-0 bg-bg-panel">
-                {/* MINI SIDEBAR (LEFT) - Fixed 2 columns */}
-                <div className="col-span-2 bg-bg-void border-r border-border-hairline p-3 space-y-4 shrink-0">
-                  {/* Logo in mini sidebar */}
-                  <div className="flex items-center gap-2 px-2 py-1 text-text-primary font-semibold text-[11px] tracking-wider font-mono whitespace-nowrap">
-                    <Terminal className="h-3.5 w-3.5 text-accent-scan shrink-0" />
-                    <span>AI AUDITOR</span>
-                  </div>
-
-                  {/* Sidebar Nav links */}
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] bg-bg-panel-raised text-accent-scan font-medium text-[11px] border border-border-hairline whitespace-nowrap">
-                      <Layers className="h-3.5 w-3.5 text-accent-scan shrink-0" />
-                      <span>All Scans</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-text-muted hover:text-text-primary hover:bg-bg-panel font-medium text-[11px] transition-colors whitespace-nowrap">
-                      <CreditCard className="h-3.5 w-3.5 shrink-0" />
-                      <span>Billing</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* MAIN CONTENT AREA (RIGHT) - Fixed 10 columns */}
-                <div className="col-span-10 p-5 space-y-5 bg-bg-panel">
-                  {/* Top App Bar inside Card */}
-                  <div className="flex items-center justify-between gap-3 border-b border-border-hairline pb-3.5">
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] text-text-muted font-mono uppercase tracking-wider block whitespace-nowrap">
-                        Scans
-                      </span>
-                      <h2 className="text-base font-bold text-text-primary font-display whitespace-nowrap">
-                        Scans
-                      </h2>
-                    </div>
-
-                    {/* Actions & User Profile */}
-                    <div className="flex items-center gap-2.5 font-mono">
-                      {/* User profile chip */}
-                      <div className="flex items-center gap-1.5 bg-bg-void border border-border-hairline px-2 py-1 rounded-[4px] text-[11px] text-text-primary whitespace-nowrap">
-                        <div className="h-4 w-4 rounded-full bg-accent-scan/20 text-accent-scan flex items-center justify-center text-[9px] font-bold shrink-0">
-                          {user?.name?.[0]?.toUpperCase() || "Z"}
-                        </div>
-                        <span className="text-[10px]">
-                          {user?.name || user?.email || (stats?.recentAudits?.[0]?.protocolName ? `${stats.recentAudits[0].protocolName.toLowerCase().replace(/\s+/g, '-')}.eth` : "beetrade-dex.eth")}
-                        </span>
-                      </div>
-
-                      {/* + New Scan Button */}
-                      <Link href="/portal/new-request">
-                        <button
-                          type="button"
-                          className="flex items-center gap-1 bg-text-primary hover:bg-accent-scan hover:text-white dark:hover:bg-white dark:hover:text-bg-void text-bg-void font-bold px-2.5 py-1 rounded-[4px] text-[11px] transition-colors shadow-sm whitespace-nowrap"
-                        >
-                          <Plus className="h-3 w-3 stroke-[3]" />
-                          <span>New Scan</span>
-                        </button>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Dashboard Metrics Row (3-Cards strictly horizontal) */}
-                  <div className="grid grid-cols-3 gap-3 font-mono">
-                    {/* Metric 1 */}
-                    <div className="hero-metric-anim bg-bg-panel-raised border border-border-hairline rounded-[6px] p-3 space-y-1">
-                      <div className="flex items-center justify-between text-text-muted text-[10px] whitespace-nowrap">
-                        <span>Open Risks</span>
-                        <ShieldAlert className="h-3.5 w-3.5 text-signal-critical shrink-0" />
-                      </div>
-                      <div className="text-xl font-bold text-text-primary font-display">
-                        {stats ? stats.openRisks : 3}
-                      </div>
-                      <div className="text-[9px] text-signal-critical flex items-center gap-1 whitespace-nowrap">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-signal-critical shrink-0" />
-                        {stats ? `${stats.criticalRisks} Critical, ${stats.mediumRisks} Medium` : "1 Critical, 2 Medium"}
-                      </div>
-                    </div>
-
-                    {/* Metric 2 */}
-                    <div className="hero-metric-anim bg-bg-panel-raised border border-border-hairline rounded-[6px] p-3 space-y-1">
-                      <div className="flex items-center justify-between text-text-muted text-[10px] whitespace-nowrap">
-                        <span>Passed Checks</span>
-                        <ShieldCheck className="h-3.5 w-3.5 text-signal-resolved shrink-0" />
-                      </div>
-                      <div className="text-xl font-bold text-text-primary font-display">
-                        {stats ? (stats.totalSloc > 0 ? Math.round(stats.totalSloc * 0.8) : 124) : 124}
-                      </div>
-                      <div className="text-[9px] text-signal-resolved flex items-center gap-1 whitespace-nowrap">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-signal-resolved shrink-0" />
-                        Invariants valid
-                      </div>
-                    </div>
-
-                    {/* Metric 3 */}
-                    <div className="hero-metric-anim bg-bg-panel-raised border border-border-hairline rounded-[6px] p-3 space-y-1">
-                      <div className="flex items-center justify-between text-text-muted text-[10px] whitespace-nowrap">
-                        <span>Total Scans</span>
-                        <FileCode2 className="h-3.5 w-3.5 text-accent-scan shrink-0" />
-                      </div>
-                      <div className="text-xl font-bold text-text-primary font-display">
-                        {stats ? stats.totalAudits : 18}
-                      </div>
-                      <div className="text-[9px] text-text-muted whitespace-nowrap">
-                        Fixed pricing by selected tokens
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Filter Tabs & Search Bar */}
-                  <div className="flex items-center justify-between gap-2.5 pt-1 font-mono text-[11px]">
-                    {/* Status Tabs */}
-                    <div className="flex items-center gap-1 border border-border-hairline rounded-[4px] p-0.5 bg-bg-void whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("all")}
-                        className={`px-2 py-0.5 rounded-[2px] transition-colors ${
-                          activeTab === "all"
-                            ? "bg-bg-panel-raised text-text-primary font-bold shadow-xs"
-                            : "text-text-muted hover:text-text-primary"
-                        }`}
-                      >
-                        All ({stats ? stats.totalAudits : 18})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("in_progress")}
-                        className={`px-2 py-0.5 rounded-[2px] transition-colors ${
-                          activeTab === "in_progress"
-                            ? "bg-bg-panel-raised text-text-primary font-bold shadow-xs"
-                            : "text-text-muted hover:text-text-primary"
-                        }`}
-                      >
-                        In progress ({stats ? stats.inProgressAudits : 2})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("completed")}
-                        className={`px-2 py-0.5 rounded-[2px] transition-colors ${
-                          activeTab === "completed"
-                            ? "bg-bg-panel-raised text-text-primary font-bold shadow-xs"
-                            : "text-text-muted hover:text-text-primary"
-                        }`}
-                      >
-                        Completed ({stats ? stats.completedAudits : 16})
-                      </button>
-                    </div>
-
-                    {/* Search Bar */}
-                    <div className="relative">
-                      <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
-                      <input
-                        type="text"
-                        value={searchScans}
-                        onChange={(e) => setSearchScans(e.target.value)}
-                        placeholder="Search scans..."
-                        className="bg-bg-void border border-border-hairline rounded-[4px] pl-6 pr-2 py-1 text-[10px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-scan w-40"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Scans Data Table */}
-                  <div className="rounded-[4px] border border-border-hairline overflow-x-hidden">
-                    <table className="w-full text-left font-mono text-[11px] whitespace-nowrap">
-                      <thead>
-                        <tr className="border-b border-border-hairline bg-bg-void text-text-muted text-[10px]">
-                          <th className="py-2.5 px-3.5 font-normal">Name</th>
-                          <th className="py-2.5 px-3.5 font-normal">Status</th>
-                          <th className="py-2.5 px-3.5 font-normal">Risk Summary</th>
-                          <th className="py-2.5 px-3.5 font-normal">Scope</th>
-                          <th className="py-2.5 px-3.5 font-normal text-right">Created</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border-hairline">
-                        {scansToRender.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="py-4 text-center text-text-muted text-[10px]">
-                              No scans match your current filter.
-                            </td>
-                          </tr>
-                        ) : (
-                          scansToRender.map((item: any) => {
-                            const isCompleted = item.stage === "COMPLETED";
-                            const isScanning = item.stage === "SCANNING";
-                            const stageDisplay = item.stage === "CORRECTIONS_REQUESTED"
-                              ? "Corrections"
-                              : item.stage === "IN_REVIEW"
-                              ? "In Review"
-                              : item.stage === "SCANNING"
-                              ? "Scanning"
-                              : item.stage === "COMPLETED"
-                              ? "Completed"
-                              : item.stage || "Pending";
-
-                            const findingsCount = item.findings?.length ?? 0;
-                            const riskSummary = isCompleted
-                              ? "0 Open Risks (Attested)"
-                              : findingsCount > 0
-                              ? `${findingsCount} Risk${findingsCount > 1 ? "s" : ""} Found`
-                              : "In progress";
-
-                            const createdFormatted = new Date(item.createdAt || Date.now()).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            });
-
-                            return (
-                              <tr key={item.id} className="hover:bg-bg-panel-raised/50 transition-colors">
-                                <td className="py-3 px-3.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-accent-scan/40 inline-block shrink-0" />
-                                    <div>
-                                      <span className="text-text-primary text-[11px] font-semibold block">{item.contractFileName}</span>
-                                      <span className="text-text-muted text-[9px] block">{item.protocolName}</span>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-3.5">
-                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
-                                    isCompleted
-                                      ? "bg-signal-resolved/15 border-signal-resolved/40 text-signal-resolved"
-                                      : isScanning
-                                      ? "bg-accent-scan/15 border-accent-scan/40 text-accent-scan"
-                                      : "bg-signal-high/15 border-signal-high/40 text-signal-high"
-                                  }`}>
-                                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                                    <span>{stageDisplay}</span>
-                                  </span>
-                                </td>
-                                <td className="py-3 px-3.5 text-text-muted text-[10px]">
-                                  {riskSummary}
-                                </td>
-                                <td className="py-3 px-3.5 text-text-primary font-medium">
-                                  {(item.sloc || 100).toLocaleString()} SLOC
-                                </td>
-                                <td className="py-3 px-3.5 text-text-muted text-[10px] text-right">
-                                  {createdFormatted}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Interactive Live Dashboard Component */}
+          <InteractiveDashboardDemo />
         </div>
       </main>
 
+      {/* Infinite-Scrolling Supported Chains Ribbon attached to bottom of Hero */}
+      <div id="ecosystem" className="w-full relative z-20">
+        <SupportedChainsShowcase />
+      </div>
+
       {/* ========================================================================= */}
-      {/* SECTION 2: 3-ROW PARALLAX SUPPORTED BLOCKCHAINS & RUNTIMES               */}
+      {/* SECTION 2: 3-ROW PARALLAX SUPPORTED BLOCKCHAINS & RUNTIMES (COMMENTED OUT)*/}
       {/* ========================================================================= */}
-      <section id="ecosystem" className="chains-section relative py-20 border-t border-border-hairline bg-bg-void/80 overflow-hidden">
-        {/* Section Header */}
+      {/*
+      <section className="chains-section relative py-20 border-t border-border-hairline bg-bg-void/80 overflow-hidden">
         <div className="reveal-on-scroll max-w-4xl mx-auto px-4 text-center space-y-4 mb-14">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[4px] bg-bg-panel border border-border-hairline text-accent-scan font-mono text-xs">
             <Cpu className="h-3.5 w-3.5 text-accent-scan" />
@@ -917,13 +655,10 @@ export default function LandingPage() {
           </p>
         </div>
 
-        {/* 3-Row Parallax Marquee Wrapper with Side Cut-out Fade Vignettes */}
         <div className="relative w-full overflow-hidden space-y-3.5 py-4">
-          {/* Left & Right Edge Cut-Out Gradient Masks */}
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-24 sm:w-44 bg-gradient-to-r from-bg-void via-bg-void/80 to-transparent z-20" />
           <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-24 sm:w-44 bg-gradient-to-l from-bg-void via-bg-void/80 to-transparent z-20" />
 
-          {/* ROW 1: Scrolls Left on Scroll Down, Right on Scroll Up */}
           <div className="chain-row-1 flex items-center gap-3.5 whitespace-nowrap will-change-transform">
             {[...row1Chains, ...row1Chains].map((name, index) => (
               <div
@@ -938,7 +673,6 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* ROW 2: Scrolls Right on Scroll Down, Left on Scroll Up */}
           <div className="chain-row-2 flex items-center gap-3.5 whitespace-nowrap will-change-transform -translate-x-64">
             {[...row2Chains, ...row2Chains].map((name, index) => (
               <div
@@ -953,7 +687,6 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* ROW 3: Scrolls Left on Scroll Down, Right on Scroll Up */}
           <div className="chain-row-3 flex items-center gap-3.5 whitespace-nowrap will-change-transform -translate-x-20">
             {[...row3Chains, ...row3Chains].map((name, index) => (
               <div
@@ -969,6 +702,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      */}
 
       {/* ========================================================================= */}
       {/* SECTION 3: ON-CHAIN SECURITY BENCHMARKS (CURATED MULTI-TONE CARDS)        */}
@@ -2041,14 +1775,14 @@ export default function LandingPage() {
                   Request an Audit
                 </ExpandingButton>
               </Link>
-              <Link href="/portal/token-risk" className="w-full sm:w-auto">
+              <Link href="/portal" className="w-full sm:w-auto">
                 <ExpandingButton
                   variant="dark"
                   size="md"
                   className="w-full sm:w-auto"
                   icon={<ArrowUpRight className="h-4 w-4 stroke-[2.5]" />}
                 >
-                  Scan a Token Free
+                  Explore Dashboard
                 </ExpandingButton>
               </Link>
             </div>
@@ -2085,17 +1819,11 @@ export default function LandingPage() {
               <Link href="#how-it-works" className="hover:text-text-primary transition-colors">
                 How It Works
               </Link>
-              <Link href="/portal/token-risk" className="hover:text-text-primary transition-colors">
-                Security Tools
-              </Link>
               <Link href="#pricing" className="hover:text-text-primary transition-colors">
                 Pricing
               </Link>
               <Link href="#faq" className="hover:text-text-primary transition-colors">
                 FAQ
-              </Link>
-              <Link href="/portal/learn" className="hover:text-text-primary transition-colors">
-                Academy
               </Link>
               <Link href="/portal" className="hover:text-text-primary transition-colors">
                 Client Portal

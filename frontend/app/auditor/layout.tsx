@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuditorSidebar } from "@/components/auditor-sidebar";
 import { AuditorHeader } from "@/components/auditor-header";
+import { AuditorContentWrapper } from "@/components/auditor-content-wrapper";
 import { SidebarProvider } from "@/components/ui/sidebar-context";
 import { RequireAuth } from "@/components/require-auth";
 
@@ -24,9 +25,9 @@ export default function AuditorLayout({
           {/* Floating White Content Section with Rounded Border and Light Border */}
           <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-bg-panel border border-border-hairline/80 rounded-2xl shadow-xs overflow-hidden relative">
             <AuditorHeader />
-            <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+            <AuditorContentWrapper>
               {children}
-            </div>
+            </AuditorContentWrapper>
           </div>
         </div>
       </SidebarProvider>

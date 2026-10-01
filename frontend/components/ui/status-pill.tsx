@@ -3,21 +3,21 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const statusPillVariants = cva(
-  "inline-flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-wider px-2 py-0.5 rounded-[4px] border select-none transition-colors whitespace-nowrap shrink-0",
+  "inline-flex items-center gap-1.5 font-sans text-xs font-medium px-2.5 py-0.5 rounded-full border select-none transition-colors whitespace-nowrap shrink-0",
   {
     variants: {
       status: {
-        pending: "bg-bg-panel-raised text-text-muted border-border-hairline",
-        scanning: "bg-accent-scan/10 text-accent-scan border-accent-scan/30",
-        "in-review": "bg-[#6C9EFF]/10 text-signal-low border-signal-low/30",
-        "corrections-requested": "bg-signal-critical/10 text-signal-critical border-signal-critical/30",
-        completed: "bg-signal-resolved/10 text-signal-resolved border-signal-resolved/30",
-        failed: "bg-signal-critical/10 text-signal-critical border-signal-critical/30",
+        pending: "bg-bg-panel-raised/70 text-text-muted border-border-hairline",
+        scanning: "bg-accent-scan/10 text-accent-scan border-accent-scan/25",
+        "in-review": "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/25",
+        "corrections-requested": "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+        completed: "bg-signal-resolved/10 text-signal-resolved border-signal-resolved/25",
+        failed: "bg-signal-critical/10 text-signal-critical border-signal-critical/25",
       },
       size: {
-        sm: "text-[10px] px-1.5 py-0 gap-1",
-        md: "text-[11px] px-2 py-0.5 gap-1.5",
-        lg: "text-xs px-2.5 py-1 gap-2",
+        sm: "text-[11px] px-2 py-0.5 gap-1",
+        md: "text-xs px-2.5 py-0.5 gap-1.5",
+        lg: "text-xs px-3 py-1 gap-2",
       },
     },
     defaultVariants: {
@@ -43,12 +43,12 @@ export interface StatusPillProps
 }
 
 const statusLabels: Record<PipelineStatus, string> = {
-  pending: "PENDING",
-  scanning: "SCANNING",
-  "in-review": "IN MANUAL REVIEW",
-  "corrections-requested": "CORRECTIONS REQUESTED",
-  completed: "COMPLETED",
-  failed: "FAILED",
+  pending: "Pending Intake",
+  scanning: "Automated Scan",
+  "in-review": "In Review",
+  "corrections-requested": "Fixes Needed",
+  completed: "Completed",
+  failed: "Failed",
 };
 
 export function StatusPill({
