@@ -389,7 +389,7 @@ export function InteractiveDashboardDemo() {
         {/* URL Pill */}
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F2F4F7] dark:bg-black/40 border border-[#E2E6EC] dark:border-white/10 text-[11px] font-mono text-text-muted max-w-sm w-full justify-center">
           <Lock className="h-3 w-3 text-emerald-500 shrink-0" />
-          <span className="text-text-primary font-medium truncate">app.zyron.security</span>
+          <span className="text-text-primary font-medium truncate">zyron.tools</span>
           <span className="text-text-muted truncate hidden sm:inline">/portal</span>
         </div>
 

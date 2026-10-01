@@ -98,7 +98,7 @@ export function UserProfileDropdown({ align = "right" }: UserProfileDropdownProp
                   {user?.email ||
                     (user?.walletAddress
                       ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`
-                      : "user@zyron.security")}
+                      : "user@zyron.tools")}
                 </div>
                 {role !== "CLIENT" && (
                   <div className="mt-1">
