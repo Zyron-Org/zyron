@@ -54,7 +54,7 @@ export function SupportedChainsShowcase() {
           display: flex;
           width: max-content;
           will-change: transform;
-          animation: ticker-scroll 28s linear infinite;
+          animation: ticker-scroll 70s linear infinite;
         }
         .ticker-track:hover {
           animation-play-state: paused;
