@@ -374,7 +374,7 @@ export function InteractiveDashboardDemo() {
   };
 
   return (
-    <div className="w-full rounded-2xl border border-[#E2E6EC] dark:border-border-hairline/90 bg-[#F2F4F7] dark:bg-[#080B11] p-1.5 sm:p-2.5 shadow-2xl relative">
+    <div className="w-full rounded-t-2xl rounded-b-none border border-b-0 border-[#E2E6EC] dark:border-border-hairline/90 bg-[#F2F4F7] dark:bg-[#080B11] p-1.5 sm:p-2.5 pb-0 sm:pb-0 shadow-2xl relative overflow-hidden">
       {/* ── BROWSER / OS TOP WINDOW BAR ── */}
       <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-[#E4E7EC] dark:border-white/10 bg-white/70 dark:bg-bg-panel/70 rounded-t-xl backdrop-blur-xs text-xs">
         <div className="flex items-center gap-2 shrink-0">
@@ -403,7 +403,7 @@ export function InteractiveDashboardDemo() {
       </div>
 
       {/* ── DASHBOARD MAIN BODY (Reflecting actual /portal) ── */}
-      <div className="p-3 sm:p-5 bg-white dark:bg-bg-panel rounded-b-xl space-y-4">
+      <div className="p-3 sm:p-5 pb-6 sm:pb-8 bg-white dark:bg-bg-panel rounded-t-none rounded-b-none space-y-4">
         {/* 1. TOP HEADER & BREADCRUMBS */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-[#E8ECF1] dark:border-border-hairline/60">
           <div>
