@@ -4,42 +4,42 @@ import * as React from "react";
 import Link from "next/link";
 import {
   Shield,
-  ShieldCheck,
-  ShieldAlert,
-  Lock,
-  Code2,
-  Terminal,
-  Cpu,
-  FileCheck2,
   Sparkles,
-  TrendingUp,
-  Coins,
-  Scale,
-  Building2,
-  Layers,
-  GitBranch,
+  Zap,
   Users,
-  CheckCircle2,
+  FileCheck2,
+  GitBranch,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   Maximize2,
   Minimize2,
   Grid,
   Play,
   Pause,
   Printer,
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
-  Zap,
-  Check,
   AlertTriangle,
-  ArrowUpRight,
+  Check,
+  Lock,
+  Terminal,
+  Cpu,
+  Layers,
+  TrendingUp,
+  Building2,
+  Scale,
+  CheckCircle2,
   Clock,
-  Radio,
-  FileText,
-  DollarSign,
   Activity,
   Award,
+  Search,
+  FileText,
+  Eye,
+  RefreshCw,
+  Target,
+  Compass,
+  ArrowUpRight,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,86 +57,86 @@ interface SlideData {
 const SLIDES_META: SlideData[] = [
   {
     id: "cover",
-    badge: "Executive Pitch Deck",
-    title: "The Cryptographic Security Infrastructure for Web3",
-    subtitle: "Autonomous AI Red-Team Agent, Virtual Blockchain Exploit Simulation, and On-Chain Bytecode Attestation.",
+    badge: "Slide 1 – Cover",
+    title: "ZYRON PROTOCOL SECURITY — PITCH DECK",
+    subtitle: "The Cryptographic Security Infrastructure for Web3 Protocols",
     category: "Vision",
   },
   {
     id: "problem",
-    badge: "The Problem",
-    title: "The Trillion-Dollar Web3 Security Bottleneck",
-    subtitle: "Smart contracts secure billions in TVL, yet audits remain slow, manual black boxes with zero on-chain proof.",
+    badge: "Slide 2 – Problem",
+    title: "The Web3 Security Bottleneck",
+    subtitle: "Smart contracts secure tens of billions in value, yet the audit process remains slow, expensive, and unverifiable.",
     category: "Market",
   },
   {
     id: "solution",
-    badge: "The Solution",
-    title: "Zyron: Continuous, Verifiable Protocol Security",
-    subtitle: "Combining automated AST passes with autonomous virtual blockchain exploit simulation and calibrated human triage.",
+    badge: "Slide 3 – Solution",
+    title: "Continuous, Verifiable Protocol Security",
+    subtitle: "Combining automated AST passes, structured human review, and on-chain attestations.",
     category: "Product",
   },
   {
-    id: "product-engine",
-    badge: "Compiler Technology",
-    title: "14-Pass AST & Symbolic Execution Engine",
-    subtitle: "Enterprise-grade static analysis, taint tracking, and CFG graph reconstruction executing in sub-minute runs.",
+    id: "technology",
+    badge: "Slide 4 – Technology",
+    title: "14-Pass AST & Control-Flow Analysis Engine",
+    subtitle: "Specialized security passes catching high-signal issues before human review begins.",
     category: "Product",
   },
   {
-    id: "ai-sandbox",
-    badge: "Adversarial AI Simulation",
-    title: "Autonomous AI Red-Team Agent & Virtual Sandbox",
-    subtitle: "Deploying bytecode to an ephemeral virtual EVM fork to dynamically synthesize real exploits and generate executable Foundry PoCs.",
+    id: "human-review",
+    badge: "Slide 5 – Human Review",
+    title: "Dual-Pane Auditor Workbench",
+    subtitle: "Automated tools surface candidates. Human experts make the final judgment.",
     category: "Product",
   },
   {
-    id: "dual-auditor",
-    badge: "Human Intelligence",
-    title: "Dual-Auditor Double-Blind Review Workbench",
-    subtitle: "Combining machine speed with calibrated human expertise to eliminate false positives and formulate exploit PoCs.",
+    id: "onchain-attestation",
+    badge: "Slide 6 – On-Chain Attestation",
+    title: "Verifiable Certificates, Not Just PDFs",
+    subtitle: "Immutable certificates containing bytecode hash and findings Merkle root.",
     category: "Product",
   },
   {
-    id: "attestation",
-    badge: "Cryptographic Proof",
-    title: "On-Chain Attestation & Delivery Vault",
-    subtitle: "Anchoring immutable SHA-256 bytecode hashes to EVM registries and the Ethereum Attestation Service (EAS).",
+    id: "how-it-works",
+    badge: "Slide 7 – How It Works",
+    title: "Simple Audit Lifecycle",
+    subtitle: "Transparent process from start to finish.",
     category: "Product",
   },
   {
-    id: "market",
-    badge: "Market Opportunity",
-    title: "A $6.8B Market Undergoing Paradigm Shift",
-    subtitle: "Audits are transitioning from one-off compliance checks into continuous developer security infrastructure.",
+    id: "market-opportunity",
+    badge: "Slide 8 – Market Opportunity",
+    title: "Growing Demand for Better Security Infrastructure",
+    subtitle: "Zyron sits at the intersection of security tooling and on-chain trust.",
     category: "Market",
   },
   {
     id: "business-model",
-    badge: "Business Model",
-    title: "Hybrid SaaS & High-Margin Audit Revenue",
-    subtitle: "Predictable recurring revenue paired with high-ticket audit engagements settled via fiat and crypto escrow.",
+    badge: "Slide 9 – Business Model",
+    title: "Hybrid Revenue Model",
+    subtitle: "Clear path from project-based revenue to recurring revenue.",
     category: "Business",
   },
   {
-    id: "competition",
-    badge: "Competitive Moat",
-    title: "Why Zyron Wins Against Legacy Firms",
-    subtitle: "Virtual blockchain exploit simulation, 70% lower turnaround, 50% cost efficiency, and on-chain attestations.",
+    id: "competitive-position",
+    badge: "Slide 10 – Competitive Position",
+    title: "Feature Comparison",
+    subtitle: "Comparing Zyron against Traditional Firms and Pure Scanners.",
     category: "Business",
   },
   {
-    id: "traction",
-    badge: "Traction & Telemetry",
-    title: "Proven Scale & Zero Exploits",
-    subtitle: "Securing mission-critical DeFi protocols, liquidity pools, and multi-sig vaults across EVM networks.",
-    category: "Traction",
+    id: "current-status-roadmap",
+    badge: "Slide 11 – Current Status & Roadmap",
+    title: "Current Status & Roadmap",
+    subtitle: "From core AST engine today to decentralized validation tomorrow.",
+    category: "Vision",
   },
   {
-    id: "roadmap",
-    badge: "Vision & Ask",
-    title: "The Roadmap to Universal Web3 Security",
-    subtitle: "Scaling autonomous exploit synthesis, multi-chain attestation oracles, and decentralized auditor staking.",
+    id: "vision-next-steps",
+    badge: "Slide 12 – Vision & Next Steps",
+    title: "Building the Trust Layer for Smart Contract Security",
+    subtitle: "Let's make security work that can actually be trusted onchain.",
     category: "Vision",
   },
 ];
@@ -253,9 +253,9 @@ export default function PitchDeckPage() {
             </div>
             <div className="flex flex-col">
               <span className="font-display font-bold text-sm tracking-tight text-white flex items-center gap-1.5">
-                ZYRON <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-accent-scan font-normal">DECK</span>
+                ZYRON <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-accent-scan font-normal">PITCH DECK</span>
               </span>
-              <span className="text-[10px] text-text-muted hidden sm:inline">Series A Investor & Protocol Presentation</span>
+              <span className="text-[10px] text-text-muted hidden sm:inline">Cryptographic Security Infrastructure for Web3</span>
             </div>
           </Link>
         </div>
@@ -263,7 +263,7 @@ export default function PitchDeckPage() {
         {/* Center Pill: Current Slide & Title */}
         <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs">
           <span className="font-mono text-accent-scan font-bold">
-            {String(currentSlide + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
+            Slide {currentSlide + 1} of {totalSlides}
           </span>
           <span className="text-white/20">•</span>
           <span className="text-white/80 font-medium truncate max-w-xs">{SLIDES_META[currentSlide].title}</span>
@@ -327,20 +327,19 @@ export default function PitchDeckPage() {
 
       {/* Main Slide Presentation Stage */}
       <main className="flex-1 flex flex-col justify-center items-center py-6 sm:py-8 max-w-6xl w-full mx-auto relative z-10">
-        {/* Render Slide Content based on current index */}
         <div className="w-full transition-all duration-300 animate-fadeIn">
-          {currentSlide === 0 && <SlideCover onNext={nextSlide} />}
-          {currentSlide === 1 && <SlideProblem />}
-          {currentSlide === 2 && <SlideSolution />}
-          {currentSlide === 3 && <SlideEngine />}
-          {currentSlide === 4 && <SlideExploitSandbox />}
-          {currentSlide === 5 && <SlideDualAuditor />}
-          {currentSlide === 6 && <SlideAttestation />}
-          {currentSlide === 7 && <SlideMarket />}
-          {currentSlide === 8 && <SlideBusinessModel />}
-          {currentSlide === 9 && <SlideCompetition />}
-          {currentSlide === 10 && <SlideTraction />}
-          {currentSlide === 11 && <SlideRoadmap onRestart={() => setCurrentSlide(0)} />}
+          {currentSlide === 0 && <Slide1Cover onNext={nextSlide} />}
+          {currentSlide === 1 && <Slide2Problem />}
+          {currentSlide === 2 && <Slide3Solution />}
+          {currentSlide === 3 && <Slide4Technology />}
+          {currentSlide === 4 && <Slide5HumanReview />}
+          {currentSlide === 5 && <Slide6OnChainAttestation />}
+          {currentSlide === 6 && <Slide7HowItWorks />}
+          {currentSlide === 7 && <Slide8MarketOpportunity />}
+          {currentSlide === 8 && <Slide9BusinessModel />}
+          {currentSlide === 9 && <Slide10CompetitivePosition />}
+          {currentSlide === 10 && <Slide11CurrentStatusRoadmap />}
+          {currentSlide === 11 && <Slide12VisionNextSteps onRestart={() => setCurrentSlide(0)} />}
         </div>
       </main>
 
@@ -363,7 +362,7 @@ export default function PitchDeckPage() {
           </span>
         </div>
 
-        {/* Interactive Keyboard Shortcuts Tip */}
+        {/* Keyboard Shortcuts Tip */}
         <div className="text-[11px] text-text-muted hidden lg:flex items-center gap-2">
           <span>Navigate with</span>
           <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15 text-[10px] font-mono text-white/80">
@@ -433,7 +432,7 @@ export default function PitchDeckPage() {
               >
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-bold text-accent-scan">
-                    {String(idx + 1).padStart(2, "0")}
+                    Slide {idx + 1}
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-text-muted">
                     {meta.category}
@@ -460,17 +459,45 @@ export default function PitchDeckPage() {
 // INDIVIDUAL SLIDE COMPONENTS
 // ==========================================
 
-// --- SLIDE 1: COVER ---
-function SlideCover({ onNext }: { onNext: () => void }) {
+// Reusable Slide Header
+function SlideHeader({
+  badge,
+  title,
+  subtitle,
+}: {
+  badge: string;
+  title: string;
+  subtitle?: string;
+}) {
   return (
-    <div className="flex flex-col items-center text-center space-y-8 py-6">
-      {/* Category Pill */}
-      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent-scan/10 border border-accent-scan/30 text-accent-scan text-xs font-semibold">
+    <div className="space-y-2 text-left">
+      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-accent-scan/10 text-accent-scan border border-accent-scan/30">
         <Sparkles className="h-3.5 w-3.5" />
+        <span>{badge}</span>
+      </div>
+      <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
+        {title}
+      </h2>
+      {subtitle && (
+        <p className="text-xs sm:text-sm text-text-muted max-w-3xl leading-relaxed">
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// --- SLIDE 1: COVER ---
+function Slide1Cover({ onNext }: { onNext: () => void }) {
+  return (
+    <div className="flex flex-col items-center text-center space-y-8 py-4 sm:py-6">
+      {/* Category / Badge */}
+      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-scan/10 border border-accent-scan/30 text-accent-scan text-xs font-semibold tracking-wide uppercase">
+        <Sparkles className="h-4 w-4" />
         <span>ZYRON PROTOCOL SECURITY — PITCH DECK</span>
       </div>
 
-      {/* Hero Headline */}
+      {/* Headline & Subtitle */}
       <div className="space-y-4 max-w-4xl">
         <h1 className="font-display text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
           The Cryptographic Security Infrastructure for{" "}
@@ -478,41 +505,41 @@ function SlideCover({ onNext }: { onNext: () => void }) {
             Web3 Protocols
           </span>
         </h1>
-        <p className="text-base sm:text-lg md:text-xl text-text-muted max-w-2xl mx-auto leading-relaxed">
-          Replacing slow, opaque PDF audits with automated 14-pass AST static analysis, double-blind human auditor triage, and immutable on-chain bytecode attestations.
+        <p className="text-sm sm:text-base md:text-lg text-text-muted max-w-3xl mx-auto leading-relaxed">
+          Replacing slow, opaque PDF audits with automated AST static analysis, structured human review, and immutable on-chain attestations.
         </p>
       </div>
 
       {/* 4 Pillars Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-4xl pt-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 w-full max-w-4xl pt-2">
         {[
-          { label: "14 AST Passes", desc: "Taint analysis in seconds", icon: Zap },
-          { label: "Dual-Auditor", desc: "Double-blind review", icon: Users },
-          { label: "On-Chain Proofs", desc: "SHA-256 EAS attestations", icon: FileCheck2 },
-          { label: "Continuous CI/CD", desc: "@zyron-bot PR guardrails", icon: GitBranch },
+          { label: "14 AST Passes", desc: "Automated static analysis", icon: Zap },
+          { label: "Dual-Auditor Review", desc: "Structured human triage", icon: Users },
+          { label: "On-Chain Proofs", desc: "Immutable attestations", icon: FileCheck2 },
+          { label: "Continuous Security", desc: "Ongoing protocol protection", icon: ShieldCheck },
         ].map((item, idx) => {
           const Icon = item.icon;
           return (
             <div
               key={idx}
-              className="p-4 rounded-xl bg-white/5 border border-white/10 text-left space-y-1 hover:border-accent-scan/40 transition-colors"
+              className="p-4 rounded-xl bg-white/5 border border-white/10 text-left space-y-1.5 hover:border-accent-scan/40 hover:bg-white/10 transition-all group"
             >
-              <div className="h-7 w-7 rounded-lg bg-accent-scan/10 text-accent-scan flex items-center justify-center mb-2">
+              <div className="h-8 w-8 rounded-lg bg-accent-scan/10 text-accent-scan flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
                 <Icon className="h-4 w-4" />
               </div>
-              <div className="font-semibold text-xs text-white">{item.label}</div>
-              <div className="text-[11px] text-text-muted">{item.desc}</div>
+              <div className="font-semibold text-sm text-white">{item.label}</div>
+              <div className="text-xs text-text-muted">{item.desc}</div>
             </div>
           );
         })}
       </div>
 
-      {/* Primary CTA */}
+      {/* Primary CTA Button */}
       <div className="pt-2">
         <button
           type="button"
           onClick={onNext}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-accent-scan text-bg-void font-bold text-sm hover:bg-accent-scan/90 transition-all shadow-lg shadow-accent-scan/20 cursor-pointer"
+          className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-accent-scan text-bg-void font-bold text-sm hover:bg-accent-scan/90 transition-all shadow-lg shadow-accent-scan/20 cursor-pointer"
         >
           <span>Explore Deck</span>
           <ArrowRight className="h-4 w-4" />
@@ -522,849 +549,762 @@ function SlideCover({ onNext }: { onNext: () => void }) {
   );
 }
 
-// --- SLIDE 2: THE PROBLEM ---
-function SlideProblem() {
+// --- SLIDE 2: PROBLEM ---
+function Slide2Problem() {
   return (
     <div className="space-y-6">
       <SlideHeader
-        badge="Market Inefficiency"
-        title="The Trillion-Dollar Web3 Security Bottleneck"
-        description="Smart contracts safeguard over $120 Billion in TVL, yet audit infrastructure is fundamentally broken."
+        badge="Slide 2 – Problem"
+        title="The Web3 Security Bottleneck"
+        subtitle="Smart contracts secure tens of billions in value, yet the audit process remains slow, expensive, and unverifiable."
       />
 
-      {/* Main Shock Metric Card */}
-      <div className="p-4 sm:p-6 rounded-2xl bg-signal-critical/10 border border-signal-critical/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-signal-critical/20 text-signal-critical flex items-center justify-center shrink-0">
-            <AlertTriangle className="h-6 w-6" />
+      {/* Key Problems Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[
+          {
+            num: "01",
+            title: "Long Wait Times",
+            desc: "Often 6–10 weeks at top audit firms, stalling critical deployments and feature releases.",
+            icon: Clock,
+            accent: "border-amber-500/30 bg-amber-500/5 text-amber-400",
+          },
+          {
+            num: "02",
+            title: "Static PDF Reports",
+            desc: "Reports become outdated the moment code changes or new parameters are committed.",
+            icon: FileText,
+            accent: "border-sky-500/30 bg-sky-500/5 text-sky-400",
+          },
+          {
+            num: "03",
+            title: "No Cryptographic Link",
+            desc: "Zero cryptographic connection between the audited source code and the deployed on-chain bytecode.",
+            icon: AlertTriangle,
+            accent: "border-signal-critical/30 bg-signal-critical/5 text-signal-critical",
+          },
+          {
+            num: "04",
+            title: "Prohibitive High Cost",
+            desc: "Extremely high costs push many emerging project teams to skip or severely under-invest in security.",
+            icon: Scale,
+            accent: "border-purple-500/30 bg-purple-500/5 text-purple-400",
+          },
+        ].map((problem) => {
+          const Icon = problem.icon;
+          return (
+            <div
+              key={problem.num}
+              className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3 hover:border-white/20 transition-all flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <div className={cn("p-2.5 rounded-xl border flex items-center gap-2 text-xs font-semibold", problem.accent)}>
+                  <Icon className="h-4 w-4" />
+                  <span>Problem {problem.num}</span>
+                </div>
+                <span className="font-mono text-xs text-text-muted">{problem.num} / 04</span>
+              </div>
+              <div>
+                <h3 className="font-semibold text-base text-white mb-1.5">{problem.title}</h3>
+                <p className="text-xs text-text-muted leading-relaxed">{problem.desc}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Result Callout Card */}
+      <div className="p-5 rounded-2xl bg-signal-critical/10 border border-signal-critical/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="h-10 w-10 rounded-xl bg-signal-critical/20 text-signal-critical flex items-center justify-center shrink-0">
+            <ShieldAlert className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-display font-bold text-white">
-              $3.8 Billion+ Lost Annually
+            <div className="text-sm font-mono font-bold text-signal-critical uppercase tracking-wide">
+              The Reality
             </div>
-            <div className="text-xs text-text-muted">
-              Over 68% of hacked protocols had completed a "traditional audit" before deploying to mainnet.
+            <div className="text-base sm:text-lg font-display font-bold text-white">
+              Result: Even audited protocols still get exploited.
             </div>
           </div>
         </div>
-        <div className="font-mono text-xs text-signal-critical px-3 py-1 rounded-full bg-signal-critical/15 border border-signal-critical/30 shrink-0">
-          Source: Web3 REKT & CertiK 2024-2025
+        <div className="text-xs text-text-muted bg-black/40 px-3.5 py-2 rounded-xl border border-white/10 text-center sm:text-right shrink-0">
+          PDF audits provide no real runtime assurance.
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* 3 Core Pain Points */}
+// --- SLIDE 3: SOLUTION ---
+function Slide3Solution() {
+  return (
+    <div className="space-y-6">
+      <SlideHeader
+        badge="Slide 3 – Solution"
+        title="Continuous, Verifiable Protocol Security"
+        subtitle="Zyron combines three synergistic layers to transform Web3 security:"
+      />
+
+      {/* 3 Layers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-          <div className="h-8 w-8 rounded-lg bg-signal-critical/10 text-signal-critical flex items-center justify-center font-mono font-bold text-sm">
-            01
-          </div>
-          <h3 className="font-semibold text-sm text-white">6-10 Week Waitlists</h3>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Top audit firms operate like legacy consulting agencies. Fast-moving DeFi teams wait months just to get a schedule slot, stalling critical product launches.
-          </p>
-          <div className="text-[11px] font-mono text-text-muted pt-2 border-t border-white/10">
-            Average delay: 45 business days
-          </div>
-        </div>
-
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-          <div className="h-8 w-8 rounded-lg bg-signal-high/10 text-signal-high flex items-center justify-center font-mono font-bold text-sm">
-            02
-          </div>
-          <h3 className="font-semibold text-sm text-white">The Static PDF Black Box</h3>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Auditors deliver a static 50-page PDF report. The moment developers patch code or add a new contract parameter, the PDF is completely obsolete with zero regression testing.
-          </p>
-          <div className="text-[11px] font-mono text-text-muted pt-2 border-t border-white/10">
-            Zero continuous regression tracking
-          </div>
-        </div>
-
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-          <div className="h-8 w-8 rounded-lg bg-signal-medium/10 text-signal-medium flex items-center justify-center font-mono font-bold text-sm">
-            03
-          </div>
-          <h3 className="font-semibold text-sm text-white">The "Trust Me" Deployment Gap</h3>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Neither DeFi users nor liquidity providers have cryptographic proof that the on-chain deployed bytecode matches the code audited in the PDF.
-          </p>
-          <div className="text-[11px] font-mono text-text-muted pt-2 border-t border-white/10">
-            Zero verifiable on-chain linkage
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- SLIDE 3: THE SOLUTION ---
-function SlideSolution() {
-  return (
-    <div className="space-y-6">
-      <SlideHeader
-        badge="The Zyron Paradigm"
-        title="Continuous, Automated, and Verifiable Security"
-        description="Zyron combines machine-speed static analysis with calibrated dual-human expertise and cryptographic on-chain attestations."
-      />
-
-      {/* 3 Pillars of Zyron */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Pillar 1 */}
-        <div className="p-5 rounded-xl bg-accent-scan/5 border border-accent-scan/30 space-y-3">
-          <div className="h-9 w-9 rounded-lg bg-accent-scan/10 text-accent-scan flex items-center justify-center">
-            <Zap className="h-5 w-5" />
-          </div>
-          <h3 className="font-semibold text-sm text-white">Autonomous AST Passes</h3>
-          <p className="text-xs text-text-muted leading-relaxed">
-            14 custom static analysis passes, taint analysis, and symbolic execution run the second contracts are submitted, catching 85% of known SWC vulnerabilities instantly.
-          </p>
-          <ul className="text-[11px] space-y-1.5 text-text-muted pt-2 border-t border-white/10">
-            <li className="flex items-center gap-1.5 text-white/80">
-              <Check className="h-3 w-3 text-accent-scan" /> Sub-minute automated analysis
-            </li>
-            <li className="flex items-center gap-1.5 text-white/80">
-              <Check className="h-3 w-3 text-accent-scan" /> AST & CFG taint tracking
-            </li>
-          </ul>
-        </div>
-
-        {/* Pillar 2 */}
-        <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/30 space-y-3">
-          <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-            <Users className="h-5 w-5" />
-          </div>
-          <h3 className="font-semibold text-sm text-white">Dual-Auditor Workbench</h3>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Double-blind certified human auditors review findings, eliminate false positives, test economic edge cases, and collaborate with protocol devs in real-time remediation threads.
-          </p>
-          <ul className="text-[11px] space-y-1.5 text-text-muted pt-2 border-t border-white/10">
-            <li className="flex items-center gap-1.5 text-white/80">
-              <Check className="h-3 w-3 text-emerald-400" /> Consensus severity calibration
-            </li>
-            <li className="flex items-center gap-1.5 text-white/80">
-              <Check className="h-3 w-3 text-emerald-400" /> Inline diff & PoC reviews
-            </li>
-          </ul>
-        </div>
-
-        {/* Pillar 3 */}
-        <div className="p-5 rounded-xl bg-purple-500/5 border border-purple-500/30 space-y-3">
-          <div className="h-9 w-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
-            <FileCheck2 className="h-5 w-5" />
-          </div>
-          <h3 className="font-semibold text-sm text-white">On-Chain Attestations</h3>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Every verified engagement generates an immutable SHA-256 bytecode hash anchored to EVM contracts and the Ethereum Attestation Service (EAS). Zero trust required.
-          </p>
-          <ul className="text-[11px] space-y-1.5 text-text-muted pt-2 border-t border-white/10">
-            <li className="flex items-center gap-1.5 text-white/80">
-              <Check className="h-3 w-3 text-purple-400" /> Cryptographic bytecode proof
-            </li>
-            <li className="flex items-center gap-1.5 text-white/80">
-              <Check className="h-3 w-3 text-purple-400" /> Embeddable protocol trust badge
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Comparison Bottom Banner */}
-      <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-3">
-          <span className="text-text-muted">Legacy Firm:</span>
-          <span className="text-signal-critical line-through font-mono">6 Weeks • $40k-$120k • Static PDF</span>
-        </div>
-        <div className="flex items-center gap-2 font-semibold text-accent-scan">
-          <span>Zyron:</span>
-          <span className="font-mono text-white">48-72 Hours • 50% Lower Cost • On-Chain EAS Anchor</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- SLIDE 4: CORE TECHNOLOGY ENGINE ---
-function SlideEngine() {
-  return (
-    <div className="space-y-6">
-      <SlideHeader
-        badge="Proprietary Technology"
-        title="14-Pass AST & Symbolic Execution Engine"
-        description="Our deterministic compiler-level scanner inspects abstract syntax trees to model dataflow and detect edge-case exploits before human auditors begin."
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Left: Engine Architecture passes */}
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-          <h3 className="font-semibold text-sm text-white flex items-center gap-2">
-            <Terminal className="h-4 w-4 text-accent-scan" />
-            <span>Multi-Stage Static Analysis Pipeline</span>
-          </h3>
-
-          <div className="space-y-2 text-xs">
-            {[
-              { num: "01", name: "Access Control & Arbitrary Calls", desc: "SWC-105/106 tx.origin & unprotected delegatecalls" },
-              { num: "02", name: "Reentrancy & State Ordering", desc: "SWC-107 checks-effects-interactions violations" },
-              { num: "03", name: "Oracle Slippage & TWAP Manipulation", desc: "Spot price dependency & flash loan vectors" },
-              { num: "04", name: "ERC-20/721/1155 Compliance", desc: "Non-standard reverts & fee-on-transfer issues" },
-              { num: "05", name: "Proxy & Storage Collision", desc: "EIP-1967 slot conflicts & upgradeability gaps" },
-              { num: "06", name: "Assembly & Yul Inline Taint", desc: "Memory safety & unvalidated memory pointers" },
-            ].map((pass) => (
-              <div
-                key={pass.num}
-                className="p-2 rounded-lg bg-black/40 border border-white/5 flex items-center justify-between gap-2"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-accent-scan font-bold text-[11px]">{pass.num}</span>
-                  <span className="font-medium text-white/90">{pass.name}</span>
-                </div>
-                <span className="text-[10px] text-text-muted hidden sm:inline">{pass.desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: Technical Advantage */}
-        <div className="space-y-4">
-          <div className="p-5 rounded-xl bg-accent-scan/5 border border-accent-scan/20 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-accent-scan">
-              <Cpu className="h-4 w-4" />
-              <span>CFG Control Flow Graph Reconstruction</span>
+        {/* Layer 1 */}
+        <div className="p-6 rounded-2xl bg-accent-scan/5 border border-accent-scan/30 space-y-4 hover:border-accent-scan/50 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="h-10 w-10 rounded-xl bg-accent-scan/10 text-accent-scan flex items-center justify-center">
+              <Zap className="h-5 w-5" />
             </div>
-            <p className="text-xs text-text-muted leading-relaxed">
-              Zyron compiles Solidity source down to AST nodes, reconstructs the interprocedural Control Flow Graph, and conducts taint propagation across external function boundaries.
-            </p>
-            <div className="p-3 rounded-lg bg-black/60 font-mono text-[11px] text-emerald-400 border border-emerald-500/20">
-              ✓ AST parse complete: 1,480 SLOC in 820ms<br />
-              ✓ 14 vulnerability passes executed: 0 false alarms<br />
-              ✓ Invariant state tree validated
-            </div>
-          </div>
-
-          <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-2">
-            <h4 className="font-semibold text-xs text-white flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-emerald-400" />
-              <span>AI-Assisted Business Logic Reasoner</span>
-            </h4>
-            <p className="text-xs text-text-muted leading-relaxed">
-              LLM local reasoning engine analyzes protocol whitepapers, specifications, and economic invariants to spot governance exploits and tokenomic flaws that standard static analyzers miss.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- SLIDE 5: AUTONOMOUS AI RED-TEAM & VIRTUAL BLOCKCHAIN SANDBOX ---
-function SlideExploitSandbox() {
-  return (
-    <div className="space-y-6">
-      <SlideHeader
-        badge="Adversarial AI Simulation"
-        title="Autonomous AI Red-Team Agent & Virtual Sandbox"
-        description="Our AI agent doesn't just lint syntax — it deploys target contracts to an isolated virtual EVM fork, synthesizes stateful exploits, and executes simulated attacks to prove vulnerabilities."
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Left: 4-Step Exploit Synthesis Loop */}
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h3 className="font-semibold text-sm text-white flex items-center gap-2">
-            <Cpu className="h-4 w-4 text-signal-critical animate-pulse" />
-            <span>The 4-Step Autonomous Exploit Loop</span>
-          </h3>
-
-          <div className="space-y-3 text-xs">
-            <div className="flex items-start gap-3">
-              <div className="h-6 w-6 rounded-full bg-signal-critical/20 text-signal-critical flex items-center justify-center font-mono font-bold shrink-0 text-[11px]">
-                1
-              </div>
-              <div>
-                <div className="font-semibold text-white">Ephemeral Virtual EVM Fork</div>
-                <p className="text-text-muted text-[11px]">
-                  Spins up an isolated Anvil virtual blockchain in sub-second time, populated with mock liquidity pools, price feeds, and flash loan facilities.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="h-6 w-6 rounded-full bg-signal-critical/20 text-signal-critical flex items-center justify-center font-mono font-bold shrink-0 text-[11px]">
-                2
-              </div>
-              <div>
-                <div className="font-semibold text-white">Target Bytecode Deployment</div>
-                <p className="text-text-muted text-[11px]">
-                  Compiles and instantiates the contract bytecode directly onto the virtual chain, initializing real state and storage slots.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="h-6 w-6 rounded-full bg-signal-critical/20 text-signal-critical flex items-center justify-center font-mono font-bold shrink-0 text-[11px]">
-                3
-              </div>
-              <div>
-                <div className="font-semibold text-white">Dynamic Adversarial Exploit Execution</div>
-                <p className="text-text-muted text-[11px]">
-                  AI agent synthesizes multi-transaction attack payloads (reentrancy loops, flash-loan manipulation, storage collisions) and fires them at the virtual chain.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="h-6 w-6 rounded-full bg-signal-critical/20 text-signal-critical flex items-center justify-center font-mono font-bold shrink-0 text-[11px]">
-                4
-              </div>
-              <div>
-                <div className="font-semibold text-white">Executable Foundry PoC Generation</div>
-                <p className="text-text-muted text-[11px]">
-                  Confirmed exploits emit executable, turn-key Foundry/Hardhat test files with EVM state traces for human auditor verification with zero false alarms.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Live Simulated Exploit Console UI */}
-        <div className="p-5 rounded-xl bg-black/70 border border-white/15 space-y-3 font-mono text-xs shadow-xl">
-          <div className="flex items-center justify-between text-[11px] pb-2 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <Terminal className="h-3.5 w-3.5 text-signal-critical animate-pulse" />
-              <span className="text-white font-bold">VIRTUAL_EVM_FORK // ANVIL_SANDBOX</span>
-            </div>
-            <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded text-[10px]">
-              LIVE SIMULATION
+            <span className="font-mono text-xs font-bold text-accent-scan px-2.5 py-1 rounded-full bg-accent-scan/10 border border-accent-scan/20">
+              Layer 1
             </span>
           </div>
-
-          <div className="space-y-1.5 text-[10px] leading-relaxed">
-            <div className="text-text-muted">
-              <span className="text-accent-scan font-bold">[EVM_FORK]</span> Ephemeral fork initialized @ block #19,482,014
-            </div>
-            <div className="text-text-muted">
-              <span className="text-accent-scan font-bold">[DEPLOY]</span> Deployed VaultCore.sol (0x71C8364...) + 500k USDC liquidity
-            </div>
-            <div className="text-amber-400">
-              <span className="text-accent-scan font-bold">[AI_AGENT]</span> Synthesizing adversarial vector: SWC-107 Reentrancy
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-signal-critical/15 text-signal-critical border border-signal-critical/30 space-y-1 my-1.5">
-              <div className="font-bold flex items-center justify-between text-[11px]">
-                <span>💥 SIMULATED EXPLOIT EXECUTED</span>
-                <span className="bg-signal-critical/20 px-1.5 py-0.5 rounded">FUNDS DRAINED</span>
-              </div>
-              <div className="text-[9px] text-signal-critical/90 leading-normal">
-                ▸ tx1: flashLoan(250_000 USDC) via Balancer Vault<br />
-                ▸ tx2: deposit(10_000 USDC) -&gt; reenter withdraw() before userBal zeroed<br />
-                ▸ tx3: extracted $250,000 USDC from protocol reserves in block simulation
-              </div>
-            </div>
-
-            <div className="text-emerald-400">
-              <span className="text-accent-scan font-bold">[POC_OUT]</span> Emitted Foundry test: test_reentrancy_drain.sol
-            </div>
-            <div className="text-text-muted">
-              <span className="text-accent-scan font-bold">[DISPATCH]</span> Exploit payload & state trace routed to Lead Auditor
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-text-muted font-sans">
-            <span className="text-white font-medium">Mathematical Proof of Exploitability</span>
-            <Badge severity="critical" size="sm">
-              Zero False Positives
-            </Badge>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- SLIDE 6: DUAL-AUDITOR WORKBENCH ---
-function SlideDualAuditor() {
-  return (
-    <div className="space-y-6">
-      <SlideHeader
-        badge="Human Verification"
-        title="Dual-Auditor Double-Blind Review Workbench"
-        description="Automated tools find syntax patterns; elite humans analyze economic game theory and novel exploit chains."
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-          <div className="h-8 w-8 rounded-lg bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono font-bold text-sm">
-            01
-          </div>
-          <h3 className="font-semibold text-sm text-white">Double-Blind Allocation</h3>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Two vetted smart contract security researchers review the codebase independently without seeing each other's notes, preventing confirmation bias and groupthink.
-          </p>
-        </div>
-
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-          <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-mono font-bold text-sm">
-            02
-          </div>
-          <h3 className="font-semibold text-sm text-white">Dual-Pane Code Reviewer</h3>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Our edge-to-edge IDE interface gives auditors line-by-line syntax inspection, automated vulnerability diff overlays, and instant severity score calculation.
-          </p>
-        </div>
-
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-          <div className="h-8 w-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-mono font-bold text-sm">
-            03
-          </div>
-          <h3 className="font-semibold text-sm text-white">Live Remediation Threads</h3>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Auditors converse directly with protocol developers inline on specific code lines, review remediation PR diffs, and verify patches before attestation sealing.
-          </p>
-        </div>
-      </div>
-
-      {/* Visual Triage Box */}
-      <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="text-xs font-semibold text-white">Severity Calibration Standard</div>
-          <div className="text-[11px] text-text-muted">
-            OWASP / SWC risk scoring calibrated by exploitability and maximum extractable value (MEV) risk.
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-semibold bg-signal-critical/20 text-signal-critical border border-signal-critical/30">
-            Critical
-          </span>
-          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-semibold bg-signal-high/20 text-signal-high border border-signal-high/30">
-            High
-          </span>
-          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-semibold bg-signal-medium/20 text-signal-medium border border-signal-medium/30">
-            Medium
-          </span>
-          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-semibold bg-signal-low/20 text-signal-low border border-signal-low/30">
-            Low
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- SLIDE 6: ON-CHAIN ATTESTATION & VAULT ---
-function SlideAttestation() {
-  return (
-    <div className="space-y-6">
-      <SlideHeader
-        badge="Zero Trust Verification"
-        title="On-Chain Attestation & Cryptographic Delivery Vault"
-        description="Transforming audit deliverables from untrusted marketing PDFs into verifiable on-chain certificates."
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Left: How it Works */}
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h3 className="font-semibold text-sm text-white flex items-center gap-2">
-            <Lock className="h-4 w-4 text-emerald-400" />
-            <span>The Cryptographic Attestation Pipeline</span>
-          </h3>
-
-          <div className="space-y-3 text-xs">
-            <div className="flex items-start gap-3">
-              <div className="h-6 w-6 rounded-full bg-accent-scan/20 text-accent-scan flex items-center justify-center font-mono font-bold shrink-0">
-                1
-              </div>
-              <div>
-                <div className="font-semibold text-white">SHA-256 Bytecode Hashing</div>
-                <p className="text-text-muted text-[11px]">
-                  Compiled EVM bytecode and git commit hash are computed into a deterministic immutable digest.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="h-6 w-6 rounded-full bg-accent-scan/20 text-accent-scan flex items-center justify-center font-mono font-bold shrink-0">
-                2
-              </div>
-              <div>
-                <div className="font-semibold text-white">Auditor Multi-Sig Signing</div>
-                <p className="text-text-muted text-[11px]">
-                  Both assigned security researchers cryptographically sign the attestation schema with hardware keys.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="h-6 w-6 rounded-full bg-accent-scan/20 text-accent-scan flex items-center justify-center font-mono font-bold shrink-0">
-                3
-              </div>
-              <div>
-                <div className="font-semibold text-white">On-Chain EVM & EAS Registry</div>
-                <p className="text-text-muted text-[11px]">
-                  Attestation is published directly to our smart contract registry and the Ethereum Attestation Service.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: On-Chain Certificate Preview */}
-        <div className="p-5 rounded-xl bg-black/60 border border-white/15 space-y-3 font-mono text-xs">
-          <div className="flex items-center justify-between text-[11px] text-text-muted pb-2 border-b border-white/10">
-            <span>ATTESTATION SPECIFICATION</span>
-            <span className="text-emerald-400 font-bold">SEALED & IMMUTABLE</span>
-          </div>
-
           <div className="space-y-2">
-            <div>
-              <span className="text-text-muted">Target Bytecode Hash:</span>
-              <div className="text-accent-scan break-all text-[11px]">
-                0x7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069
+            <h3 className="font-display font-bold text-base text-white">Automated AST Analysis</h3>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Fast, deterministic static analysis using Abstract Syntax Trees (AST) and Control Flow Graphs (CFG).
+            </p>
+          </div>
+          <div className="pt-3 border-t border-white/10 text-[11px] text-accent-scan font-mono">
+            ✓ Instant pass execution
+          </div>
+        </div>
+
+        {/* Layer 2 */}
+        <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/30 space-y-4 hover:border-emerald-500/50 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <Users className="h-5 w-5" />
+            </div>
+            <span className="font-mono text-xs font-bold text-emerald-400 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              Layer 2
+            </span>
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-display font-bold text-base text-white">Structured Human Review</h3>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Professional auditors review automated findings and complex business logic in a dual-pane workbench.
+            </p>
+          </div>
+          <div className="pt-3 border-t border-white/10 text-[11px] text-emerald-400 font-mono">
+            ✓ Zero false positive triage
+          </div>
+        </div>
+
+        {/* Layer 3 */}
+        <div className="p-6 rounded-2xl bg-purple-500/5 border border-purple-500/30 space-y-4 hover:border-purple-500/50 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+              <FileCheck2 className="h-5 w-5" />
+            </div>
+            <span className="font-mono text-xs font-bold text-purple-400 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20">
+              Layer 3
+            </span>
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-display font-bold text-base text-white">On-Chain Attestations</h3>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Immutable certificates containing source/bytecode SHA-256 hash and findings Merkle root onchain.
+            </p>
+          </div>
+          <div className="pt-3 border-t border-white/10 text-[11px] text-purple-400 font-mono">
+            ✓ Cryptographic verification
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Takeaway Banner */}
+      <div className="p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-4 text-center sm:text-left">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="h-5 w-5 text-emerald-400 shrink-0 hidden sm:block" />
+          <span className="text-sm sm:text-base font-display font-semibold text-white">
+            Security reviews that can actually be verified onchain.
+          </span>
+        </div>
+        <div className="text-xs font-mono text-accent-scan bg-accent-scan/10 px-3 py-1.5 rounded-lg border border-accent-scan/20 shrink-0">
+          True Trust
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- SLIDE 4: TECHNOLOGY ---
+function Slide4Technology() {
+  const passes = [
+    { title: "Access Control", desc: "Unprotected setters & tx.origin vulnerabilities" },
+    { title: "Reentrancy & State Ordering", desc: "SWC-107 Checks-Effects-Interactions passes" },
+    { title: "Oracle & Price Manipulation", desc: "Spot price dependencies & flash loan vectors" },
+    { title: "Proxy & Storage Safety", desc: "Storage collisions & upgradeability slots" },
+    { title: "Token Standards Compliance", desc: "ERC-20 / 721 / 1155 edge-case behaviors" },
+    { title: "Assembly / Yul Risks", desc: "Inline assembly memory safety & pointers" },
+    { title: "Centralization Vectors", desc: "Privileged roles & admin rug-pull vectors" },
+    { title: "And More...", desc: "Continuous pass expansion & custom rules" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <SlideHeader
+        badge="Slide 4 – Technology"
+        title="14-Pass AST & Control-Flow Analysis Engine"
+        subtitle="Our engine parses Solidity into AST, builds Control Flow Graphs, and runs specialized security passes including:"
+      />
+
+      {/* Grid of Security Passes */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {passes.map((pass, idx) => (
+          <div
+            key={idx}
+            className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 hover:border-accent-scan/40 hover:bg-white/10 transition-all"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs font-bold text-accent-scan">Pass #{String(idx + 1).padStart(2, "0")}</span>
+              <Check className="h-3.5 w-3.5 text-emerald-400" />
+            </div>
+            <h3 className="font-semibold text-sm text-white">{pass.title}</h3>
+            <p className="text-[11px] text-text-muted leading-relaxed">{pass.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Bottom Takeaway */}
+      <div className="p-4 rounded-xl bg-accent-scan/5 border border-accent-scan/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2">
+          <Terminal className="h-4 w-4 text-accent-scan shrink-0" />
+          <span className="text-white font-medium">Deterministic AST Parsing</span>
+        </div>
+        <span className="text-text-muted text-center sm:text-right font-medium">
+          Designed to catch high-signal issues before human reviewers begin.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// --- SLIDE 5: HUMAN REVIEW ---
+function Slide5HumanReview() {
+  return (
+    <div className="space-y-6">
+      <SlideHeader
+        badge="Slide 5 – Human Review"
+        title="Dual-Pane Auditor Workbench"
+        subtitle="Automated tools surface candidates. Human experts make the final judgment."
+      />
+
+      {/* 4 Feature Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {[
+          {
+            title: "Side-by-side code and findings view",
+            desc: "Auditors view Solidity source files alongside candidate vulnerability alerts for instant contextual audit analysis.",
+            icon: Eye,
+          },
+          {
+            title: "Inline comments and severity calibration",
+            desc: "Collaborative commenting directly on source lines with standardized severity scoring (Critical, High, Medium, Low).",
+            icon: Terminal,
+          },
+          {
+            title: "Clear remediation tracking",
+            desc: "Track findings through intake, triage, developer patch, and final re-test verification states.",
+            icon: RefreshCw,
+          },
+          {
+            title: "Support for multi-file projects",
+            desc: "Seamless cross-contract navigation, inheritance tracing, and dependency mapping across complex protocol repos.",
+            icon: Layers,
+          },
+        ].map((feat, idx) => {
+          const Icon = feat.icon;
+          return (
+            <div
+              key={idx}
+              className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3 hover:border-emerald-500/30 transition-all"
+            >
+              <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <Icon className="h-5 w-5" />
+              </div>
+              <h3 className="font-semibold text-base text-white">{feat.title}</h3>
+              <p className="text-xs text-text-muted leading-relaxed">{feat.desc}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Bottom Goal Callout */}
+      <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3 text-xs">
+        <span className="font-mono text-emerald-400 font-bold uppercase tracking-wider">Quality Assurance</span>
+        <span className="text-white font-medium text-center sm:text-right">
+          The goal is higher signal and lower noise than pure automated scanners.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// --- SLIDE 6: ON-CHAIN ATTESTATION ---
+function Slide6OnChainAttestation() {
+  return (
+    <div className="space-y-6">
+      <SlideHeader
+        badge="Slide 6 – On-Chain Attestation"
+        title="Verifiable Certificates, Not Just PDFs"
+        subtitle="Every completed audit can produce an on-chain attestation that includes:"
+      />
+
+      {/* 4 Components Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {[
+          {
+            title: "SHA-256 Bytecode & Source Hash",
+            desc: "Exact SHA-256 hash of the reviewed bytecode / source repository for deterministic verification.",
+            icon: Lock,
+            tag: "Bytecode Proof",
+          },
+          {
+            title: "Merkle Root of Findings",
+            desc: "Cryptographic Merkle tree anchoring all identified vulnerabilities, severities, and remediation statuses.",
+            icon: GitBranch,
+            tag: "Findings Root",
+          },
+          {
+            title: "Auditor Signatures (EIP-712)",
+            desc: "Typed structured EIP-712 cryptographic signatures from certified security auditor keypairs.",
+            icon: FileCheck2,
+            tag: "EIP-712 Signed",
+          },
+          {
+            title: "Timestamp & Engagement Reference",
+            desc: "On-chain timestamp and unique audit engagement reference linked to Arbitrum Sepolia contract registry.",
+            icon: Clock,
+            tag: "On-Chain Record",
+          },
+        ].map((item, idx) => {
+          const Icon = item.icon;
+          return (
+            <div
+              key={idx}
+              className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3 hover:border-purple-500/40 transition-all"
+            >
+              <div className="flex items-center justify-between">
+                <div className="h-9 w-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <span className="font-mono text-[10px] text-purple-400 px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20">
+                  {item.tag}
+                </span>
+              </div>
+              <h3 className="font-semibold text-base text-white">{item.title}</h3>
+              <p className="text-xs text-text-muted leading-relaxed">{item.desc}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Takeaway Banner */}
+      <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-between gap-3 text-xs">
+        <span className="font-mono text-purple-400 font-bold uppercase">Public Verification</span>
+        <span className="text-white font-medium text-center sm:text-right">
+          Anyone can independently verify that a specific version of the code was reviewed.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// --- SLIDE 7: HOW IT WORKS ---
+function Slide7HowItWorks() {
+  const steps = [
+    { step: "01", title: "Contract Submission", desc: "Client submits contracts or GitHub repository" },
+    { step: "02", title: "Automated AST Scanning", desc: "Automated AST scanning runs across 14 security passes" },
+    { step: "03", title: "Human Auditor Triage", desc: "Findings are reviewed by expert auditors in workbench" },
+    { step: "04", title: "Triage & Remediation", desc: "Issues are triaged and remediated with developer PRs" },
+    { step: "05", title: "On-Chain Attestation", desc: "Final attestation is generated and published onchain" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <SlideHeader
+        badge="Slide 7 – How It Works"
+        title="Simple Audit Lifecycle"
+        subtitle="Transparent process from start to finish."
+      />
+
+      {/* 5-Step Process Pipeline */}
+      <div className="space-y-3">
+        {steps.map((s, idx) => (
+          <div
+            key={s.step}
+            className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:border-accent-scan/40 transition-all"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="h-8 w-8 rounded-lg bg-accent-scan/10 text-accent-scan flex items-center justify-center font-mono font-bold text-xs shrink-0">
+                {s.step}
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm text-white">{s.title}</h3>
+                <p className="text-xs text-text-muted">{s.desc}</p>
               </div>
             </div>
-            <div>
-              <span className="text-text-muted">Git Commit Anchor:</span>
-              <div className="text-white text-[11px]">commit 5320cba (v2.4.0-mainnet-release)</div>
-            </div>
-            <div>
-              <span className="text-text-muted">Registry Contract Address:</span>
-              <div className="text-text-muted text-[11px]">0x0ef0499c927658E28E1b133358313108aCC23A9e</div>
-            </div>
-            <div>
-              <span className="text-text-muted">EAS Schema UID:</span>
-              <div className="text-text-muted text-[11px]">0x9b3f49...218a</div>
+            <div className="flex items-center gap-1.5 text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md shrink-0 self-end sm:self-auto">
+              <Check className="h-3.5 w-3.5" />
+              <span>Step {idx + 1}</span>
             </div>
           </div>
+        ))}
+      </div>
 
-          <div className="pt-2 flex items-center justify-between text-[10px] text-text-muted border-t border-white/10 font-sans">
-            <span>Any investor can query bytecode validity in 1 RPC call</span>
-            <Badge severity="resolved" size="sm">
-              Zero Trust Verified
-            </Badge>
+      {/* Bottom Summary */}
+      <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+        <span className="font-mono text-text-muted">Lifecycle Guarantee</span>
+        <span className="text-white font-semibold">Transparent process from start to finish.</span>
+      </div>
+    </div>
+  );
+}
+
+// --- SLIDE 8: MARKET OPPORTUNITY ---
+function Slide8MarketOpportunity() {
+  return (
+    <div className="space-y-6">
+      <SlideHeader
+        badge="Slide 8 – Market Opportunity"
+        title="Growing Demand for Better Security Infrastructure"
+        subtitle="Web3 security is evolving from static manual reviews into verifiable developer infrastructure."
+      />
+
+      {/* 4 Market Drivers */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {[
+          {
+            title: "Rapid L2 Deployments",
+            desc: "Increasing number of contracts deployed daily across L2s (Arbitrum, Base, Optimism, zkSync).",
+            icon: TrendingUp,
+          },
+          {
+            title: "Institutional & RWA Demand",
+            desc: "Institutional and Real-World Asset (RWA) interest demanding higher assurance and cryptographic proof.",
+            icon: Building2,
+          },
+          {
+            title: "Continuous Security Shift",
+            desc: "Shift from one-time point-in-time audits toward continuous security gates across developer CI/CD workflows.",
+            icon: RefreshCw,
+          },
+          {
+            title: "Need for Verifiable Trust",
+            desc: "Strong need for verifiable (not just claimable) security work anchored on public blockchains.",
+            icon: ShieldCheck,
+          },
+        ].map((item, idx) => {
+          const Icon = item.icon;
+          return (
+            <div
+              key={idx}
+              className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3 hover:border-accent-scan/30 transition-all"
+            >
+              <div className="h-9 w-9 rounded-xl bg-accent-scan/10 text-accent-scan flex items-center justify-center">
+                <Icon className="h-5 w-5" />
+              </div>
+              <h3 className="font-semibold text-base text-white">{item.title}</h3>
+              <p className="text-xs text-text-muted leading-relaxed">{item.desc}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Bottom Market Positioning Banner */}
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-accent-scan/10 via-white/5 to-purple-500/10 border border-accent-scan/30 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="font-mono text-xs text-accent-scan font-bold uppercase">Strategic Positioning</div>
+          <div className="text-sm sm:text-base font-display font-semibold text-white">
+            Zyron sits at the intersection of security tooling and on-chain trust.
           </div>
+        </div>
+        <div className="text-xs font-mono text-white bg-white/10 px-3.5 py-2 rounded-xl shrink-0">
+          Infra + Trust Layer
         </div>
       </div>
     </div>
   );
 }
 
-// --- SLIDE 7: MARKET OPPORTUNITY ---
-function SlideMarket() {
+// --- SLIDE 9: BUSINESS MODEL ---
+function Slide9BusinessModel() {
   return (
     <div className="space-y-6">
       <SlideHeader
-        badge="Market Size & Timing"
-        title="A $6.8B Market Undergoing Rapid Evolution"
-        description="Smart contract security is transitioning from a seasonal consulting gig into continuous mission-critical infrastructure."
+        badge="Slide 9 – Business Model"
+        title="Hybrid Revenue Model"
+        subtitle="Clear path from project-based revenue to recurring revenue."
       />
 
+      {/* 3 Revenue Stream Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-2">
-          <div className="text-3xl font-display font-bold text-accent-scan">$6.8 Billion</div>
-          <div className="font-semibold text-xs text-white">Projected TAM by 2030</div>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Web3 cybersecurity market expanding at 31.2% CAGR as institutional capital and real-world assets (RWA) onboard on-chain.
-          </p>
+        <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4 hover:border-accent-scan/40 transition-all">
+          <div className="h-10 w-10 rounded-xl bg-accent-scan/10 text-accent-scan flex items-center justify-center">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div className="space-y-2">
+            <span className="font-mono text-[10px] text-accent-scan font-bold uppercase tracking-wider">Stream 01</span>
+            <h3 className="font-display font-bold text-lg text-white">Audit Engagements</h3>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Fixed-price security reviews with automated AST scanning, human auditor triage, and on-chain attestation certificates.
+            </p>
+          </div>
+          <div className="pt-3 border-t border-white/10 text-xs font-mono text-white/80">
+            • Project-based revenue
+          </div>
         </div>
 
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-2">
-          <div className="text-3xl font-display font-bold text-emerald-400">25,000+</div>
-          <div className="font-semibold text-xs text-white">Contracts Deployed Daily</div>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Layer 2 rollups (Arbitrum, Base, Optimism) have reduced deployment gas costs by 95%, causing an explosion of contract releases.
-          </p>
+        <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/30 space-y-4 hover:border-emerald-500/50 transition-all">
+          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <RefreshCw className="h-5 w-5" />
+          </div>
+          <div className="space-y-2">
+            <span className="font-mono text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Stream 02</span>
+            <h3 className="font-display font-bold text-lg text-white">Continuous Plans</h3>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Ongoing scanning + priority review for active protocols shipping continuous updates, pull-requests, and contract upgrades.
+            </p>
+          </div>
+          <div className="pt-3 border-t border-white/10 text-xs font-mono text-emerald-400">
+            • Recurring subscription ARR
+          </div>
         </div>
 
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-2">
-          <div className="text-3xl font-display font-bold text-purple-400">100%</div>
-          <div className="font-semibold text-xs text-white">Regulatory Mandates</div>
-          <p className="text-xs text-text-muted leading-relaxed">
-            European MiCA and US institutional DeFi guidelines now require verifiable proof of security audits before listed tokens can accept custody.
-          </p>
+        <div className="p-6 rounded-2xl bg-purple-500/5 border border-purple-500/30 space-y-4 hover:border-purple-500/50 transition-all">
+          <div className="h-10 w-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="space-y-2">
+            <span className="font-mono text-[10px] text-purple-400 font-bold uppercase tracking-wider">Stream 03</span>
+            <h3 className="font-display font-bold text-lg text-white">Future Features</h3>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Premium verification APIs, continuous monitoring, enterprise risk compliance, and insurance protocol oracle feeds.
+            </p>
+          </div>
+          <div className="pt-3 border-t border-white/10 text-xs font-mono text-purple-400">
+            • High-margin expansion
+          </div>
         </div>
       </div>
 
-      {/* Why Now */}
-      <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-        <h3 className="font-semibold text-sm text-white">Why Now? The 3 Market Drivers:</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="space-y-1">
-            <span className="font-semibold text-accent-scan">1. Rapid CI/CD Releases</span>
-            <p className="text-text-muted">
-              Protocols no longer deploy once a year; they ship continuous upgrades weekly, requiring continuous security gates.
-            </p>
-          </div>
-          <div className="space-y-1">
-            <span className="font-semibold text-emerald-400">2. Institutional Tokenization</span>
-            <p className="text-text-muted">
-              BlackRock, Franklin Templeton, and banks entering RWA cannot accept subjective "PDF-only" assurance.
-            </p>
-          </div>
-          <div className="space-y-1">
-            <span className="font-semibold text-purple-400">3. Auditor Talent Scarcity</span>
-            <p className="text-text-muted">
-              Only ~800 elite smart contract auditors exist globally. Zyron's AST automation makes each auditor 5x more productive.
-            </p>
-          </div>
-        </div>
+      {/* Summary Callout */}
+      <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+        <span className="font-mono text-text-muted">Business Trajectory</span>
+        <span className="text-white font-semibold">Clear path from project-based revenue to recurring revenue.</span>
       </div>
     </div>
   );
 }
 
-// --- SLIDE 8: BUSINESS MODEL ---
-function SlideBusinessModel() {
+// --- SLIDE 10: COMPETITIVE POSITION ---
+function Slide10CompetitivePosition() {
+  const comparisonData = [
+    { feature: "Depth of Analysis", traditional: "High", pure: "Medium", zyron: "High (AST + Human)" },
+    { feature: "Speed", traditional: "Slow", pure: "Very Fast", zyron: "Fast" },
+    { feature: "Human Expertise", traditional: "Yes", pure: "No", zyron: "Yes" },
+    { feature: "On-Chain Attestation", traditional: "No", pure: "No", zyron: "Yes" },
+    { feature: "Verifiable Bytecode Link", traditional: "No", pure: "No", zyron: "Yes" },
+    { feature: "Continuous Use", traditional: "Limited", pure: "Yes", zyron: "Yes" },
+  ];
+
   return (
     <div className="space-y-6">
       <SlideHeader
-        badge="Monetization Engine"
-        title="Predictable SaaS + High-Margin Audit Revenue"
-        description="Dual revenue streams combining recurring developer tooling subscriptions with on-demand audit engagements."
+        badge="Slide 10 – Competitive Position"
+        title="Feature Comparison"
+        subtitle="Comparing Zyron against Traditional Firms and Pure Scanners."
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Tier 1 */}
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-          <div className="text-xs font-mono font-semibold text-text-muted uppercase">Protocol Intake</div>
-          <div className="text-2xl font-display font-bold text-white">$5k - $12k</div>
-          <div className="text-xs text-accent-scan font-medium">Standard Audit Engagement</div>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Full 14-pass AST static analysis, dual-auditor double-blind review (up to 2,000 SLOC), and on-chain attestation.
-          </p>
-          <div className="pt-2 border-t border-white/10 text-[11px] text-text-muted space-y-1">
-            <div>• 48-72h turnaround</div>
-            <div>• 2 certified researchers</div>
-          </div>
-        </div>
-
-        {/* Tier 2 */}
-        <div className="p-5 rounded-xl bg-accent-scan/10 border border-accent-scan/40 space-y-3 relative">
-          <div className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-scan text-bg-void">
-            MOST POPULAR
-          </div>
-          <div className="text-xs font-mono font-semibold text-accent-scan uppercase">DeFi Core Protocol</div>
-          <div className="text-2xl font-display font-bold text-white">$15k - $35k</div>
-          <div className="text-xs text-accent-scan font-medium">Complex Systems Audit</div>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Up to 8,000 SLOC, formal verification of invariant properties, remediation re-tests, and live @zyron-bot PR CI/CD setup.
-          </p>
-          <div className="pt-2 border-t border-white/10 text-[11px] text-text-muted space-y-1">
-            <div>• Invariant fuzzing included</div>
-            <div>• Dedicated auditor lead</div>
-          </div>
-        </div>
-
-        {/* Tier 3 */}
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-          <div className="text-xs font-mono font-semibold text-text-muted uppercase">Continuous SaaS</div>
-          <div className="text-2xl font-display font-bold text-white">$2.5k / mo</div>
-          <div className="text-xs text-purple-400 font-medium">Enterprise Security Retainer</div>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Continuous GitHub pull-request security gates, monthly delta re-audits, emergency triage hotline, and ongoing vault attestations.
-          </p>
-          <div className="pt-2 border-t border-white/10 text-[11px] text-text-muted space-y-1">
-            <div>• 100% recurring ARR</div>
-            <div>• Continuous protection</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Payment Rails */}
-      <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-        <span className="font-semibold text-white">Dual Settlement Infrastructure:</span>
-        <div className="flex items-center gap-4 text-text-muted font-mono text-[11px]">
-          <span className="text-white">✓ Web3 Non-Custodial Escrow (USDC/USDT)</span>
-          <span>•</span>
-          <span className="text-white">✓ Corporate Net-30 Invoicing (Stripe)</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- SLIDE 9: COMPETITIVE MATRIX ---
-function SlideCompetition() {
-  return (
-    <div className="space-y-6">
-      <SlideHeader
-        badge="Competitive Advantage"
-        title="Why Zyron Wins Against Legacy Solutions"
-        description="Traditional firms cannot scale; raw scanners generate too many false positives. Zyron creates the optimal hybrid."
-      />
-
-      <div className="rounded-xl border border-white/10 overflow-hidden bg-white/5">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-white/10 text-white/80 font-medium border-b border-white/10">
-            <tr>
-              <th className="py-3 px-4">Feature / Metric</th>
-              <th className="py-3 px-4 text-accent-scan font-bold">Zyron Protocol</th>
-              <th className="py-3 px-4 text-text-muted">Legacy Firms (OpenZeppelin)</th>
-              <th className="py-3 px-4 text-text-muted">Pure Scanners (Slither)</th>
-              <th className="py-3 px-4 text-text-muted">Crowd Contests (Code4rena)</th>
+      {/* Comparison Matrix Table */}
+      <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 shadow-xl">
+        <table className="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr className="border-b border-white/10 bg-white/10 text-white font-semibold">
+              <th className="py-3.5 px-4 sm:px-6">Feature</th>
+              <th className="py-3.5 px-4 text-text-muted">Traditional Firms</th>
+              <th className="py-3.5 px-4 text-text-muted">Pure Scanners</th>
+              <th className="py-3.5 px-4 font-bold text-accent-scan bg-accent-scan/10">Zyron</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5 text-[11px]">
-            <tr>
-              <td className="py-2.5 px-4 font-semibold text-white">Turnaround Time</td>
-              <td className="py-2.5 px-4 font-bold text-accent-scan">48 to 72 Hours</td>
-              <td className="py-2.5 px-4 text-signal-critical">6 to 10 Weeks</td>
-              <td className="py-2.5 px-4 text-emerald-400">Seconds (Incomplete)</td>
-              <td className="py-2.5 px-4 text-text-muted">3 to 4 Weeks</td>
-            </tr>
-            <tr>
-              <td className="py-2.5 px-4 font-semibold text-white">Cost per 2k SLOC</td>
-              <td className="py-2.5 px-4 font-bold text-accent-scan">$6,000 - $10,000</td>
-              <td className="py-2.5 px-4 text-signal-critical">$40,000 - $90,000</td>
-              <td className="py-2.5 px-4 text-emerald-400">Free / Low</td>
-              <td className="py-2.5 px-4 text-text-muted">$30,000 - $60,000</td>
-            </tr>
-            <tr>
-              <td className="py-2.5 px-4 font-semibold text-white">False Positive Filtering</td>
-              <td className="py-2.5 px-4 font-bold text-accent-scan">Dual-Human Calibrated</td>
-              <td className="py-2.5 px-4 text-text-muted">Manual (Varying)</td>
-              <td className="py-2.5 px-4 text-signal-critical">Extreme (80%+ Noise)</td>
-              <td className="py-2.5 px-4 text-text-muted">High Noise</td>
-            </tr>
-            <tr>
-              <td className="py-2.5 px-4 font-semibold text-white">On-Chain Attestation</td>
-              <td className="py-2.5 px-4 font-bold text-accent-scan">SHA-256 EAS Anchor</td>
-              <td className="py-2.5 px-4 text-signal-critical">None (PDF Only)</td>
-              <td className="py-2.5 px-4 text-signal-critical">None</td>
-              <td className="py-2.5 px-4 text-signal-critical">None (Github PR)</td>
-            </tr>
-            <tr>
-              <td className="py-2.5 px-4 font-semibold text-white">Virtual Blockchain Exploit Execution</td>
-              <td className="py-2.5 px-4 font-bold text-accent-scan">Autonomous Fork & PoC</td>
-              <td className="py-2.5 px-4 text-signal-critical">None (Manual Only)</td>
-              <td className="py-2.5 px-4 text-signal-critical">None (Static Only)</td>
-              <td className="py-2.5 px-4 text-text-muted">Crowd Contests Only</td>
-            </tr>
-            <tr>
-              <td className="py-2.5 px-4 font-semibold text-white">Continuous CI/CD Gate</td>
-              <td className="py-2.5 px-4 font-bold text-accent-scan">Native @zyron-bot</td>
-              <td className="py-2.5 px-4 text-signal-critical">None</td>
-              <td className="py-2.5 px-4 text-text-muted">Basic CLI Hook</td>
-              <td className="py-2.5 px-4 text-signal-critical">None</td>
-            </tr>
+          <tbody className="divide-y divide-white/5">
+            {comparisonData.map((row, idx) => (
+              <tr key={idx} className="hover:bg-white/5 transition-colors">
+                <td className="py-3 px-4 sm:px-6 font-semibold text-white">{row.feature}</td>
+                <td className="py-3 px-4 text-text-muted">{row.traditional}</td>
+                <td className="py-3 px-4 text-text-muted">{row.pure}</td>
+                <td className="py-3 px-4 font-bold text-emerald-400 bg-accent-scan/5">
+                  <div className="flex items-center gap-1.5">
+                    <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                    <span>{row.zyron}</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
 
-      <div className="p-4 rounded-xl bg-accent-scan/5 border border-accent-scan/20 text-xs text-text-muted flex items-center justify-between">
-        <span className="text-white font-medium">Zyron's Unfair Advantage:</span>
-        <span>AST automation reduces human auditor hours by 70%, yielding 80% higher margins and 10x faster delivery.</span>
+// --- SLIDE 11: CURRENT STATUS & ROADMAP ---
+function Slide11CurrentStatusRoadmap() {
+  return (
+    <div className="space-y-6">
+      <SlideHeader
+        badge="Slide 11 – Current Status & Roadmap"
+        title="Current Status & Roadmap"
+        subtitle="Execution milestones across current, near-term, and future horizons."
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Current (Now) */}
+        <div className="p-5 rounded-2xl bg-accent-scan/5 border border-accent-scan/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs font-bold text-accent-scan px-2.5 py-1 rounded-full bg-accent-scan/10 border border-accent-scan/20">
+              Current (Now)
+            </span>
+            <Activity className="h-4 w-4 text-accent-scan" />
+          </div>
+          <ul className="space-y-2 text-xs text-text-muted">
+            <li className="flex items-start gap-2 text-white/90">
+              <Check className="h-3.5 w-3.5 text-accent-scan shrink-0 mt-0.5" />
+              <span>Core AST analysis engine with multiple security passes</span>
+            </li>
+            <li className="flex items-start gap-2 text-white/90">
+              <Check className="h-3.5 w-3.5 text-accent-scan shrink-0 mt-0.5" />
+              <span>Auditor workbench and finding management</span>
+            </li>
+            <li className="flex items-start gap-2 text-white/90">
+              <Check className="h-3.5 w-3.5 text-accent-scan shrink-0 mt-0.5" />
+              <span>On-chain attestation system (Arbitrum Sepolia)</span>
+            </li>
+            <li className="flex items-start gap-2 text-white/90">
+              <Check className="h-3.5 w-3.5 text-accent-scan shrink-0 mt-0.5" />
+              <span>End-to-end audit workflow</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Near Term */}
+        <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs font-bold text-emerald-400 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              Near Term
+            </span>
+            <Clock className="h-4 w-4 text-emerald-400" />
+          </div>
+          <ul className="space-y-2 text-xs text-text-muted">
+            <li className="flex items-start gap-2 text-white/90">
+              <ChevronRight className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+              <span>Deeper multi-file and inheritance support</span>
+            </li>
+            <li className="flex items-start gap-2 text-white/90">
+              <ChevronRight className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+              <span>Improved false positive reduction</span>
+            </li>
+            <li className="flex items-start gap-2 text-white/90">
+              <ChevronRight className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+              <span>Better reporting and client dashboard</span>
+            </li>
+            <li className="flex items-start gap-2 text-white/90">
+              <ChevronRight className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+              <span>Expanded test coverage and reliability</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Future */}
+        <div className="p-5 rounded-2xl bg-purple-500/5 border border-purple-500/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs font-bold text-purple-400 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20">
+              Future
+            </span>
+            <Compass className="h-4 w-4 text-purple-400" />
+          </div>
+          <ul className="space-y-2 text-xs text-text-muted">
+            <li className="flex items-start gap-2 text-white/90">
+              <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
+              <span>Auditor reputation and identity (ERC-8004 direction)</span>
+            </li>
+            <li className="flex items-start gap-2 text-white/90">
+              <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
+              <span>Support for more chains</span>
+            </li>
+            <li className="flex items-start gap-2 text-white/90">
+              <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
+              <span>Continuous monitoring features</span>
+            </li>
+            <li className="flex items-start gap-2 text-white/90">
+              <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
+              <span>Stronger agent-based and decentralized validation (longer term)</span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   );
 }
 
-// --- SLIDE 10: TRACTION ---
-function SlideTraction() {
+// --- SLIDE 12: VISION & NEXT STEPS ---
+function Slide12VisionNextSteps({ onRestart }: { onRestart: () => void }) {
   return (
     <div className="space-y-6">
       <SlideHeader
-        badge="Proven Track Record"
-        title="Traction & Protocol Telemetry"
-        description="Securing premier liquidity pools, lending markets, and cross-chain bridges with zero recorded exploits."
+        badge="Slide 12 – Vision & Next Steps"
+        title="Building the Trust Layer for Smart Contract Security"
+        subtitle="Zyron exists to make professional security reviews more accessible, transparent, and verifiable."
       />
 
-      {/* 4 Big Numbers */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-center space-y-1">
-          <div className="text-3xl sm:text-4xl font-display font-extrabold text-white">284+</div>
-          <div className="text-xs font-semibold text-accent-scan">Audits Completed</div>
-          <div className="text-[11px] text-text-muted">Across 12 EVM chains</div>
+      {/* What We Are Looking For Cards */}
+      <div className="space-y-3">
+        <div className="text-xs font-mono text-accent-scan uppercase tracking-wider font-semibold">
+          We Are Currently Looking For:
         </div>
 
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-center space-y-1">
-          <div className="text-3xl sm:text-4xl font-display font-extrabold text-emerald-400">1.2M+</div>
-          <div className="text-xs font-semibold text-emerald-400">SLOC Secured</div>
-          <div className="text-[11px] text-text-muted">Solidity v0.8.20+</div>
-        </div>
-
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-center space-y-1">
-          <div className="text-3xl sm:text-4xl font-display font-extrabold text-purple-400">$480M+</div>
-          <div className="text-xs font-semibold text-purple-400">Protocol TVL Protected</div>
-          <div className="text-[11px] text-text-muted">Zero funds lost</div>
-        </div>
-
-        <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-center space-y-1">
-          <div className="text-3xl sm:text-4xl font-display font-extrabold text-signal-critical">1,420+</div>
-          <div className="text-xs font-semibold text-signal-critical">Vulnerabilities Remediated</div>
-          <div className="text-[11px] text-text-muted">Prior to mainnet launch</div>
-        </div>
-      </div>
-
-      {/* Safety Score Card */}
-      <div className="p-5 rounded-xl bg-white/5 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
-            <Award className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="font-semibold text-sm text-white">100% Exploit-Free Track Record</div>
-            <div className="text-xs text-text-muted">
-              Zero protocols with a sealed Zyron on-chain attestation have suffered a contract drainage or exploit.
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-2 hover:border-accent-scan/40 transition-all">
+            <div className="h-8 w-8 rounded-lg bg-accent-scan/10 text-accent-scan flex items-center justify-center font-bold text-xs">
+              01
             </div>
+            <h3 className="font-semibold text-sm text-white">Early Design Partners</h3>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Protocols and developer teams to run real audits through the Zyron pipeline.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-2 hover:border-emerald-500/40 transition-all">
+            <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs">
+              02
+            </div>
+            <h3 className="font-semibold text-sm text-white">Researcher Feedback</h3>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Feedback from smart contract security researchers, auditors, and Web3 founders.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-2 hover:border-purple-500/40 transition-all">
+            <div className="h-8 w-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold text-xs">
+              03
+            </div>
+            <h3 className="font-semibold text-sm text-white">Strategic Supporters</h3>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Partners who believe verifiable, on-chain security infrastructure matters for Web3.
+            </p>
           </div>
         </div>
-
-        <div className="font-mono text-xs text-emerald-400 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shrink-0">
-          99.4% SLA Compliance
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- SLIDE 11: ROADMAP & ASK ---
-function SlideRoadmap({ onRestart }: { onRestart: () => void }) {
-  return (
-    <div className="space-y-6">
-      <SlideHeader
-        badge="Future Vision"
-        title="The Roadmap to Universal Security & Capital Ask"
-        description="Scaling the decentralized auditor network and institutional risk telemetry."
-      />
-
-      {/* 4 Quarter Roadmap */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-          <div className="font-mono text-accent-scan font-bold">Q1 2026</div>
-          <div className="font-semibold text-white">Multi-Chain Attestations</div>
-          <p className="text-[11px] text-text-muted leading-relaxed">
-            Expand EAS smart contract registry to Arbitrum, Base, Optimism, and Solana SVM environments.
-          </p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-          <div className="font-mono text-emerald-400 font-bold">Q2 2026</div>
-          <div className="font-semibold text-white">AI Exploit Synthesis</div>
-          <p className="text-[11px] text-text-muted leading-relaxed">
-            Automated symbolic generation of executable Foundry test exploits to prove vulnerability existence instantly.
-          </p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-          <div className="font-mono text-purple-400 font-bold">Q3 2026</div>
-          <div className="font-semibold text-white">Decentralized Staking</div>
-          <p className="text-[11px] text-text-muted leading-relaxed">
-            Auditors stake protocol governance tokens to underwrite audit findings; slashed in the event of an undetected exploit.
-          </p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-          <div className="font-mono text-sky-400 font-bold">Q4 2026</div>
-          <div className="font-semibold text-white">Institutional Risk Oracle</div>
-          <p className="text-[11px] text-text-muted leading-relaxed">
-            On-chain credit and insurance oracles querying Zyron attestation status to set borrowing collateral factors.
-          </p>
-        </div>
       </div>
 
-      {/* The Ask / Call to Action */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-accent-scan/15 via-white/5 to-emerald-500/15 border border-accent-scan/30 flex flex-col sm:flex-row items-center justify-between gap-6">
-        <div className="space-y-1.5 text-center sm:text-left">
-          <h3 className="text-xl font-display font-bold text-white">Join Us in Securing the Next Generation of Finance</h3>
-          <p className="text-xs text-text-muted max-w-xl">
-            Zyron is currently onboarding tier-1 DeFi protocols and select strategic investors. Let's discuss protocol integration or investment opportunities.
+      {/* Final Call to Action */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-accent-scan/20 via-white/5 to-emerald-500/20 border border-accent-scan/40 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+        <div className="space-y-1">
+          <h3 className="text-xl sm:text-2xl font-display font-extrabold text-white">
+            Let's make security work that can actually be trusted onchain.
+          </h3>
+          <p className="text-xs text-text-muted">
+            Connect with the Zyron team today to run your next audit or integrate verifiable security.
           </p>
         </div>
 
@@ -1374,7 +1314,7 @@ function SlideRoadmap({ onRestart }: { onRestart: () => void }) {
               type="button"
               className="px-5 py-2.5 rounded-xl bg-accent-scan text-bg-void font-bold text-xs hover:bg-accent-scan/90 transition-all shadow-md shadow-accent-scan/20 cursor-pointer"
             >
-              Start First Audit
+              Start Audit
             </button>
           </Link>
           <button
@@ -1386,30 +1326,6 @@ function SlideRoadmap({ onRestart }: { onRestart: () => void }) {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-// Reusable Slide Header
-function SlideHeader({
-  badge,
-  title,
-  description,
-}: {
-  badge: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="space-y-1.5 text-left">
-      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-accent-scan/10 text-accent-scan border border-accent-scan/20">
-        <Sparkles className="h-3 w-3" />
-        <span>{badge}</span>
-      </div>
-      <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
-        {title}
-      </h2>
-      <p className="text-xs sm:text-sm text-text-muted max-w-2xl">{description}</p>
     </div>
   );
 }
