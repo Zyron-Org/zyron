@@ -6,8 +6,9 @@ import { ShieldCheck } from "lucide-react";
 
 export function SupportedChainsShowcase() {
   const items = [
-    { type: "chain", name: "ARBITRUM", logo: "Arbitrum" },
+    { type: "chain", name: "MONAD", logo: "Monad" },
     { type: "chain", name: "ETHEREUM", logo: "Ethereum" },
+    { type: "chain", name: "BASE", logo: "Base" },
     { type: "chain", name: "ROBINHOOD", logo: "Robinhood" },
     { type: "tag", name: "SUPPORTED NETWORKS" },
   ];
@@ -15,7 +16,7 @@ export function SupportedChainsShowcase() {
   // Repeat sequence so that each half of the marquee is sufficiently wide on ultra-wide screens
   const sequence = [...items, ...items, ...items, ...items];
 
-  const renderItem = (item: typeof items[0], index: number, prefix: string) => {
+  const renderItem = (item: (typeof items)[0], index: number, prefix: string) => {
     if (item.type === "tag") {
       return (
         <span
@@ -40,7 +41,7 @@ export function SupportedChainsShowcase() {
   };
 
   return (
-    <div className="w-full bg-accent-scan text-white dark:text-[#0B0D10] py-2 sm:py-2.5 overflow-hidden whitespace-nowrap select-none border-y border-black/10 dark:border-black/20 z-20 relative">
+    <div className="w-full bg-accent-scan text-white dark:text-[#0B0D10] py-2.5 sm:py-3 overflow-hidden whitespace-nowrap select-none border-y border-black/10 dark:border-black/20 z-20 relative">
       <style jsx>{`
         @keyframes ticker-scroll {
           0% {

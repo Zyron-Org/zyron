@@ -39,6 +39,7 @@ export class FindingsService {
         vulnerableLines: dto.vulnerableLines,
         remediatedCode: dto.remediatedCode,
         remediationNote: dto.remediationNote,
+        foundBy: dto.foundBy || 'MANUAL',
         auditId,
       },
       include: {
@@ -79,6 +80,7 @@ export class FindingsService {
     if (dto.fpJustification !== undefined) data.fpJustification = dto.fpJustification;
     if (dto.isMitigated !== undefined) data.isMitigated = dto.isMitigated;
     if (dto.mitigationJustification !== undefined) data.mitigationJustification = dto.mitigationJustification;
+    if (dto.foundBy !== undefined) data.foundBy = dto.foundBy;
 
     return this.prisma.finding.update({
       where: { id: findingId },
@@ -113,5 +115,26 @@ export class FindingsService {
       },
       orderBy: { severity: 'asc' },
     });
+  }
+
+  async deleteFinding(findingId: string, userRole: UserRole) {
+    const finding = await this.prisma.finding.findUnique({
+      where: { id: findingId },
+      include: { audit: true },
+    });
+    if (!finding) {
+      throw new NotFoundException(`Finding ${findingId} not found`);
+    }
+
+    if (userRole !== UserRole.AUDITOR && userRole !== UserRole.ADMIN) {
+      throw new BadRequestException('Only auditors and administrators can delete findings.');
+    }
+
+    if (finding.audit?.stage === AuditStage.COMPLETED) {
+      throw new BadRequestException('Cannot delete finding: Target audit is completed and sealed.');
+    }
+
+    await this.prisma.comment.deleteMany({ where: { findingId } });
+    return this.prisma.finding.delete({ where: { id: findingId } });
   }
 }

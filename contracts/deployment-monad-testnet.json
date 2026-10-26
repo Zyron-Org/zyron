@@ -1,0 +1,13 @@
+{
+  "contractAddress": "0xBd24D2BFFbc69a17aCe69aaF930fC4e0d979c4D3",
+  "deployer": "0x48b106E3C8681D08c513268854Aef257883298d3",
+  "operator": "0x48b106E3C8681D08c513268854Aef257883298d3",
+  "network": "Monad Testnet",
+  "chainId": 10143,
+  "rpc": "https://testnet-rpc.monad.xyz",
+  "explorer": "https://testnet.monadvision.com/address/0xBd24D2BFFbc69a17aCe69aaF930fC4e0d979c4D3",
+  "txHash": "0xe7e706c56c781c5fe66bf13c13b177484094568bcd8625c8f9458001063ed356",
+  "blockNumber": 68403973,
+  "solc": "0.8.24",
+  "timestamp": "2026-10-05T12:41:33.346Z"
+}

@@ -47,8 +47,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExpandingButton } from "@/components/ui/expanding-button";
 import { ChainLogo } from "@/components/ui/chain-logos";
-import { SupportedChainsShowcase } from "@/components/supported-chains-showcase";
 import { InteractiveDashboardDemo } from "@/components/interactive-dashboard-demo";
+import { SupportedChainsShowcase } from "@/components/supported-chains-showcase";
 import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useRouter } from "next/navigation";
@@ -271,7 +271,7 @@ export default function LandingPage() {
       });
 
       // 9. Parallax 3-Row Blockchain Stream (Scroll Direction Controlled with Scrub)
-      if (document.querySelector(".chains-section")) {
+      if (document.querySelector(".chain-row-1")) {
         gsap.to(".chain-row-1", {
           x: -280,
           ease: "none",
@@ -444,6 +444,12 @@ export default function LandingPage() {
             >
               FAQ
             </Link>
+            <Link
+              href="/verify"
+              className="px-3 py-1.5 rounded-[4px] hover:text-text-primary hover:bg-bg-panel-raised transition-colors"
+            >
+              Verify
+            </Link>
           </nav>
 
           {/* Right: Theme Toggle + Globe + Login Button + Mobile Hamburger */}
@@ -533,6 +539,14 @@ export default function LandingPage() {
                   className="flex items-center justify-between p-2.5 rounded-[4px] text-text-primary hover:bg-bg-panel-raised transition-colors"
                 >
                   <span>FAQ</span>
+                  <ArrowUpRight className="h-3.5 w-3.5 text-text-muted" />
+                </Link>
+                <Link
+                  href="/verify"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between p-2.5 rounded-[4px] text-text-primary hover:bg-bg-panel-raised transition-colors"
+                >
+                  <span>Verify</span>
                   <ArrowUpRight className="h-3.5 w-3.5 text-text-muted" />
                 </Link>
               </div>
@@ -629,16 +643,19 @@ export default function LandingPage() {
         </div>
       </main>
 
-      {/* Infinite-Scrolling Supported Chains Ribbon attached to bottom of Hero */}
+      {/* ========================================================================= */}
+      {/* SECTION 2: SUPPORTED CHAINS (ARBITRUM, ETHEREUM & ROBINHOOD)              */}
+      {/* ========================================================================= */}
       <div id="ecosystem" className="w-full relative z-20">
         <SupportedChainsShowcase />
       </div>
 
       {/* ========================================================================= */}
-      {/* SECTION 2: 3-ROW PARALLAX SUPPORTED BLOCKCHAINS & RUNTIMES (COMMENTED OUT)*/}
+      {/* PREVIOUS DESIGN: 3-ROW PARALLAX SUPPORTED BLOCKCHAINS & RUNTIMES          */}
+      {/* (COMMENTED OUT TEMPORARILY)                                               */}
       {/* ========================================================================= */}
       {/*
-      <section className="chains-section relative py-20 border-t border-border-hairline bg-bg-void/80 overflow-hidden">
+      <section id="ecosystem" className="chains-section relative py-20 border-t border-border-hairline bg-bg-void/80 overflow-hidden">
         <div className="reveal-on-scroll max-w-4xl mx-auto px-4 text-center space-y-4 mb-14">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[4px] bg-bg-panel border border-border-hairline text-accent-scan font-mono text-xs">
             <Cpu className="h-3.5 w-3.5 text-accent-scan" />
@@ -1179,7 +1196,7 @@ export default function LandingPage() {
             </div>
 
             {/* ================================================================= */}
-            {/* STACK CARD 3: 4-STAGE PIPELINE & MILESTONE ESCROW                 */}
+            {/* STACK CARD 3: 4-STAGE PIPELINE & MILESTONE TRACKING               */}
             {/* ================================================================= */}
             <div className="sticky top-[196px] z-30 rounded-[16px] bg-bg-panel border border-border-hairline shadow-xl dark:shadow-black/80 shadow-black/5 overflow-hidden backdrop-blur-xl">
               {/* Top Tab Bar Header (Visible when stacked) */}
@@ -1188,10 +1205,10 @@ export default function LandingPage() {
                   <span className="w-2 h-2 rounded-full bg-accent-scan animate-pulse" />
                   <span className="font-semibold text-text-primary">03 PIPELINE</span>
                   <span className="text-text-muted/40">·</span>
-                  <span className="text-[11px]">Live milestone escrow & stage tracking</span>
+                  <span className="text-[11px]">Live milestone & stage tracking</span>
                 </div>
                 <span className="text-[10px] text-accent-scan uppercase tracking-wider hidden sm:inline">
-                  ESCROW_TELEMETRY
+                  STAGE_TELEMETRY
                 </span>
               </div>
 
@@ -1204,18 +1221,18 @@ export default function LandingPage() {
                       Real-time visibility from upload to final attestation.
                     </h3>
                     <p className="text-xs sm:text-sm text-text-muted leading-relaxed font-sans">
-                      Follow your security engagement live. Engineering, finance, and compliance teams get continuous visibility into review milestones, remediation patch evaluations, and automated escrow milestone disbursements.
+                      Follow your security engagement live. Engineering, security, and compliance teams get continuous visibility into review milestones, autonomous AI sandbox replays, and lead auditor sign-offs.
                     </p>
                   </div>
 
                   <div className="space-y-3 text-xs sm:text-[13px] text-text-muted">
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-4 w-4 text-accent-scan shrink-0" />
-                      <span>Deterministic 4-stage pipeline with real-time status webhooks</span>
+                      <span>Deterministic 4-stage pipeline with real-time status telemetry</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-4 w-4 text-accent-scan shrink-0" />
-                      <span>Smart escrow milestones released strictly upon verified stage sign-off</span>
+                      <span>Autonomous AI prover fuzzing and collaborative remediation passes</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-4 w-4 text-accent-scan shrink-0" />
@@ -1268,7 +1285,7 @@ export default function LandingPage() {
                   </div>
 
                   <div className="p-2 rounded bg-bg-panel-raised border border-border-hairline/60 flex items-center justify-between text-[10px] text-text-muted">
-                    <span>Escrow: 50% Released</span>
+                    <span className="text-signal-resolved font-medium">Stage: In Progress</span>
                     <span className="text-text-primary font-bold">Target ETA: 24h</span>
                   </div>
                 </div>
@@ -1384,7 +1401,7 @@ export default function LandingPage() {
             </h2>
             <p className="text-sm sm:text-base text-text-muted font-sans leading-relaxed pt-1">
               Track and verify your smart contracts across all major EVM & SVM protocols.<br className="hidden sm:inline" />
-              No hidden agency retainers, milestone escrow protected.
+              100% Free during Public Beta — no agency retainers or payment required.
             </p>
           </div>
 
@@ -1407,41 +1424,29 @@ export default function LandingPage() {
                 <div className="space-y-3">
                   <div className="flex items-baseline gap-1.5 font-mono">
                     <span className="font-display text-4xl sm:text-5xl font-medium text-text-primary">
-                      {billingCycle === "continuous" ? "$89" : "$890"}
+                      $0
                     </span>
                     <span className="text-xs text-text-muted">
-                      {billingCycle === "continuous" ? "/monthly" : "/month"}
+                      /free forever
                     </span>
                   </div>
 
                   {/* Inline Toggle Row */}
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-center gap-2 font-mono text-xs text-text-muted">
-                      <button
-                        onClick={() => setBillingCycle(billingCycle === "continuous" ? "engagement" : "continuous")}
-                        className={`w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center ${
-                          billingCycle === "continuous" ? "bg-signal-resolved" : "bg-text-muted/20"
-                        }`}
-                      >
-                        <div
-                          className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                            billingCycle === "continuous" ? "translate-x-4" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                      <span className="text-text-primary text-xs">Annually</span>
+                      <span className="text-signal-resolved text-xs font-bold">✦ 100% Free</span>
                     </div>
 
                     <span className="px-2 py-0.5 rounded-[4px] bg-signal-resolved/15 text-signal-resolved border border-signal-resolved/30 font-mono text-[11px] font-bold">
-                      Save $480
+                      Open Access
                     </span>
                   </div>
                 </div>
 
                 {/* Action Button */}
-                <Link href="/portal/integrations" className="block w-full">
+                <Link href="/portal/new-request" className="block w-full">
                   <button className="w-full py-3 px-4 rounded-[10px] bg-bg-panel-raised border border-border-hairline text-text-primary hover:bg-bg-panel hover:border-accent-scan/50 transition-colors font-mono text-xs font-semibold flex items-center justify-center gap-2">
-                    <span>Start for Free</span>
+                    <span>Start Free Audit</span>
                     <span>→</span>
                   </button>
                 </Link>
@@ -1474,7 +1479,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-signal-resolved shrink-0 mt-0.5" />
-                    <span>Email Support</span>
+                    <span>Community Support</span>
                   </div>
                 </div>
               </div>
@@ -1491,7 +1496,7 @@ export default function LandingPage() {
                     </div>
                     <span className="px-2.5 py-0.5 rounded-full bg-signal-resolved/15 text-signal-resolved border border-signal-resolved/30 font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                       <span>✦</span>
-                      <span>Most Popular</span>
+                      <span>Public Beta</span>
                     </span>
                   </div>
                   <p className="text-xs sm:text-[13px] text-text-muted font-sans leading-relaxed min-h-[40px]">
@@ -1503,27 +1508,21 @@ export default function LandingPage() {
                 <div className="space-y-3">
                   <div className="flex items-baseline gap-1.5 font-mono">
                     <span className="font-display text-4xl sm:text-5xl font-medium text-text-primary">
-                      {billingCycle === "continuous" ? "$18,000" : "$18,000"}
+                      $0
                     </span>
                     <span className="text-xs text-text-muted">
-                      /per scope
+                      /free in beta
                     </span>
                   </div>
 
                   {/* Inline Toggle Row */}
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-center gap-2 font-mono text-xs text-text-muted">
-                      <button
-                        onClick={() => setBillingCycle(billingCycle === "continuous" ? "engagement" : "continuous")}
-                        className="w-9 h-5 rounded-full p-0.5 transition-colors relative flex items-center bg-signal-resolved"
-                      >
-                        <div className="w-4 h-4 rounded-full bg-white translate-x-4 transition-transform" />
-                      </button>
-                      <span className="text-text-primary text-xs">50/50 Escrow</span>
+                      <span className="text-accent-scan text-xs font-semibold">✦ Complimentary</span>
                     </div>
 
                     <span className="px-2 py-0.5 rounded-[4px] bg-signal-resolved/15 text-signal-resolved border border-signal-resolved/30 font-mono text-[11px] font-bold">
-                      Save $4,800
+                      Zero Cost
                     </span>
                   </div>
                 </div>
@@ -1531,7 +1530,7 @@ export default function LandingPage() {
                 {/* Dark Solid Action Button */}
                 <Link href="/portal/new-request" className="block w-full">
                   <button className="w-full py-3 px-4 rounded-[10px] bg-text-primary text-bg-void hover:opacity-90 hover:shadow-lg transition-all font-mono text-xs font-bold flex items-center justify-center gap-2">
-                    <span>Request Scoped Quote</span>
+                    <span>Start Free Audit</span>
                     <span>→</span>
                   </button>
                 </Link>
@@ -1548,7 +1547,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-signal-resolved shrink-0 mt-0.5" />
-                    <span>Non-custodial 50/50 milestone escrow</span>
+                    <span>On-chain Monad Testnet attestation certificate & Soulbound Trust Passport badge</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-signal-resolved shrink-0 mt-0.5" />
@@ -1556,7 +1555,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-signal-resolved shrink-0 mt-0.5" />
-                    <span>Free 14-day remediation verification re-audit</span>
+                    <span>Free remediation verification re-audit</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-signal-resolved shrink-0 mt-0.5" />
@@ -1564,7 +1563,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="h-4 w-4 text-signal-resolved shrink-0 mt-0.5" />
-                    <span>Email + Dedicated Slack Support</span>
+                    <span>Dedicated Audit Team Support</span>
                   </div>
                 </div>
               </div>
@@ -1657,7 +1656,7 @@ export default function LandingPage() {
               Frequently asked questions.
             </h2>
             <p className="text-sm sm:text-base text-text-muted font-sans max-w-xl mx-auto">
-              Clear technical answers on scoping algorithms, escrow milestones, and verifiable deliverables.
+              Clear technical answers on scoping algorithms, verification workflows, and on-chain deliverables.
             </p>
           </div>
 
@@ -1667,12 +1666,12 @@ export default function LandingPage() {
               {
                 id: 0,
                 q: "How is audit pricing calculated?",
-                a: "Pricing is computed deterministically using Normalized Source Lines of Code (nSLOC) after stripping comments, imports, and interface boilerplate, factored by architectural complexity (such as cross-contract calls, inline assembly opcodes, and custom AMM math). You receive an exact binding quote in seconds upon uploading your .sol contract manifest.",
+                a: "Pricing is computed deterministically using Normalized Source Lines of Code (nSLOC) after stripping comments, imports, and interface boilerplate, factored by architectural complexity. During our current public beta phase, all audits and verifications are 100% free.",
               },
               {
                 id: 1,
-                q: "How does the milestone escrow mechanism protect our treasury?",
-                a: "When an engagement begins, 50% of the audit fee is locked in a non-custodial smart contract escrow. The first tranche is only released when preliminary findings are delivered to your dual-pane triage portal. The remaining 50% is released only after remediation verification is approved and the cryptographic SHA-256 seal is minted on-chain.",
+                q: "Is Zyron really free to use right now?",
+                a: "Yes! During our current launch phase, Zyron smart contract audits, AI prover sandbox replays, and cryptographic on-chain Monad Testnet attestation certificates and Trust Passports are completely free for all builders and protocol teams.",
               },
               {
                 id: 2,

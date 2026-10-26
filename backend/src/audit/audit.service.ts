@@ -1,6 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { CreateAuditDto, AdvanceStageDto, CreateFindingDto, UpdateFindingDto, CreateCommentDto } from './dto/audit.dto';
 import { AuditStage, UserRole } from '../common/enum';
+import { PrismaService } from '../database/database.module';
+import { IpfsService } from '../ipfs/ipfs.service';
+import { ScannerService } from '../scanner/scanner.service';
+import { BlockchainService } from '../blockchain/blockchain.service';
+import { getDefaultAttestationChainId } from '../blockchain/constants';
 import {
   CreateAuditService,
   GetAuditsService,
@@ -9,11 +14,17 @@ import {
   FindingsService,
   CommentsService,
   AutoAssignService,
+  ReportGeneratorService,
+  AuditVerificationService,
+  VerifyAuditInput,
 } from './services';
 
 @Injectable()
 export class AuditService {
   constructor(
+    private prisma: PrismaService,
+    private ipfsService: IpfsService,
+    private reportGenerator: ReportGeneratorService,
     private createAuditService: CreateAuditService,
     private getAuditsService: GetAuditsService,
     private claimTicketService: ClaimTicketService,
@@ -21,7 +32,36 @@ export class AuditService {
     private findingsService: FindingsService,
     private commentsService: CommentsService,
     private autoAssignService: AutoAssignService,
+    private auditVerificationService: AuditVerificationService,
+    private blockchainService: BlockchainService,
+    @Inject(forwardRef(() => ScannerService))
+    private scannerService: ScannerService,
   ) {}
+
+  async submitFixes(auditId: string, gitCommit?: string) {
+    const updated = await this.advanceStageService.advanceStage(auditId, {
+      stage: AuditStage.SCANNING,
+      gitCommit,
+    });
+
+    setImmediate(async () => {
+      try {
+        await this.scannerService.runScan(auditId);
+      } catch (err: any) {
+        console.error(`[Re-Audit Scan Error for ${auditId}]:`, err?.message || err);
+      }
+    });
+
+    return updated;
+  }
+
+  verifyAudit(input: VerifyAuditInput) {
+    return this.auditVerificationService.verify(input);
+  }
+
+  getRecentVerifications(limit?: number) {
+    return this.auditVerificationService.getRecentVerifications(limit);
+  }
 
   createAudit(userId: string, organizationId: string | undefined, dto: CreateAuditDto) {
     return this.createAuditService.createAudit(userId, organizationId, dto);
@@ -59,6 +99,10 @@ export class AuditService {
     return this.findingsService.updateFinding(findingId, dto, userRole);
   }
 
+  deleteFinding(findingId: string, userRole: UserRole) {
+    return this.findingsService.deleteFinding(findingId, userRole);
+  }
+
   findFindingsByAudit(auditId: string, role?: UserRole) {
     return this.findingsService.findFindingsByAudit(auditId, role);
   }
@@ -70,4 +114,171 @@ export class AuditService {
   findCommentsByFinding(findingId: string) {
     return this.commentsService.findCommentsByFinding(findingId);
   }
+
+  async getAuditReportPdf(auditIdOrFilename: string): Promise<{ buffer: Buffer; fileName: string; ipfsCid?: string }> {
+    // Check if filename was provided, e.g. "ZYR-9481-VaultCore.sol.pdf"
+    let auditId = auditIdOrFilename.replace(/\.pdf$/i, '');
+    if (auditId.includes('-')) {
+      const parts = auditId.split('-');
+      // If it looks like ZYR-XXXX-...
+      if (parts.length >= 2 && parts[0] === 'ZYR') {
+        auditId = `${parts[0]}-${parts[1]}`;
+      }
+    }
+
+    const audit = await this.prisma.auditRequest.findUnique({
+      where: { id: auditId },
+      include: {
+        findings: true,
+        leadAuditor: true,
+      },
+    });
+
+    if (!audit) {
+      throw new NotFoundException(`Audit report for ${auditIdOrFilename} not found`);
+    }
+
+    const fileName = `${audit.id}-${audit.contractFileName}.pdf`;
+
+    // Try finding in local IPFS store by CID
+    if (audit.ipfsCid) {
+      const local = this.ipfsService.getLocalFile(audit.ipfsCid);
+      if (local) {
+        return { buffer: local.buffer, fileName, ipfsCid: audit.ipfsCid };
+      }
+    }
+
+    // Synthesize on the fly
+    const buffer = await this.reportGenerator.generateAuditReportPdf({
+      id: audit.id,
+      protocolName: audit.protocolName,
+      contractFileName: audit.contractFileName,
+      contractAddress: audit.contractAddress,
+      gitCommit: audit.gitCommit,
+      compilerVersion: audit.compilerVersion,
+      network: audit.network,
+      sloc: audit.sloc,
+      bytecodeHash: audit.bytecodeHash,
+      merkleRoot: audit.merkleRoot,
+      onChainTxHash: audit.onChainTxHash,
+      onChainChainId: audit.onChainChainId,
+      ipfsCid: audit.ipfsCid,
+      leadAuditorName: audit.leadAuditor?.name || audit.leadAuditor?.auditorHandle || 'Zyron Lead Auditor',
+      leadAuditorWallet: audit.leadAuditor?.walletAddress,
+      completedAt: audit.completedAt,
+      findings: audit.findings.map((f) => ({
+        displayId: f.displayId,
+        title: f.title,
+        severity: f.severity,
+        status: f.status,
+        taxonomy: f.taxonomy,
+        impact: f.impact,
+        description: f.description,
+        remediationNote: f.remediationNote,
+      })),
+    });
+
+    return { buffer, fileName, ipfsCid: audit.ipfsCid || undefined };
+  }
+
+  async getIpfsAttestation(auditId: string) {
+    const audit = await this.prisma.auditRequest.findUnique({
+      where: { id: auditId },
+      select: {
+        id: true,
+        protocolName: true,
+        contractFileName: true,
+        contractAddress: true,
+        gitCommit: true,
+        bytecodeHash: true,
+        merkleRoot: true,
+        onChainTxHash: true,
+        onChainChainId: true,
+        attestationStatus: true,
+        ipfsCid: true,
+        ipfsReportUrl: true,
+        ipfsGatewayUrl: true,
+        ipfsMetadataCid: true,
+        ipfsPinnedAt: true,
+        completedAt: true,
+      },
+    });
+
+    if (!audit) throw new NotFoundException(`Audit ${auditId} not found`);
+    return audit;
+  }
+
+  getAttestationPayload(auditId: string, signerAddress?: string) {
+    return this.blockchainService.buildAttestationPayload(auditId, signerAddress);
+  }
+
+  async signAndCompleteAttestation(
+    auditId: string,
+    signature: string,
+    signerAddress: string,
+    payloadMessage?: any,
+    targetChainId?: number,
+    txHash?: string,
+    contractAddress?: string,
+  ) {
+    const chainId = targetChainId || getDefaultAttestationChainId();
+
+    if (contractAddress && contractAddress.startsWith('0x') && contractAddress.length === 42) {
+      this.blockchainService.setAttestationAddress(chainId, contractAddress);
+    }
+
+    // 1. Advance stage to COMPLETED (handles 0 open crit/high check, PDF generation, IPFS pinning)
+    const completedAudit = await this.advanceStageService.advanceStage(auditId, {
+      stage: AuditStage.COMPLETED,
+      skipOnChainPublish: true,
+    });
+
+    // 2. If client already broadcast the on-chain tx directly via Web3 wallet:
+    let onChainRes: any;
+    if (txHash && txHash.startsWith('0x')) {
+      await this.prisma.auditRequest.update({
+        where: { id: auditId },
+        data: {
+          onChainTxHash: txHash,
+          onChainChainId: chainId,
+          attestationStatus: 'MANUALLY_ATTESTED',
+          attestationSig: signature,
+        },
+      });
+      onChainRes = { txHash, chainId, isRelayed: false };
+    } else {
+      // 3. Fallback: Submit signed on-chain attestation via relayer to ZyronAttestation.sol
+      onChainRes = await this.blockchainService.submitSignedAttestation(
+        auditId,
+        signature,
+        signerAddress,
+        payloadMessage,
+        targetChainId,
+      );
+    }
+
+    // 4. Record Trust Passport claims with confirmed on-chain transaction
+    if (onChainRes?.txHash) {
+      await this.advanceStageService.recordClaims(auditId, onChainRes.txHash, onChainRes.chainId || chainId);
+    }
+
+    const finalAudit = await this.prisma.auditRequest.findUnique({
+      where: { id: auditId },
+      include: {
+        findings: true,
+        leadAuditor: true,
+        rounds: { orderBy: { roundNumber: 'asc' } },
+      },
+    });
+
+    return {
+      audit: finalAudit || completedAudit,
+      onChain: onChainRes,
+    };
+  }
+
+  verifyOnChain(auditId: string, targetChainId?: number) {
+    return this.blockchainService.verifyOnChain(auditId, targetChainId);
+  }
 }
+

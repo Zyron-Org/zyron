@@ -186,7 +186,7 @@ export default function TeamAccessPage() {
       viewer: false,
     },
     {
-      action: "Manage Crypto Escrow Deposits & Net-30 Invoices",
+      action: "Manage Organization Profile & Team Access",
       admin: true,
       security: false,
       developer: false,

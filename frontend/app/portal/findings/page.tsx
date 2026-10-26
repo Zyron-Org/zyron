@@ -59,7 +59,7 @@ interface AggregatedFinding {
   title: string;
   severity: "critical" | "high" | "medium" | "low" | "informational";
   cvss: string;
-  status: "open" | "fix-submitted" | "resolved";
+  status: "open" | "fix-submitted" | "resolved" | "wont-fix";
   taxonomy: string;
   location: string;
   impact: string;
@@ -69,9 +69,17 @@ interface AggregatedFinding {
   remediatedCode?: string;
   sourceCode?: string;
   fuzzTestStatus?: string;
+  fundsDrainedEth?: number;
   remediationNote?: string;
+  foundBy?: string;
+  traceSteps?: string;
+  synthesizedPoC?: string;
+  falsePositive?: boolean;
   comments: CommentMessage[];
 }
+
+import { FoundByBadge } from "@/components/found-by-badge";
+import { EvmTraceStepper } from "@/components/evm-trace-stepper";
 
 export default function OpenFindingsPage() {
   const [filterStatus, setFilterStatus] = React.useState<"all" | "open" | "fix-submitted">("all");
@@ -132,7 +140,11 @@ export default function OpenFindingsPage() {
               remediatedCode: f.remediatedCode || undefined,
               sourceCode: audit.sourceCode || undefined,
               fuzzTestStatus: f.fuzzTestStatus || undefined,
+              fundsDrainedEth: typeof f.fundsDrainedEth === "number" ? f.fundsDrainedEth : 0,
+              traceSteps: f.traceSteps || undefined,
+              synthesizedPoC: f.synthesizedPoC || undefined,
               remediationNote: f.remediationNote || undefined,
+              foundBy: (f.foundBy || (f.ruleId?.startsWith("ZYRON-AI") ? "AI" : (f.ruleId ? "STATIC" : "MANUAL"))).toUpperCase(),
               comments: Array.isArray(f.comments)
                 ? f.comments.map((c: any) => ({
                     id: c.id,
@@ -287,12 +299,15 @@ export default function OpenFindingsPage() {
     return matchesStatus && matchesSeverity && matchesTicket && matchesSearch;
   });
 
-  const criticalFindings = findings.filter((f) => f.severity === "critical");
-  const highFindings = findings.filter((f) => f.severity === "high");
-  const criticalCount = criticalFindings.length;
-  const highCount = highFindings.length;
+  const openFindings = findings.filter((f) => !f.falsePositive && f.status !== "resolved" && f.status !== "wont-fix");
+  const openCriticalFindings = findings.filter((f) => !f.falsePositive && f.severity === "critical" && f.status !== "resolved" && f.status !== "wont-fix");
+  const openHighFindings = findings.filter((f) => !f.falsePositive && f.severity === "high" && f.status !== "resolved" && f.status !== "wont-fix");
+  const criticalCount = openCriticalFindings.length;
+  const highCount = openHighFindings.length;
+  const resolvedCount = findings.filter((f) => f.status === "resolved").length;
   const fixSubmittedCount = findings.filter((f) => f.status === "fix-submitted").length;
   const activeTickets = Array.from(new Set(findings.map((f) => f.ticketId)));
+  const allFindingsResolved = findings.length > 0 && openFindings.length === 0;
 
   if (loading) {
     return (
@@ -327,6 +342,11 @@ export default function OpenFindingsPage() {
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-signal-critical/10 text-signal-critical border border-signal-critical/20">
                 <ShieldAlert className="h-3.5 w-3.5" />
                 {criticalCount} Critical {criticalCount === 1 ? "Issue" : "Issues"}
+              </span>
+            ) : allFindingsResolved ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-signal-resolved/10 text-signal-resolved border border-signal-resolved/20">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                All Remediations Verified ✓
               </span>
             ) : findings.length > 0 ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-accent-scan/10 text-accent-scan border border-accent-scan/20">
@@ -366,7 +386,7 @@ export default function OpenFindingsPage() {
         <div className="p-1 rounded-2xl bg-[#F2F4F7] dark:bg-bg-void/60 border border-[#E2E6EC] dark:border-border-hairline shadow-xs transition-all hover:border-signal-critical/40">
           <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-bg-panel border border-[#E8ECF1] dark:border-border-hairline/60 shadow-xs space-y-1.5">
             <div className="flex items-center justify-between text-xs text-text-muted">
-              <span className="font-medium text-text-primary">Critical (P0)</span>
+              <span className="font-medium text-text-primary">Open Critical</span>
               <div className="h-7 w-7 rounded-lg bg-signal-critical/10 text-signal-critical flex items-center justify-center">
                 <ShieldAlert className="h-3.5 w-3.5" />
               </div>
@@ -376,7 +396,7 @@ export default function OpenFindingsPage() {
             </div>
           </div>
           <div className="px-3.5 py-2 text-xs text-text-muted truncate">
-            {criticalCount > 0 ? "Highest severity priority" : "Zero critical issues detected"}
+            {criticalCount > 0 ? "Highest severity priority" : "Zero open critical issues"}
           </div>
         </div>
 
@@ -384,7 +404,7 @@ export default function OpenFindingsPage() {
         <div className="p-1 rounded-2xl bg-[#F2F4F7] dark:bg-bg-void/60 border border-[#E2E6EC] dark:border-border-hairline shadow-xs transition-all hover:border-signal-high/40">
           <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-bg-panel border border-[#E8ECF1] dark:border-border-hairline/60 shadow-xs space-y-1.5">
             <div className="flex items-center justify-between text-xs text-text-muted">
-              <span className="font-medium text-text-primary">High Severity</span>
+              <span className="font-medium text-text-primary">Open High</span>
               <div className="h-7 w-7 rounded-lg bg-signal-high/10 text-signal-high flex items-center justify-center">
                 <AlertTriangle className="h-3.5 w-3.5" />
               </div>
@@ -394,7 +414,7 @@ export default function OpenFindingsPage() {
             </div>
           </div>
           <div className="px-3.5 py-2 text-xs text-text-muted">
-            Requires mitigation before launch
+            {highCount > 0 ? "Requires mitigation before launch" : "Zero open high issues"}
           </div>
         </div>
 
@@ -640,6 +660,8 @@ export default function OpenFindingsPage() {
                         {finding.displayId}
                       </span>
 
+                      <FoundByBadge foundBy={finding.foundBy} />
+
                       <h3 className="font-display text-base font-bold text-text-primary tracking-tight">
                         {finding.title}
                       </h3>
@@ -710,20 +732,18 @@ export default function OpenFindingsPage() {
                   {/* ─── EXPANDED CONTENT: Full Details, Code Viewer, Remediation & Discussion ─── */}
                   {isExpanded && (
                     <div className="pt-4 border-t border-border-hairline/60 space-y-6 animate-in fade-in duration-200">
-                      {/* Virtual Sandbox Exploit Proof Callout */}
-                      <div className="p-3.5 rounded-xl bg-signal-critical/10 border border-signal-critical/30 space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold flex items-center gap-1.5 text-signal-critical">
-                            <Terminal className="h-4 w-4" />
-                            Virtual Blockchain Exploit Simulation Proof (Anvil Fork #19482014)
-                          </span>
-                          <span className="font-mono text-[10px] text-signal-critical bg-signal-critical/20 px-2 py-0.5 rounded font-bold">
-                            SIMULATED EXPLOIT REPRODUCED
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-text-muted leading-relaxed font-mono">
-                          Our autonomous AI red-team agent deployed the bytecode to an ephemeral virtual EVM fork, executed a dynamic simulated attack against state invariants, and verified a reproducible Foundry PoC test suite. Zero false positives.
-                        </p>
+                      {/* Autonomous AI Prover & Virtual EVM Sandbox Stepper */}
+                      <div className="space-y-2">
+                        <EvmTraceStepper
+                          findingId={finding.id}
+                          title={finding.title}
+                          findingSeverity={finding.severity}
+                          verdict={finding.fuzzTestStatus || (finding.falsePositive ? "PROVEN_FALSE_POSITIVE" : undefined)}
+                          fundsDrainedEth={finding.fundsDrainedEth ?? 0}
+                          traceSteps={finding.traceSteps}
+                          synthesizedPoC={finding.synthesizedPoC}
+                          showAgentFlow={false}
+                        />
                       </div>
 
                       {/* Description & Impact Box */}
@@ -860,63 +880,80 @@ export default function OpenFindingsPage() {
                             </div>
                           </div>
 
-                          {/* 2. Submit Remediation Fix for Re-verification */}
-                          <div className="p-4 rounded-xl bg-accent-scan/5 border border-accent-scan/20 shadow-xs space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 text-xs font-bold text-accent-scan">
-                                <GitCommit className="h-3.5 w-3.5" />
-                                <span>Submit Fix for Re-Verification</span>
+                          {/* 2. Remediation Cleared or Submit Fix for Re-verification */}
+                          {finding.status === "resolved" ? (
+                            <div className="p-4 rounded-xl bg-signal-resolved/5 border border-signal-resolved/20 shadow-xs space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-signal-resolved">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  <span>Remediation Cleared & Verified</span>
+                                </div>
+                                <span className="text-[10px] text-signal-resolved uppercase font-semibold">
+                                  Auditor Approved
+                                </span>
                               </div>
-                              <span className="text-[10px] text-text-muted uppercase font-semibold">
-                                Pipeline Trigger
-                              </span>
+                              <p className="text-xs text-text-muted leading-relaxed">
+                                Lead auditor verified the fixes for this finding. All checks have passed and no additional submission is required.
+                              </p>
                             </div>
+                          ) : (
+                            <div className="p-4 rounded-xl bg-accent-scan/5 border border-accent-scan/20 shadow-xs space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-accent-scan">
+                                  <GitCommit className="h-3.5 w-3.5" />
+                                  <span>Submit Fix for Re-Verification</span>
+                                </div>
+                                <span className="text-[10px] text-text-muted uppercase font-semibold">
+                                  Pipeline Trigger
+                                </span>
+                              </div>
 
-                            <div className="space-y-2">
-                              <Input
-                                placeholder="Git Commit SHA (e.g. 7e21a99)"
-                                value={commitInputs[finding.id]?.commitSha || ""}
-                                onChange={(e) =>
-                                  setCommitInputs((prev) => ({
-                                    ...prev,
-                                    [finding.id]: {
-                                      ...prev[finding.id],
-                                      commitSha: e.target.value,
-                                      summary: prev[finding.id]?.summary || "",
-                                    },
-                                  }))
-                                }
-                                className="h-8 text-xs font-mono bg-white dark:bg-bg-panel border-border-hairline rounded-lg"
-                              />
+                              <div className="space-y-2">
+                                <Input
+                                  placeholder="Git Commit SHA (e.g. 7e21a99)"
+                                  value={commitInputs[finding.id]?.commitSha || ""}
+                                  onChange={(e) =>
+                                    setCommitInputs((prev) => ({
+                                      ...prev,
+                                      [finding.id]: {
+                                        ...prev[finding.id],
+                                        commitSha: e.target.value,
+                                        summary: prev[finding.id]?.summary || "",
+                                      },
+                                    }))
+                                  }
+                                  className="h-8 text-xs font-mono bg-white dark:bg-bg-panel border-border-hairline rounded-lg"
+                                />
 
-                              <Input
-                                placeholder="Remediation notes (e.g. Added nonReentrant guard on deposit)"
-                                value={commitInputs[finding.id]?.summary || ""}
-                                onChange={(e) =>
-                                  setCommitInputs((prev) => ({
-                                    ...prev,
-                                    [finding.id]: {
-                                      commitSha: prev[finding.id]?.commitSha || "",
-                                      summary: e.target.value,
-                                    },
-                                  }))
-                                }
-                                className="h-8 text-xs font-sans bg-white dark:bg-bg-panel border-border-hairline rounded-lg"
-                              />
+                                <Input
+                                  placeholder="Remediation notes (e.g. Added nonReentrant guard on deposit)"
+                                  value={commitInputs[finding.id]?.summary || ""}
+                                  onChange={(e) =>
+                                    setCommitInputs((prev) => ({
+                                      ...prev,
+                                      [finding.id]: {
+                                        commitSha: prev[finding.id]?.commitSha || "",
+                                        summary: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                  className="h-8 text-xs font-sans bg-white dark:bg-bg-panel border-border-hairline rounded-lg"
+                                />
+                              </div>
+
+                              <div className="flex justify-end pt-1">
+                                <Button
+                                  size="sm"
+                                  variant="primary"
+                                  onClick={() => handleSubmitFix(finding.id)}
+                                  disabled={submittingFix[finding.id] || !commitInputs[finding.id]?.commitSha?.trim()}
+                                  className="rounded-lg text-xs font-semibold"
+                                >
+                                  {submittingFix[finding.id] ? "Submitting Fix..." : "Submit Fix for Auditor Sign-Off"}
+                                </Button>
+                              </div>
                             </div>
-
-                            <div className="flex justify-end pt-1">
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                onClick={() => handleSubmitFix(finding.id)}
-                                disabled={submittingFix[finding.id] || !commitInputs[finding.id]?.commitSha?.trim()}
-                                className="rounded-lg text-xs font-semibold"
-                              >
-                                {submittingFix[finding.id] ? "Submitting Fix..." : "Submit Fix for Auditor Sign-Off"}
-                              </Button>
-                            </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>

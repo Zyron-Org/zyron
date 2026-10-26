@@ -64,18 +64,17 @@ interface FormattedAudit {
 function normalizeStage(stage: string): PipelineStatus {
   const s = stage?.toUpperCase();
   if (s === "PENDING") return "pending";
-  if (s === "SCANNING") return "scanning";
+  if (s === "SCANNING" || s === "FAILED") return "scanning";
   if (s === "IN_REVIEW") return "in-review";
   if (s === "CORRECTIONS_REQUESTED") return "corrections-requested";
   if (s === "COMPLETED") return "completed";
-  if (s === "FAILED") return "failed";
   return (stage ? stage.toLowerCase() : "pending") as PipelineStatus;
 }
 
 function getStageNumber(stage: string): number {
   const s = stage?.toUpperCase();
   if (s === "PENDING") return 1;
-  if (s === "SCANNING") return 2;
+  if (s === "SCANNING" || s === "FAILED") return 2;
   if (s === "IN_REVIEW" || s === "CORRECTIONS_REQUESTED") return 3;
   if (s === "COMPLETED") return 4;
   return 1;
@@ -96,7 +95,7 @@ export default function ClientDashboardPage() {
       const rawData = Array.isArray(res.data) ? res.data : [];
 
       const formatted: FormattedAudit[] = rawData.map((item: any) => {
-        const stage = normalizeStage(item.stage);
+        const baseStage = normalizeStage(item.stage);
         const stageNum = item.stageNumber || getStageNumber(item.stage);
 
         let crit = 0;
@@ -108,9 +107,10 @@ export default function ClientDashboardPage() {
         if (item.findings) {
           if (Array.isArray(item.findings)) {
             item.findings.forEach((f: any) => {
+              if (f.falsePositive) return;
               const sev = (f.severity || "").toUpperCase();
               const st = (f.status || "").toUpperCase();
-              if (st === "RESOLVED") resCount++;
+              if (st === "RESOLVED" || st === "WONT_FIX" || st === "WONT-FIX") resCount++;
               else if (sev === "CRITICAL") crit++;
               else if (sev === "HIGH") high++;
               else if (sev === "MEDIUM") med++;
@@ -124,6 +124,12 @@ export default function ClientDashboardPage() {
             resCount = item.findings.resolved || 0;
           }
         }
+
+        const isRemediationVerified =
+          resCount > 0 &&
+          crit + high + med + low === 0 &&
+          (baseStage === "corrections-requested" || baseStage === "in-review");
+        const stage: PipelineStatus = isRemediationVerified ? "remediation-verified" : baseStage;
 
         return {
           id: item.id,
@@ -166,7 +172,8 @@ export default function ClientDashboardPage() {
       a.stage === "pending" ||
       a.stage === "scanning" ||
       a.stage === "in-review" ||
-      a.stage === "corrections-requested"
+      a.stage === "corrections-requested" ||
+      a.stage === "remediation-verified"
   );
   const completedAudits = audits.filter((a) => a.stage === "completed");
 
@@ -179,7 +186,8 @@ export default function ClientDashboardPage() {
         ? audit.stage === "pending" ||
           audit.stage === "scanning" ||
           audit.stage === "in-review" ||
-          audit.stage === "corrections-requested"
+          audit.stage === "corrections-requested" ||
+          audit.stage === "remediation-verified"
         : filterStage === "completed"
         ? audit.stage === "completed" || audit.stage === "failed"
         : true;
@@ -280,7 +288,7 @@ export default function ClientDashboardPage() {
           <div className="px-3.5 py-2 text-xs text-text-muted flex items-center gap-1.5">
             <span>{inFlightAudits.filter((a) => a.stage === "scanning").length} scanning</span>
             <span>•</span>
-            <span>{inFlightAudits.filter((a) => a.stage === "in-review" || a.stage === "corrections-requested").length} in review</span>
+            <span>{inFlightAudits.filter((a) => a.stage === "in-review" || a.stage === "corrections-requested" || a.stage === "remediation-verified").length} in review</span>
           </div>
         </div>
 
@@ -586,7 +594,7 @@ export default function ClientDashboardPage() {
                           type="button"
                           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-[#F2F4F7] hover:bg-accent-scan/10 hover:text-accent-scan dark:bg-bg-panel-raised text-text-primary border border-[#E2E6EC] dark:border-border-hairline hover:border-accent-scan/30 transition-all cursor-pointer shadow-xs"
                         >
-                          <span>{isCompleted ? "View Certificate" : "Track Progress"}</span>
+                          <span>{isCompleted ? "View Certificate" : audit.stage === "remediation-verified" ? "View Cleared Audit" : "Track Progress"}</span>
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </button>
                       </Link>
@@ -596,12 +604,20 @@ export default function ClientDashboardPage() {
                   {/* Description / Current Activity Banner */}
                   <div className="text-xs text-text-muted bg-[#F8F9FA] dark:bg-bg-void/50 rounded-xl px-3.5 py-2.5 border border-[#E4E7EC]/70 dark:border-border-hairline/60 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="h-2 w-2 rounded-full bg-accent-scan shrink-0 animate-pulse" />
-                      <span className="text-text-primary font-medium truncate">
-                        {audit.currentActivity ||
-                          (isCompleted
-                            ? "Audit engagement completed and cryptographically signed."
-                            : "Dual senior auditor review & automated invariant verification active.")}
+                      <span className={cn(
+                        "h-2 w-2 rounded-full shrink-0",
+                        audit.stage === "remediation-verified" ? "bg-signal-resolved" : "bg-accent-scan animate-pulse"
+                      )} />
+                      <span className={cn(
+                        "font-medium truncate",
+                        audit.stage === "remediation-verified" ? "text-signal-resolved" : "text-text-primary"
+                      )}>
+                        {audit.stage === "remediation-verified"
+                          ? `✓ All ${audit.resolvedCount} vulnerabilities resolved & verified by lead auditor.`
+                          : (audit.currentActivity ||
+                            (isCompleted
+                              ? "Audit engagement completed and cryptographically signed."
+                              : "Dual senior auditor review & automated invariant verification active."))}
                       </span>
                     </div>
                     {audit.assignedAuditor && (
@@ -803,7 +819,7 @@ export default function ClientDashboardPage() {
                               type="button"
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#F2F4F7] hover:bg-accent-scan/10 hover:text-accent-scan dark:bg-bg-panel-raised text-text-primary border border-[#E2E6EC] dark:border-border-hairline transition-colors cursor-pointer"
                             >
-                              <span>{isCompleted ? "Certificate" : "Track"}</span>
+                              <span>{isCompleted ? "Certificate" : audit.stage === "remediation-verified" ? "Verified" : "Track"}</span>
                               <ArrowUpRight className="h-3 w-3" />
                             </button>
                           </Link>

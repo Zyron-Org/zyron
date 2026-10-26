@@ -5,6 +5,8 @@ import { GithubWebhookHandlerService } from './github-webhook-handler.service';
 import { LegacyScanRunnerService } from './legacy-scan-runner.service';
 import { ASTEngineRunnerService } from './ast-engine-runner.service';
 import { FindingPersisterService } from './finding-persister.service';
+import { AgentProverClientService } from './agent-prover-client.service';
+import { GithubService } from '../../integrations/github.service';
 import { AuditStage } from '../../common/enum';
 
 @Injectable()
@@ -17,6 +19,8 @@ export class ScanOrchestratorService {
     private legacyRunner: LegacyScanRunnerService,
     private astRunner: ASTEngineRunnerService,
     private findingPersister: FindingPersisterService,
+    private agentProverClient: AgentProverClientService,
+    private githubService: GithubService,
   ) {}
 
   getScanJobsByAudit(auditId: string) {
@@ -34,11 +38,56 @@ export class ScanOrchestratorService {
     });
     if (!audit) throw new NotFoundException(`Audit engagement ${auditId} not found`);
 
-    // Determine source code: use customCode, or audit contract code if present
-    const sourceCode = customCode || audit.contractFileName;
+    // Build virtual file system for full repo import resolution
+    const virtualFiles = new Map<string, string>();
+    let sourceCode = customCode || audit.sourceCode;
+
+    if (audit.githubRepoUrl) {
+      try {
+        const { owner, repo } = this.githubService.parseRepoUrl(audit.githubRepoUrl);
+        const branch = audit.gitCommit || audit.githubBranch || 'main';
+        this.logger.log(`[ScanOrchestrator] Fetching repository contracts for ${owner}/${repo} (${branch})...`);
+        const tree = await this.githubService.fetchRepoTree(owner, repo, branch);
+        if (tree && tree.contracts?.length > 0) {
+          await Promise.all(
+            tree.contracts.map(async (filePath) => {
+              try {
+                const content = await this.githubService.fetchFileContent(owner, repo, filePath, branch);
+                if (content) {
+                  virtualFiles.set(filePath, content);
+                  const basename = filePath.split('/').pop() || filePath;
+                  if (!virtualFiles.has(basename)) {
+                    virtualFiles.set(basename, content);
+                  }
+                  if (
+                    filePath === audit.contractFileName ||
+                    basename === audit.contractFileName ||
+                    (audit.contractFileName && filePath.endsWith('/' + audit.contractFileName))
+                  ) {
+                    sourceCode = content;
+                  }
+                }
+              } catch (err: any) {
+                this.logger.warn(`Failed to fetch repo file ${filePath}: ${err.message}`);
+              }
+            }),
+          );
+          this.logger.log(`[ScanOrchestrator] Ingested ${virtualFiles.size} virtual contract files into multi-file scope.`);
+        }
+      } catch (err: any) {
+        this.logger.warn(`[ScanOrchestrator] Could not prefetch repository tree: ${err.message}`);
+      }
+    }
+
+    if (!sourceCode && audit.contractFileName && virtualFiles.has(audit.contractFileName)) {
+      sourceCode = virtualFiles.get(audit.contractFileName);
+    }
+
     if (!sourceCode) {
       throw new Error(`No source code available for audit ${auditId}`);
     }
+
+    virtualFiles.set(audit.contractFileName, sourceCode);
 
     // Compute source SHA-256 hash for attestation verification
     const sourceHash = crypto.createHash('sha256').update(sourceCode).digest('hex');
@@ -50,6 +99,7 @@ export class ScanOrchestratorService {
         stageNumber: 2,
         attestationStatus: 'AUTOMATED_ONLY',
         sourceHash: `0x${sourceHash}`,
+        sourceCode: sourceCode,
       },
     });
 
@@ -78,18 +128,36 @@ export class ScanOrchestratorService {
     });
 
     const existingCount = audit.findings.length;
+    let astPersistedCount = 0;
+    let legacyCount = 0;
+    let astResult: any = null;
 
-    // Phase 1: Legacy regex scanners (for backward compatibility)
-    const legacyFindings = await this.legacyRunner.run(audit.contractFileName, sourceCode);
-    const legacyCount = await this.findingPersister.persistLegacyFindings(auditId, existingCount, legacyFindings);
-
-    // Phase 2: AST engine (14-pass deep AST/CFG/Taint analysis)
-    const astResult = await this.astRunner.run(auditId, audit.contractFileName, sourceCode);
-    const astPersistedCount = await this.findingPersister.persistASTFindings(
-      auditId,
-      existingCount + legacyCount,
-      astResult.findings,
-    );
+    try {
+      // Primary: AST engine (14-pass deep AST/CFG/Taint analysis with full virtual file scope)
+      astResult = await this.astRunner.run(auditId, audit.contractFileName, sourceCode, undefined, virtualFiles);
+      if (existingCount > 0) {
+        const reconciliation = await this.findingPersister.reconcileASTFindings(
+          auditId,
+          astResult.findings,
+          audit.gitCommit || undefined,
+        );
+        astPersistedCount = reconciliation.unresolvedCount + reconciliation.regressionCount;
+      } else {
+        astPersistedCount = await this.findingPersister.persistASTFindings(
+          auditId,
+          existingCount,
+          astResult.findings,
+        );
+      }
+    } catch (err: any) {
+      this.logger.warn(`[AST Engine] Execution failed (${err.message}). Falling back to legacy regex scanner.`);
+      const legacyFindings = await this.legacyRunner.run(audit.contractFileName, sourceCode, virtualFiles);
+      legacyCount = await this.findingPersister.persistLegacyFindings(auditId, existingCount, legacyFindings);
+      astResult = {
+        diagnostics: [{ code: 'AST_FALLBACK', message: err.message, severity: 'WARNING' }],
+        totalDurationMs: 0,
+      };
+    }
 
     const totalFindings = legacyCount + astPersistedCount;
 
@@ -122,10 +190,73 @@ export class ScanOrchestratorService {
       },
     });
 
-    await this.prisma.auditRequest.update({
-      where: { id: auditId },
-      data: { stage: AuditStage.IN_REVIEW, stageNumber: 3 },
-    });
+    // Auto-dispatch Critical & High findings to autonomous AI EVM sandbox prover
+    try {
+      const candidates = await this.prisma.finding.findMany({
+        where: {
+          auditId,
+          severity: { in: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] },
+          status: { in: ['OPEN', 'FIX_SUBMITTED'] },
+          falsePositive: false,
+        },
+      });
+
+      if (candidates.length > 0) {
+        this.logger.log(`[ScanOrchestrator] Auto-dispatching ${candidates.length} open finding(s) to AI EVM sandbox prover...`);
+        
+        // Audit remains in SCANNING (stageNumber: 2) while prover executes
+        await this.prisma.auditRequest.update({
+          where: { id: auditId },
+          data: { stage: AuditStage.SCANNING, stageNumber: 2, failureReason: null },
+        });
+
+        this.agentProverClient
+          .dispatchProverJob(
+            auditId,
+            sourceCode,
+            candidates.map((f) => ({
+              id: f.id,
+              title: f.title,
+              severity: f.severity,
+              description: f.description,
+              location: f.location,
+              vulnerableFunction: f.location?.split(':')[1] || undefined,
+            })),
+          )
+          .then(async (res) => {
+            if (!res?.dispatched) {
+              this.logger.log(
+                `[ScanOrchestrator] Prover microservice offline (${res?.message}). Advancing audit ${auditId} directly to IN_REVIEW.`,
+              );
+              await this.prisma.auditRequest.update({
+                where: { id: auditId },
+                data: { stage: AuditStage.IN_REVIEW, stageNumber: 3, failureReason: null },
+              });
+            }
+          })
+          .catch(async (err) => {
+            this.logger.warn(
+              `[ScanOrchestrator] AI Prover Dispatch error (${err.message}). Advancing audit ${auditId} directly to IN_REVIEW.`,
+            );
+            await this.prisma.auditRequest.update({
+              where: { id: auditId },
+              data: { stage: AuditStage.IN_REVIEW, stageNumber: 3, failureReason: null },
+            });
+          });
+      } else {
+        // No High/Critical findings needed proving, advance straight to IN_REVIEW
+        await this.prisma.auditRequest.update({
+          where: { id: auditId },
+          data: { stage: AuditStage.IN_REVIEW, stageNumber: 3, failureReason: null },
+        });
+      }
+    } catch (e: any) {
+      this.logger.warn(`[ScanOrchestrator] Failed to query findings for prover dispatch: ${e.message}`);
+      await this.prisma.auditRequest.update({
+        where: { id: auditId },
+        data: { stage: AuditStage.IN_REVIEW, stageNumber: 3 },
+      });
+    }
 
     return { scanJob: updatedJob, scanRunId: scanRun.id, findingsCount: totalFindings };
   }

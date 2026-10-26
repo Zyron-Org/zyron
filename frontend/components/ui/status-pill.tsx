@@ -11,6 +11,8 @@ const statusPillVariants = cva(
         scanning: "bg-accent-scan/10 text-accent-scan border-accent-scan/25",
         "in-review": "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/25",
         "corrections-requested": "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+        "remediation-verified": "bg-signal-resolved/10 text-signal-resolved border-signal-resolved/25",
+        "attestation-pending": "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25",
         completed: "bg-signal-resolved/10 text-signal-resolved border-signal-resolved/25",
         failed: "bg-signal-critical/10 text-signal-critical border-signal-critical/25",
       },
@@ -32,6 +34,8 @@ export type PipelineStatus =
   | "scanning"
   | "in-review"
   | "corrections-requested"
+  | "remediation-verified"
+  | "attestation-pending"
   | "completed"
   | "failed";
 
@@ -47,6 +51,8 @@ const statusLabels: Record<PipelineStatus, string> = {
   scanning: "Automated Scan",
   "in-review": "In Review",
   "corrections-requested": "Fixes Needed",
+  "remediation-verified": "Remediation Verified",
+  "attestation-pending": "Attestation Pending",
   completed: "Completed",
   failed: "Failed",
 };
@@ -77,6 +83,7 @@ export function StatusPill({
             status === "scanning" && "bg-accent-scan",
             status === "in-review" && "bg-signal-low",
             status === "corrections-requested" && "bg-signal-critical",
+            status === "remediation-verified" && "bg-signal-resolved",
             status === "completed" && "bg-signal-resolved",
             status === "failed" && "bg-signal-critical"
           )}

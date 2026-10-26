@@ -1,44 +1,75 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 /**
  * @title ZyronAttestation
- * @dev Cryptographically verifiable EIP-712 on-chain attestation registry for smart contract audit reports.
+ * @notice Cryptographically verifiable on-chain attestation registry and Soulbound NFT Badge for smart contract audits.
+ *
+ * Capabilities:
+ *  1. Multi-File & Repository Support: Git commit SHA, repo source tree Merkle root, target contract, and protocol name.
+ *  2. Native IPFS Integration: Permanent binding to decentralized report PDF and ERC-721 metadata CIDs.
+ *  3. Soulbound Security Seal: Non-transferable ERC-721 NFT minted to the protocol team displaying audit status in Web3 wallets.
+ *  4. Flexible Attestation: Direct operator/admin publication and EIP-712 cryptographic auditor signature validation.
  */
-contract ZyronAttestation is Pausable, EIP712 {
+contract ZyronAttestation is ERC721URIStorage, Pausable, EIP712 {
     using ECDSA for bytes32;
 
     address public admin;
-    address public operator; // Authorized backend hot wallet / multi-sig signer
+    address public operator; // Hot wallet / multi-sig authorized for operator publications
 
     enum AttestationStatus { AUTOMATED_ONLY, PENDING_REVIEW, MANUALLY_ATTESTED, REVOKED }
 
-    struct AttestationRecord {
+    struct AttestationInput {
         bytes32 auditId;           // keccak256 hash of ticket ID (e.g. keccak256("ZYR-9481"))
-        bytes32 merkleRoot;        // Merkle root hash of audited findings
+        string  protocolName;      // Name of audited protocol (e.g. "Zyron Test Protocol")
+        string  targetContract;    // Primary contract name (e.g. "VaultCore.sol")
+        string  gitCommit;         // Git commit SHA (e.g. "f402090c...")
+        bytes32 repoTreeHash;      // Merkle tree root or hash of repository source tree
         bytes32 bytecodeHash;      // SHA-256 hash of deployed contract bytecode
-        bytes32 sourceHash;        // SHA-256 hash of source code
-        bytes32 reportHash;        // SHA-256 hash of PDF report
-        address leadAuditor;       // Wallet address of lead auditor
-        address peerAuditor;       // Wallet address of peer auditor
-        uint256 sloc;              // Lines of code count
-        uint256 timestamp;         // Attestation seal timestamp
-        string  contractFileName;  // Primary contract name (e.g. "VaultCore.sol")
-        AttestationStatus status;  // Attestation status
-        bool    isVerified;        // Verification flag
+        bytes32 merkleRoot;        // Merkle root hash of audited findings
+        string  ipfsReportCid;     // IPFS CID of compiled PDF audit report
+        string  ipfsMetadataCid;   // IPFS CID of ERC-721 metadata JSON
+        address recipient;         // Protocol owner / recipient of soulbound badge
+        address leadAuditor;       // Lead human auditor wallet
+        address peerAuditor;       // Peer reviewer wallet (address(0) if none)
+        uint256 sloc;              // Lines of code reviewed
+    }
+
+    struct AttestationRecord {
+        bytes32 auditId;
+        string  protocolName;
+        string  targetContract;
+        string  gitCommit;
+        bytes32 repoTreeHash;
+        bytes32 bytecodeHash;
+        bytes32 merkleRoot;
+        string  ipfsReportCid;
+        string  ipfsMetadataCid;
+        address recipient;
+        address leadAuditor;
+        address peerAuditor;
+        uint256 sloc;
+        uint256 timestamp;
+        uint256 tokenId;
+        AttestationStatus status;
+        bool    isVerified;
     }
 
     bytes32 public constant ATTESTATION_TYPEHASH = keccak256(
-        "AttestationPayload(bytes32 auditId,bytes32 merkleRoot,bytes32 bytecodeHash,bytes32 sourceHash,address leadAuditor,uint256 sloc,uint8 status,uint256 timestamp)"
+        "AttestationPayload(bytes32 auditId,bytes32 merkleRoot,bytes32 repoTreeHash,bytes32 bytecodeHash,address leadAuditor,uint256 sloc,uint8 status,uint256 timestamp)"
     );
 
     mapping(bytes32 => AttestationRecord) public registry;
     mapping(bytes32 => bytes32) public bytecodeToAuditId;
-    mapping(bytes32 => bytes32) public reportToAuditId;
+    mapping(string => bytes32) public reportCidToAuditId;
+    mapping(string => bytes32) public gitCommitToAuditId;
+    mapping(uint256 => bytes32) public tokenToAuditId;
+
     uint256 public attestationCount;
 
     event AttestationPublished(
@@ -46,15 +77,19 @@ contract ZyronAttestation is Pausable, EIP712 {
         bytes32 indexed merkleRoot,
         bytes32 indexed bytecodeHash,
         address leadAuditor,
-        uint256 sloc,
-        string contractFileName,
-        uint8 status,
+        address recipient,
+        uint256 tokenId,
+        string  ipfsReportCid,
+        uint8   status,
         uint256 timestamp
     );
 
     event AttestationRevoked(bytes32 indexed auditId, string reason, uint256 timestamp);
     event OperatorUpdated(address indexed newOperator);
     event AdminUpdated(address indexed newAdmin);
+    event AdminTransferInitiated(address indexed currentAdmin, address indexed pendingAdmin);
+
+    address public pendingAdmin;
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "ZyronAttestation: Caller is not admin");
@@ -66,88 +101,94 @@ contract ZyronAttestation is Pausable, EIP712 {
         _;
     }
 
-    constructor(address _operator) EIP712("ZyronAttestation", "3.0.0") {
+    constructor(address _operator)
+        ERC721("Zyron Security Seal", "ZYRON-SEAL")
+        EIP712("ZyronAttestation", "3.0.0")
+    {
         require(_operator != address(0), "ZyronAttestation: Invalid operator address");
         admin = msg.sender;
         operator = _operator;
     }
 
+    // ─── SOULBOUND NON-TRANSFERABLE HOOK ───────────────────────
+
     /**
-     * @notice Operator direct attestation publication
+     * @dev Enforces Soulbound behavior: tokens can be minted or burned, but cannot be transferred.
      */
-    function publishAttestation(
-        bytes32 auditId,
-        bytes32 bytecodeHash,
-        bytes32 reportHash,
-        address leadAuditor,
-        address peerAuditor,
-        uint256 sloc,
-        string calldata contractFileName
-    ) external onlyOperator whenNotPaused {
-        require(!registry[auditId].isVerified, "ZyronAttestation: Attestation already exists for this audit ID");
-        require(bytecodeHash != bytes32(0), "ZyronAttestation: Invalid bytecode hash");
-        require(reportHash != bytes32(0), "ZyronAttestation: Invalid report hash");
-        require(leadAuditor != address(0), "ZyronAttestation: Invalid lead auditor address");
-
-        AttestationRecord storage rec = registry[auditId];
-        rec.auditId = auditId;
-        rec.merkleRoot = reportHash;
-        rec.bytecodeHash = bytecodeHash;
-        rec.sourceHash = bytes32(0);
-        rec.reportHash = reportHash;
-        rec.leadAuditor = leadAuditor;
-        rec.peerAuditor = peerAuditor;
-        rec.sloc = sloc;
-        rec.timestamp = block.timestamp;
-        rec.contractFileName = contractFileName;
-        rec.status = AttestationStatus.AUTOMATED_ONLY;
-        rec.isVerified = true;
-
-        bytecodeToAuditId[bytecodeHash] = auditId;
-        reportToAuditId[reportHash] = auditId;
-        attestationCount++;
-
-        emit AttestationPublished(
-            auditId,
-            reportHash,
-            bytecodeHash,
-            leadAuditor,
-            sloc,
-            contractFileName,
-            uint8(AttestationStatus.AUTOMATED_ONLY),
-            block.timestamp
-        );
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override
+        returns (address)
+    {
+        address from = _ownerOf(tokenId);
+        if (from != address(0) && to != address(0)) {
+            revert("ZyronAttestation: Soulbound attestation badge cannot be transferred");
+        }
+        return super._update(to, tokenId, auth);
     }
 
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override
+        returns (string memory)
+    {
+        return super.tokenURI(tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+
+    // ─── DIRECT OPERATOR ATTESTATION PUBLICATION ───────────────
+
     /**
-     * @notice Publish verifiable audit attestation signed via EIP-712 typed data
+     * @notice Direct attestation publication by authorized operator or admin
+     */
+    function publishAttestation(AttestationInput calldata input)
+        external
+        onlyOperator
+        whenNotPaused
+        returns (uint256)
+    {
+        require(!registry[input.auditId].isVerified, "ZyronAttestation: Attestation already exists for this audit ID");
+        require(input.leadAuditor != address(0), "ZyronAttestation: Invalid lead auditor address");
+
+        return _recordAttestation(input, AttestationStatus.MANUALLY_ATTESTED, block.timestamp);
+    }
+
+    // ─── EIP-712 CRYPTOGRAPHIC AUDITOR ATTESTATION ────────────
+
+    /**
+     * @notice Verifiable EIP-712 typed data signed attestation publication
      */
     function publishAttestationWithSignature(
-        bytes32 auditId,
-        bytes32 merkleRoot,
-        bytes32 bytecodeHash,
-        bytes32 sourceHash,
-        address leadAuditor,
-        address peerAuditor,
-        uint256 sloc,
-        string calldata contractFileName,
+        AttestationInput calldata input,
         uint8 status,
         uint256 timestamp,
         bytes calldata signature
-    ) external whenNotPaused {
-        require(!registry[auditId].isVerified, "ZyronAttestation: Attestation already exists for this audit ID");
-        require(bytecodeHash != bytes32(0), "ZyronAttestation: Invalid bytecode hash");
+    )
+        external
+        whenNotPaused
+        returns (uint256)
+    {
+        require(!registry[input.auditId].isVerified, "ZyronAttestation: Attestation already exists for this audit ID");
         require(status == uint8(AttestationStatus.MANUALLY_ATTESTED), "ZyronAttestation: Must be human-attested");
 
         bytes32 structHash = keccak256(
             abi.encode(
                 ATTESTATION_TYPEHASH,
-                auditId,
-                merkleRoot,
-                bytecodeHash,
-                sourceHash,
-                leadAuditor,
-                sloc,
+                input.auditId,
+                input.merkleRoot,
+                input.repoTreeHash,
+                input.bytecodeHash,
+                input.leadAuditor,
+                input.sloc,
                 status,
                 timestamp
             )
@@ -156,33 +197,73 @@ contract ZyronAttestation is Pausable, EIP712 {
         bytes32 digest = _hashTypedDataV4(structHash);
         address recoveredSigner = ECDSA.recover(digest, signature);
         require(
-            recoveredSigner == leadAuditor || recoveredSigner == operator || recoveredSigner == admin,
+            recoveredSigner == input.leadAuditor || recoveredSigner == operator || recoveredSigner == admin,
             "ZyronAttestation: Invalid EIP-712 signature"
         );
 
-        AttestationRecord storage rec = registry[auditId];
-        rec.auditId = auditId;
-        rec.merkleRoot = merkleRoot;
-        rec.bytecodeHash = bytecodeHash;
-        rec.sourceHash = sourceHash;
-        rec.reportHash = merkleRoot;
-        rec.leadAuditor = leadAuditor;
-        rec.peerAuditor = peerAuditor;
-        rec.sloc = sloc;
-        rec.timestamp = timestamp;
-        rec.contractFileName = contractFileName;
-        rec.status = AttestationStatus(status);
-        rec.isVerified = true;
-
-        if (bytecodeHash != bytes32(0)) bytecodeToAuditId[bytecodeHash] = auditId;
-        if (merkleRoot != bytes32(0)) reportToAuditId[merkleRoot] = auditId;
-        attestationCount++;
-
-        emit AttestationPublished(auditId, merkleRoot, bytecodeHash, leadAuditor, sloc, contractFileName, status, timestamp);
+        return _recordAttestation(input, AttestationStatus(status), timestamp);
     }
 
+    // ─── INTERNAL ATTESTATION RECORDING & BADGE MINT ──────────
+
+    function _recordAttestation(
+        AttestationInput calldata input,
+        AttestationStatus status,
+        uint256 timestamp
+    ) internal returns (uint256) {
+        uint256 tokenId = ++attestationCount;
+
+        AttestationRecord storage rec = registry[input.auditId];
+        rec.auditId = input.auditId;
+        rec.protocolName = input.protocolName;
+        rec.targetContract = input.targetContract;
+        rec.gitCommit = input.gitCommit;
+        rec.repoTreeHash = input.repoTreeHash;
+        rec.bytecodeHash = input.bytecodeHash;
+        rec.merkleRoot = input.merkleRoot;
+        rec.ipfsReportCid = input.ipfsReportCid;
+        rec.ipfsMetadataCid = input.ipfsMetadataCid;
+        rec.recipient = input.recipient;
+        rec.leadAuditor = input.leadAuditor;
+        rec.peerAuditor = input.peerAuditor;
+        rec.sloc = input.sloc;
+        rec.timestamp = timestamp;
+        rec.tokenId = tokenId;
+        rec.status = status;
+        rec.isVerified = true;
+
+        if (input.bytecodeHash != bytes32(0)) bytecodeToAuditId[input.bytecodeHash] = input.auditId;
+        if (bytes(input.ipfsReportCid).length > 0) reportCidToAuditId[input.ipfsReportCid] = input.auditId;
+        if (bytes(input.gitCommit).length > 0) gitCommitToAuditId[input.gitCommit] = input.auditId;
+        tokenToAuditId[tokenId] = input.auditId;
+
+        // Mint Soulbound NFT badge to protocol recipient
+        address badgeOwner = input.recipient != address(0) ? input.recipient : input.leadAuditor;
+        _safeMint(badgeOwner, tokenId);
+
+        if (bytes(input.ipfsMetadataCid).length > 0) {
+            _setTokenURI(tokenId, string(abi.encodePacked("ipfs://", input.ipfsMetadataCid)));
+        }
+
+        emit AttestationPublished(
+            input.auditId,
+            input.merkleRoot,
+            input.bytecodeHash,
+            input.leadAuditor,
+            badgeOwner,
+            tokenId,
+            input.ipfsReportCid,
+            uint8(status),
+            timestamp
+        );
+
+        return tokenId;
+    }
+
+    // ─── REVOCATION & VERIFICATION ────────────────────────────
+
     /**
-     * @notice Revoke a previously published attestation
+     * @notice Revoke a previously published attestation (Admin only)
      */
     function revokeAttestation(bytes32 auditId, string calldata reason) external onlyAdmin {
         require(registry[auditId].isVerified, "ZyronAttestation: Attestation does not exist");
@@ -203,11 +284,19 @@ contract ZyronAttestation is Pausable, EIP712 {
         return registry[auditId];
     }
 
-    function verifyByReportHash(bytes32 reportHash) external view returns (AttestationRecord memory) {
-        bytes32 auditId = reportToAuditId[reportHash];
-        require(auditId != bytes32(0) && registry[auditId].isVerified, "ZyronAttestation: No attestation found for report hash");
+    function verifyByReportCid(string calldata ipfsReportCid) external view returns (AttestationRecord memory) {
+        bytes32 auditId = reportCidToAuditId[ipfsReportCid];
+        require(auditId != bytes32(0) && registry[auditId].isVerified, "ZyronAttestation: No attestation found for report CID");
         return registry[auditId];
     }
+
+    function verifyByGitCommit(string calldata gitCommit) external view returns (AttestationRecord memory) {
+        bytes32 auditId = gitCommitToAuditId[gitCommit];
+        require(auditId != bytes32(0) && registry[auditId].isVerified, "ZyronAttestation: No attestation found for git commit");
+        return registry[auditId];
+    }
+
+    // ─── ADMIN CONTROLS ───────────────────────────────────────
 
     function pause() external onlyAdmin { _pause(); }
     function unpause() external onlyAdmin { _unpause(); }
@@ -217,11 +306,6 @@ contract ZyronAttestation is Pausable, EIP712 {
         operator = _newOperator;
         emit OperatorUpdated(_newOperator);
     }
-
-    // ── Two-step admin transfer ──────────────────────────────────
-    address public pendingAdmin;
-
-    event AdminTransferInitiated(address indexed currentAdmin, address indexed pendingAdmin);
 
     function initiateAdminTransfer(address _newAdmin) external onlyAdmin {
         require(_newAdmin != address(0), "ZyronAttestation: Invalid admin");

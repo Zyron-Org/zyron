@@ -16,7 +16,7 @@ export default function AuditorLayout({
   children: React.ReactNode;
 }) {
   return (
-    <RequireAuth allowedRoles={["AUDITOR", "ADMIN"]}>
+    <RequireAuth allowedRoles={["AUDITOR", "ADMIN", "CLIENT"]}>
       <SidebarProvider>
         <div className="min-h-screen h-screen bg-bg-void flex text-text-primary selection:bg-accent-scan/20 selection:text-accent-scan overflow-hidden p-1 sm:p-1.5 lg:p-2 gap-1.5 lg:gap-2">
           {/* Auditor Side Navigation (Desktop Fixed & Mobile Drawer) */}

@@ -103,14 +103,29 @@ export default function AuditorTicketQueuePage() {
     }
   };
 
+  const isTicketAllResolved = (t: any): boolean => {
+    const list = Array.isArray(t.findings) ? t.findings : [];
+    const nonFp = list.filter((f: any) => !f.falsePositive);
+    return (
+      nonFp.length > 0 &&
+      nonFp.every(
+        (f: any) =>
+          f.status === "RESOLVED" ||
+          f.status === "resolved" ||
+          f.status === "WONT_FIX" ||
+          f.status === "wont-fix"
+      )
+    );
+  };
+
   const claimedTickets = audits.filter(
     (a) => a.leadAuditorId && (user ? a.leadAuditorId === user.id : true)
   );
   const unclaimedTickets = audits.filter((a) => !a.leadAuditorId);
   const reverifyTickets = audits.filter(
     (a) =>
-      a.stage === "CORRECTIONS_REQUESTED" ||
-      (a.stage || "").toLowerCase().includes("correction")
+      (a.stage === "CORRECTIONS_REQUESTED" || (a.stage || "").toLowerCase().includes("correction")) &&
+      !isTicketAllResolved(a)
   );
   const completedTickets = audits.filter((a) => (a.stage || "").toUpperCase() === "COMPLETED");
 
@@ -133,8 +148,9 @@ export default function AuditorTicketQueuePage() {
     }
     if (activeTab === "reverify") {
       return (
-        ticket.stage === "CORRECTIONS_REQUESTED" ||
-        (ticket.stage || "").toLowerCase().includes("correction")
+        (ticket.stage === "CORRECTIONS_REQUESTED" ||
+          (ticket.stage || "").toLowerCase().includes("correction")) &&
+        !isTicketAllResolved(ticket)
       );
     }
     return true;
@@ -425,9 +441,26 @@ export default function AuditorTicketQueuePage() {
             const isAssignedToMe =
               ticket.leadAuditorId && (user ? ticket.leadAuditorId === user.id : true);
             const isUnclaimed = !ticket.leadAuditorId;
-            const isReverification =
-              ticket.stage === "CORRECTIONS_REQUESTED" ||
-              (ticket.stage || "").toLowerCase().includes("correction");
+            const ticketFindings = Array.isArray(ticket.findings) ? ticket.findings : [];
+            const nonFpFindings = ticketFindings.filter((f: any) => !f.falsePositive);
+            const openFindings = nonFpFindings.filter(
+              (f: any) =>
+                f.status !== "RESOLVED" &&
+                f.status !== "WONT_FIX" &&
+                f.status !== "resolved" &&
+                f.status !== "wont-fix"
+            );
+            const allResolved = isTicketAllResolved(ticket);
+            const hasFixSubmitted = openFindings.some(
+              (f: any) => f.status === "FIX_SUBMITTED" || f.status === "fix-submitted"
+            );
+            const isCompleted = (ticket.stage || "").toUpperCase() === "COMPLETED";
+
+            const ticketStatus: PipelineStatus = isCompleted
+              ? "completed"
+              : allResolved
+              ? "attestation-pending"
+              : normalizeStatus(ticket.stage);
 
             return (
               <div
@@ -452,11 +485,23 @@ export default function AuditorTicketQueuePage() {
                           ({ticket.contractFileName || "TargetContract.sol"})
                         </span>
 
-                        <StatusPill status={normalizeStatus(ticket.stage)} size="sm" />
+                        <StatusPill status={ticketStatus} size="sm" />
 
-                        {isReverification && (
-                          <Badge severity="critical" size="sm">
+                        {allResolved && !isCompleted && (
+                          <Badge severity="resolved" size="sm">
+                            ALL RESOLVED · ATTESTATION PENDING
+                          </Badge>
+                        )}
+
+                        {!allResolved && hasFixSubmitted && (
+                          <Badge severity="high" size="sm">
                             FIXES COMMITTED · RE-VERIFY
+                          </Badge>
+                        )}
+
+                        {!allResolved && !hasFixSubmitted && (ticket.stage === "CORRECTIONS_REQUESTED" || (ticket.stage || "").toLowerCase().includes("correction")) && (
+                          <Badge severity="critical" size="sm">
+                            AWAITING CLIENT FIXES
                           </Badge>
                         )}
 

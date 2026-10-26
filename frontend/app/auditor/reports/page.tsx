@@ -39,6 +39,10 @@ interface AuditRecord {
   roundsToResolution?: number;
   bytecodeHash?: string;
   pdfSize?: string;
+  reportPdfUrl?: string;
+  ipfsCid?: string;
+  ipfsReportUrl?: string;
+  ipfsGatewayUrl?: string;
   createdAt?: string;
   completedAt?: string;
 }
@@ -356,6 +360,21 @@ export default function AuditorReportsPage() {
                     <span className="text-[11px]">
                       Package Size: <strong className="text-text-primary">{audit.pdfSize || "1.8 MB"} PDF</strong>
                     </span>
+                    {audit.ipfsCid && (
+                      <>
+                        <span>·</span>
+                        <a
+                          href={audit.ipfsGatewayUrl || `https://ipfs.io/ipfs/${audit.ipfsCid}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline font-mono flex items-center gap-1"
+                          title={`View on IPFS: ipfs://${audit.ipfsCid}`}
+                        >
+                          <span>IPFS: {audit.ipfsCid.slice(0, 12)}...</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </>
+                    )}
                   </div>
 
                   <div className="text-[11px] font-mono">

@@ -12,12 +12,32 @@ async function bootstrap() {
 
   // Global Prefix (/api/v1) matching codebase pattern
   app.setGlobalPrefix('api/v1', {
-    exclude: ['/docs', '/docs-json'],
+    exclude: ['/docs', '/docs-json', '/reports/(.*)', '/reports'],
   });
 
   // Security Middleware
-  app.use(helmet());
-  app.enableCors({ origin: origins, credentials: true });
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        origins.includes(origin) ||
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('http://127.0.0.1:')
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS origin denied'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-zyron-agent-key', 'x-zyron-agent-signature'],
+  });
 
   // Global Validation & Exception Handling
   app.useGlobalPipes(
@@ -43,7 +63,7 @@ async function bootstrap() {
     .addTag('Vulnerability Findings', 'Finding creation, severity/status updates, and remediation comment threads')
     .addTag('File Storage', 'Direct S3 upload presigned URLs and PDF report downloads')
     .addTag('GitHub Integration', 'GitHub repository selection and branch metadata retrieval')
-    .addTag('Payments & Escrow', 'Web3 crypto escrow deposits and corporate Net-30 invoice generation')
+    .addTag('Payments & Access Model', 'Platform access model and corporate invoice generation')
     .addTag('Organizations', 'Organization management, member invitations, and subscription tier settings')
     .addTag('Automated Scanner', 'Automated Slither/Mythril security scans, token risk analysis, and @zyron-bot PR webhooks')
     .build();

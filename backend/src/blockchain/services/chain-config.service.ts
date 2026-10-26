@@ -1,14 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ethers } from 'ethers';
+import {
+  MONAD_TESTNET_ATTESTATION_ADDRESS,
+  MONAD_TESTNET_CHAIN_ID,
+  MONAD_TESTNET_EXPLORER_URL,
+  MONAD_TESTNET_RPC_URL,
+} from '../constants';
 
 export interface ChainConfig {
   chainId: number;
   name: string;
   rpcUrl: string;
   explorerUrl: string;
-  escrowAddress: string;
+  escrowAddress?: string;
   attestationAddress: string;
   nativeUsdcAddress: string;
+  nativeCurrencySymbol?: string;
 }
 
 @Injectable()
@@ -22,25 +29,23 @@ export class ChainConfigService {
       name: 'Arbitrum One',
       rpcUrl: process.env.ARBITRUM_RPC_URL || 'https://arb1.arbitrum.io/rpc',
       explorerUrl: 'https://arbiscan.io',
-      escrowAddress: process.env.ARBITRUM_ESCROW_ADDRESS || '',
       attestationAddress: process.env.ARBITRUM_ATTESTATION_ADDRESS || '',
       nativeUsdcAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     }],
-    [421614, {
-      chainId: 421614,
-      name: 'Arbitrum Sepolia',
-      rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC_URL || 'https://sepolia-rollup.arbitrum.io/rpc',
-      explorerUrl: 'https://sepolia.arbiscan.io',
-      escrowAddress: process.env.ARBITRUM_SEPOLIA_ESCROW_ADDRESS || '',
-      attestationAddress: process.env.ARBITRUM_SEPOLIA_ATTESTATION_ADDRESS || '',
+    [MONAD_TESTNET_CHAIN_ID, {
+      chainId: MONAD_TESTNET_CHAIN_ID,
+      name: 'Monad Testnet',
+      rpcUrl: process.env.MONAD_TESTNET_RPC_URL || MONAD_TESTNET_RPC_URL,
+      explorerUrl: MONAD_TESTNET_EXPLORER_URL,
+      attestationAddress: process.env.MONAD_TESTNET_ATTESTATION_ADDRESS || process.env.ATTESTATION_CONTRACT_ADDRESS || MONAD_TESTNET_ATTESTATION_ADDRESS,
       nativeUsdcAddress: '',
+      nativeCurrencySymbol: 'MON',
     }],
     [8453, {
       chainId: 8453,
       name: 'Base',
       rpcUrl: process.env.BASE_RPC_URL || 'https://mainnet.base.org',
       explorerUrl: 'https://basescan.org',
-      escrowAddress: process.env.BASE_ESCROW_ADDRESS || '',
       attestationAddress: process.env.BASE_ATTESTATION_ADDRESS || '',
       nativeUsdcAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     }],
@@ -49,7 +54,6 @@ export class ChainConfigService {
       name: 'Base Sepolia',
       rpcUrl: process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org',
       explorerUrl: 'https://sepolia.basescan.org',
-      escrowAddress: process.env.BASE_SEPOLIA_ESCROW_ADDRESS || '',
       attestationAddress: process.env.BASE_SEPOLIA_ATTESTATION_ADDRESS || '',
       nativeUsdcAddress: '',
     }],
@@ -58,7 +62,6 @@ export class ChainConfigService {
       name: 'Ethereum Mainnet',
       rpcUrl: process.env.ETHEREUM_RPC_URL || 'https://eth.llamarpc.com',
       explorerUrl: 'https://etherscan.io',
-      escrowAddress: process.env.ETHEREUM_ESCROW_ADDRESS || '',
       attestationAddress: process.env.ETHEREUM_ATTESTATION_ADDRESS || '',
       nativeUsdcAddress: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     }],
@@ -67,8 +70,8 @@ export class ChainConfigService {
       name: 'Ethereum Sepolia',
       rpcUrl: process.env.ETHEREUM_SEPOLIA_RPC_URL || 'https://rpc.sepolia.org',
       explorerUrl: 'https://sepolia.etherscan.io',
-      escrowAddress: process.env.ETHEREUM_SEPOLIA_ESCROW_ADDRESS || '',
-      attestationAddress: process.env.ETHEREUM_SEPOLIA_ATTESTATION_ADDRESS || '',
+      escrowAddress: process.env.ETHEREUM_SEPOLIA_ESCROW_ADDRESS || '0xd37269d1a023af210a191281f9a22d49f22f41d7',
+      attestationAddress: process.env.ETHEREUM_SEPOLIA_ATTESTATION_ADDRESS || '0x7682b6ddc20ce79b1cc4c30647f0384e7f2ab918',
       nativeUsdcAddress: '',
     }],
   ]);
@@ -95,5 +98,13 @@ export class ChainConfigService {
     this.providers.set(chainId, provider);
     this.logger.log(`Connected to ${config.name} (Chain ID: ${chainId})`);
     return provider;
+  }
+
+  setAttestationAddress(chainId: number, address: string) {
+    const config = this.chains.get(chainId);
+    if (config) {
+      config.attestationAddress = address;
+      this.logger.log(`Updated attestation address for chain ${chainId} to ${address}`);
+    }
   }
 }

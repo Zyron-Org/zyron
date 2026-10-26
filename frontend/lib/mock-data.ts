@@ -37,6 +37,9 @@ export interface AuditRequest {
   currentActivity?: string;
   onChainTxHash?: string;
   onChainChainId?: number;
+  githubRepoUrl?: string;
+  githubBranch?: string;
+  sourceCode?: string;
 }
 
 export const MOCK_AUDIT_REQUESTS: AuditRequest[] = [

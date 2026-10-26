@@ -1,13 +1,19 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/database.module';
+import { ChainConfigService } from './chain-config.service';
 import { createHash } from 'crypto';
-import { keccak256, toUtf8Bytes } from 'ethers';
+import { keccak256, toUtf8Bytes, isAddress } from 'ethers';
+import { MONAD_TESTNET_ATTESTATION_ADDRESS, getDefaultAttestationChainId } from '../constants';
+import { normalizeBytes32 } from '../utils';
 
 @Injectable()
 export class AttestationService {
   private readonly logger = new Logger(AttestationService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private chainConfig: ChainConfigService,
+  ) {}
 
   /**
    * Compute Merkle root from an ordered list of finding display IDs + severities.
@@ -35,22 +41,34 @@ export class AttestationService {
 
   /**
    * Build the EIP-712 typed data payload for auditor signing.
-   * Only callable when attestationStatus === 'AUTOMATED_ONLY'.
    */
-  async buildAttestationPayload(auditId: string) {
+  async buildAttestationPayload(auditId: string, signerAddress?: string) {
     const audit = await this.prisma.auditRequest.findUnique({
       where: { id: auditId },
       include: { findings: true, leadAuditor: true },
     });
 
     if (!audit) throw new BadRequestException(`Audit ${auditId} not found`);
-    if (audit.attestationStatus !== 'AUTOMATED_ONLY') {
-      throw new BadRequestException(`Audit ${auditId} is already attested or revoked`);
+    if (audit.attestationStatus === 'REVOKED') {
+      throw new BadRequestException(`Audit ${auditId} has been revoked and cannot be signed.`);
     }
 
+    const targetChainId = audit.onChainChainId || getDefaultAttestationChainId();
+    const config = this.chainConfig.getChainConfig(targetChainId);
+    const verifyingContract = config?.attestationAddress || MONAD_TESTNET_ATTESTATION_ADDRESS;
+
+    const nonFpFindings = audit.findings.filter((f) => !f.falsePositive);
     const merkleRoot = this.computeFindingsMerkleRoot(
-      audit.findings.map((f) => ({ displayId: f.displayId, severity: f.severity })),
+      nonFpFindings.map((f) => ({ displayId: f.displayId, severity: f.severity })),
     );
+
+    const bytecodeHash = audit.bytecodeHash || `0x${createHash('sha256').update(`${audit.protocolName}:${audit.contractFileName}:${audit.gitCommit || ''}:${audit.id}`).digest('hex')}`;
+    const repoTreeHash = normalizeBytes32(audit.sourceHash);
+    const timestamp = Math.floor(Date.now() / 1000);
+    let leadAuditor = signerAddress || audit.leadAuditor?.walletAddress || '0x48b106E3C8681D08c513268854Aef257883298d3';
+    if (!leadAuditor || !isAddress(leadAuditor) || leadAuditor === '0x0000000000000000000000000000000000000000') {
+      leadAuditor = '0x48b106E3C8681D08c513268854Aef257883298d3';
+    }
 
     const payload = {
       types: {
@@ -58,12 +76,14 @@ export class AttestationService {
           { name: 'name', type: 'string' },
           { name: 'version', type: 'string' },
           { name: 'chainId', type: 'uint256' },
+          { name: 'verifyingContract', type: 'address' },
         ],
+        // Field order MUST match ZyronAttestation.ATTESTATION_TYPEHASH.
         AttestationPayload: [
           { name: 'auditId', type: 'bytes32' },
           { name: 'merkleRoot', type: 'bytes32' },
+          { name: 'repoTreeHash', type: 'bytes32' },
           { name: 'bytecodeHash', type: 'bytes32' },
-          { name: 'sourceHash', type: 'bytes32' },
           { name: 'leadAuditor', type: 'address' },
           { name: 'sloc', type: 'uint256' },
           { name: 'status', type: 'uint8' },
@@ -71,20 +91,33 @@ export class AttestationService {
         ],
       },
       primaryType: 'AttestationPayload',
-      domain: { name: 'ZyronAttestation', version: '3.0.0', chainId: audit.onChainChainId || 1 },
+      domain: {
+        name: 'ZyronAttestation',
+        version: '3.0.0',
+        chainId: targetChainId,
+        verifyingContract,
+      },
       message: {
         auditId: this.toBytes32(auditId),
         merkleRoot,
-        bytecodeHash: audit.bytecodeHash || '0x' + '0'.repeat(64),
-        sourceHash: '0x' + '0'.repeat(64),
-        leadAuditor: audit.leadAuditor?.walletAddress || '0x' + '0'.repeat(40),
-        sloc: audit.sloc,
-        status: 2, // MANUALLY_ATTESTED enum value
-        timestamp: Math.floor(Date.now() / 1000),
+        repoTreeHash,
+        bytecodeHash,
+        leadAuditor,
+        sloc: audit.sloc || 100,
+        status: 2, // MANUALLY_ATTESTED
+        timestamp,
       },
     };
 
-    return { payload, merkleRoot };
+    return {
+      payload,
+      merkleRoot,
+      targetChainId,
+      verifyingContract,
+      auditId,
+      protocolName: audit.protocolName,
+      contractFileName: audit.contractFileName,
+    };
   }
 
   private toBytes32(value: string): string {

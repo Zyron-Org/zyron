@@ -35,6 +35,7 @@ export interface AuthUser {
   githubLogin?: string;
   githubAvatarUrl?: string;
   githubAccessToken?: string;
+  privyDid?: string;
 }
 
 export function getDashboardForRole(role?: string | null): string {
@@ -76,6 +77,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   loginWithSiwe: (message: string, signature: string) => Promise<AuthUser>;
+  loginWithPrivy: (privyToken: string, walletAddress?: string, email?: string) => Promise<AuthUser>;
   loginWithToken: (token: string, role: string) => void;
   register: (dto: { email: string; password: string; name: string; organizationName?: string }) => Promise<any>;
   logout: () => void;
@@ -181,6 +183,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginWithPrivy = async (
+    privyToken: string,
+    walletAddress?: string,
+    email?: string
+  ): Promise<AuthUser> => {
+    setLoading(true);
+    try {
+      const res = await apiClient.post("/auth/privy", {
+        privyToken,
+        walletAddress,
+        email,
+      });
+      const { user: apiUser, accessToken } = res.data;
+      setUser(apiUser);
+      setToken(accessToken);
+
+      localStorage.setItem("zyron_jwt_token", accessToken);
+      localStorage.setItem("zyron_auth_role", apiUser.role.toLowerCase());
+      setAuthCookie(accessToken);
+
+      const defaultDest = "/portal/passport";
+      const dest =
+        isRedirectValidForRole(redirectAfterLogin, apiUser.role) && redirectAfterLogin
+          ? redirectAfterLogin
+          : defaultDest;
+
+      startTopLoader();
+      router.push(dest);
+      router.replace(dest);
+      return apiUser;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const register = async (dto: { email: string; password: string; name: string; organizationName?: string }): Promise<any> => {
     setLoading(true);
     try {
@@ -236,6 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         login,
         loginWithSiwe,
+        loginWithPrivy,
         loginWithToken,
         register,
         logout,

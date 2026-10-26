@@ -45,8 +45,8 @@ export class BlockchainService {
   }
 
   // ─── Attestation Delegates ────────────────────────────
-  buildAttestationPayload(auditId: string) {
-    return this.attestation.buildAttestationPayload(auditId);
+  buildAttestationPayload(auditId: string, signerAddress?: string) {
+    return this.attestation.buildAttestationPayload(auditId, signerAddress);
   }
 
   computeFindingsMerkleRoot(findings: { displayId: string; severity: string }[]) {
@@ -57,11 +57,35 @@ export class BlockchainService {
     return this.attestationSubmitter.submitAutomatedAttestation(auditId, chainId);
   }
 
+  submitSignedAttestation(
+    auditId: string,
+    signature: string,
+    signerAddress: string,
+    payloadMessage: any,
+    targetChainId?: number,
+  ) {
+    return this.attestationSubmitter.submitSignedAttestation(
+      auditId,
+      signature,
+      signerAddress,
+      payloadMessage,
+      targetChainId,
+    );
+  }
+
+  verifyOnChain(auditId: string, targetChainId?: number) {
+    return this.attestationSubmitter.verifyOnChain(auditId, targetChainId);
+  }
+
   confirmAttestation(auditId: string, signature: string, merkleRoot: string, txHash?: string) {
     return this.attestationConfirmer.confirmAttestation(auditId, signature, merkleRoot, txHash);
   }
 
   revokeAttestation(auditId: string, reason: string) {
     return this.attestationConfirmer.revokeAttestation(auditId, reason);
+  }
+
+  setAttestationAddress(chainId: number, address: string) {
+    this.chainConfig.setAttestationAddress(chainId, address);
   }
 }

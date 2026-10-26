@@ -47,7 +47,8 @@ interface Repository {
   id: string;
   fullName: string;
   defaultBranch: string;
-  isPrivate: boolean;
+  isPrivate?: boolean;
+  private?: boolean;
 }
 
 export default function AccountSettingsPage() {
@@ -67,7 +68,8 @@ export default function AccountSettingsPage() {
   const [isSaved, setIsSaved] = React.useState(false);
 
   // Connected Accounts State
-  const [isGithubConnected, setIsGithubConnected] = React.useState(false);
+  const [isGithubLinked, setIsGithubLinked] = React.useState<boolean | null>(null);
+  const isGithubConnected = isGithubLinked !== null ? isGithubLinked : Boolean(user?.githubLogin || (user as any)?.githubAccessToken);
   const [copiedWallet, setCopiedWallet] = React.useState(false);
   const [copiedApiKey, setCopiedApiKey] = React.useState<string | null>(null);
 
@@ -98,6 +100,17 @@ export default function AccountSettingsPage() {
     discordWebhook: "https://discord.com/api/webhooks/1298401/zyron-alerts",
   });
 
+  const handleDisconnectGithub = async () => {
+    try {
+      await apiClient.delete("/auth/github");
+      setIsGithubLinked(false);
+      setRepositories([]);
+      toast.success("GitHub account unlinked successfully.");
+    } catch {
+      toast.error("Failed to disconnect GitHub account.");
+    }
+  };
+
   React.useEffect(() => {
     apiClient
       .get("/organizations/me")
@@ -112,18 +125,18 @@ export default function AccountSettingsPage() {
       })
       .finally(() => setOrgLoading(false));
 
-    apiClient
-      .get("/integrations/github/repos")
-      .then((res) => {
-        if (res.data?.length) {
-          setRepositories(res.data);
-          setIsGithubConnected(true);
-        }
-      })
-      .catch(() => {
-        // GitHub not connected
-      });
-  }, []);
+    if (user?.githubLogin || (user as any)?.githubAccessToken) {
+      apiClient
+        .get("/auth/github/repos")
+        .then((res) => {
+          if (res.data?.repos) {
+            setRepositories(res.data.repos);
+            setIsGithubLinked(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   const walletAddress = (user as any)?.walletAddress || "";
 
@@ -256,21 +269,18 @@ export default function AccountSettingsPage() {
                 <div className="p-4 rounded-xl bg-bg-void border border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono">
                   <div className="space-y-1">
                     <div className="text-text-primary font-semibold flex items-center gap-2">
-                      <span>ORGANIZATION REPOSITORIES:</span>
-                      <span className="text-accent-scan">{repositories.length} synced</span>
+                      <span>CONNECTED IDENTITY:</span>
+                      <span className="text-accent-scan">@{user?.githubLogin || "Connected"}</span>
                     </div>
                     <div className="text-text-muted text-[11px]">
-                      Repositories synchronized with read-level metadata permissions.
+                      {repositories.length} repository scope(s) synchronized with read-level metadata permissions.
                     </div>
                   </div>
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="rounded-xl text-xs"
-                    onClick={() => {
-                      setIsGithubConnected(false);
-                      toast.success("GitHub organization unlinked.");
-                    }}
+                    className="rounded-xl text-xs cursor-pointer"
+                    onClick={handleDisconnectGithub}
                   >
                     Disconnect Integration
                   </Button>
@@ -279,7 +289,7 @@ export default function AccountSettingsPage() {
                 {repositories.length > 0 && (
                   <div className="space-y-2">
                     <div className="font-mono text-xs text-text-muted">SYNCHRONIZED AUDIT REPOSITORIES:</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs max-h-56 overflow-y-auto">
                       {repositories.map((repo) => (
                         <div
                           key={repo.id}
@@ -289,8 +299,8 @@ export default function AccountSettingsPage() {
                             <div className="text-text-primary font-medium truncate">{repo.fullName}</div>
                             <div className="text-[10px] text-text-muted">Branch: {repo.defaultBranch}</div>
                           </div>
-                          <Badge severity={repo.isPrivate ? "informational" : "resolved"} size="sm">
-                            {repo.isPrivate ? "PRIVATE" : "PUBLIC"}
+                          <Badge severity={repo.private ? "informational" : "resolved"} size="sm">
+                            {repo.private ? "PRIVATE" : "PUBLIC"}
                           </Badge>
                         </div>
                       ))}
@@ -301,20 +311,18 @@ export default function AccountSettingsPage() {
             ) : (
               <div className="p-8 rounded-xl bg-bg-void border border-border-hairline text-center space-y-3">
                 <p className="text-xs text-text-muted max-w-md mx-auto">
-                  No GitHub organization currently linked. Connect to automatically select repositories and branches during audit intake.
+                  No GitHub account or organization currently linked. Connect to automatically select repositories and branches during audit intake.
                 </p>
-                <Button
-                  size="md"
-                  variant="primary"
-                  className="rounded-xl"
-                  onClick={() => {
-                    setIsGithubConnected(true);
-                    toast.success("Connected GitHub Organization!");
-                  }}
-                  rightIcon={<ExternalLink className="h-3.5 w-3.5" />}
-                >
-                  Connect GitHub Organization
-                </Button>
+                <a href={`${apiClient.defaults.baseURL || "http://localhost:4000/api/v1"}/auth/github?redirect=/portal/settings`}>
+                  <Button
+                    size="md"
+                    variant="primary"
+                    className="rounded-xl cursor-pointer"
+                    rightIcon={<ExternalLink className="h-3.5 w-3.5" />}
+                  >
+                    Connect GitHub Account / Org
+                  </Button>
+                </a>
               </div>
             )}
           </div>

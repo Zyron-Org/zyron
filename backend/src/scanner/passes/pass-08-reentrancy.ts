@@ -24,14 +24,27 @@ export class Pass08Reentrancy implements ScannerPass {
           ['nonreentrant', 'lock', 'no-reentrancy', 'reentrancyguard'].includes((m.name || '').toLowerCase()),
         );
 
-        this.checkCFGReentrancy(contract, fn, cfg, hasReentrancyGuard, findings);
+        this.checkCFGReentrancy(project, contract, fn, cfg, hasReentrancyGuard, findings);
       }
     }
 
     return findings;
   }
 
+  private collectAllStateVars(project: ParsedProject, contract: ContractASTSymbol): Set<string> {
+    const names = new Set<string>();
+    (contract.stateVariables || []).forEach((v) => names.add(v.name));
+    (contract.linearizedBaseContracts || []).forEach((baseName) => {
+      const base = project.contracts.get(baseName);
+      if (base) {
+        (base.stateVariables || []).forEach((v) => names.add(v.name));
+      }
+    });
+    return names;
+  }
+
   private checkCFGReentrancy(
+    project: ParsedProject,
     contract: ContractASTSymbol,
     fn: ASTFunctionSymbol,
     cfg: any,
@@ -40,6 +53,7 @@ export class Pass08Reentrancy implements ScannerPass {
   ): void {
     const fnName = fn.name || 'unnamed';
     const blocks: BasicBlock[] = Array.from(cfg.blocks.values());
+    const stateVarNames = this.collectAllStateVars(project, contract);
 
     for (const block of blocks) {
       if (!block.hasExternalCall) continue;
@@ -56,7 +70,7 @@ export class Pass08Reentrancy implements ScannerPass {
       // Check current block statements
       for (const stmt of block.statements) {
         const line = (stmt as any).loc?.start?.line || (stmt as any).expression?.loc?.start?.line || 0;
-        if ((line >= firstCallLine || line === 0) && this.isStateMutationStatement(stmt, contract)) {
+        if ((line >= firstCallLine || line === 0) && this.isStateMutationStatement(stmt, stateVarNames)) {
           hasMutationAfterCall = true;
           mutationLine = line > 0 ? line : firstCallLine + 1;
           break;
@@ -72,9 +86,15 @@ export class Pass08Reentrancy implements ScannerPass {
           const target = cfg.blocks.get(blockId);
           if (!target) return;
           if (target.hasStateMutation) {
-            hasMutationAfterCall = true;
-            mutationLine = target.stateMutationSites?.[0]?.line || firstCallLine + 1;
-            return;
+            const hasRealMutation = (target.stateMutationSites || []).some((site) => {
+              const root = site.variableName.split('.')[0].split('[')[0].trim();
+              return stateVarNames.has(root);
+            });
+            if (hasRealMutation) {
+              hasMutationAfterCall = true;
+              mutationLine = target.stateMutationSites?.[0]?.line || firstCallLine + 1;
+              return;
+            }
           }
           (target.successors || []).forEach(searchSuccessors);
         };
@@ -106,24 +126,61 @@ export class Pass08Reentrancy implements ScannerPass {
     }
   }
 
-  private isStateMutationStatement(stmt: any, contract: ContractASTSymbol): boolean {
+  private isStateMutationStatement(stmt: any, stateVarNames: Set<string>): boolean {
     if (!stmt || typeof stmt !== 'object') return false;
-    // Don't count raw call/transfer statements as state mutations
+
+    // Statements that never mutate storage
+    if (
+      stmt.type === 'EmitStatement' ||
+      stmt.type === 'ReturnStatement' ||
+      stmt.type === 'VariableDeclarationStatement'
+    ) {
+      return false;
+    }
+
+    // Don't count raw call/transfer statements or requires as state mutations
     if (stmt.type === 'ExpressionStatement' && stmt.expression?.type === 'FunctionCall') {
       const expr = stmt.expression;
       if (expr.expression?.type === 'MemberAccess') {
         const m = expr.expression.memberName;
         if (m === 'call' || m === 'delegatecall' || m === 'transfer' || m === 'send') return false;
       }
-    }
-
-    const str = JSON.stringify(stmt);
-    const stateVars = contract.stateVariables || [];
-    for (const stateVar of stateVars) {
-      if (str.includes(`"${stateVar.name}"`)) {
-        return true;
+      if (expr.expression?.type === 'Identifier') {
+        const idName = expr.expression.name;
+        if (idName === 'require' || idName === 'assert' || idName === 'revert') return false;
       }
     }
-    return str.includes('"Assignment"') || str.includes('AssignmentExpression');
+
+    const extractRootName = (node: any): string | null => {
+      if (!node) return null;
+      if (node.type === 'Identifier') return node.name;
+      if (node.type === 'IndexAccess') return extractRootName(node.base);
+      if (node.type === 'MemberAccess') return extractRootName(node.expression);
+      return null;
+    };
+
+    let targetName: string | null = null;
+    if (stmt.type === 'Assignment' || (stmt.type === 'ExpressionStatement' && stmt.expression?.type === 'Assignment')) {
+      const assignExpr = stmt.type === 'Assignment' ? stmt : stmt.expression;
+      targetName = extractRootName(assignExpr.left);
+    } else if (
+      stmt.type === 'ExpressionStatement' &&
+      stmt.expression?.type === 'BinaryOperation' &&
+      ['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '<<=', '>>='].includes(stmt.expression.operator)
+    ) {
+      targetName = extractRootName(stmt.expression.left);
+    } else if (
+      stmt.type === 'ExpressionStatement' &&
+      stmt.expression?.type === 'UnaryOperation' &&
+      ['++', '--', 'delete'].includes(stmt.expression.operator)
+    ) {
+      targetName = extractRootName(stmt.expression.subExpression);
+    }
+
+    if (targetName && stateVarNames.has(targetName)) {
+      return true;
+    }
+
+    return false;
   }
 }

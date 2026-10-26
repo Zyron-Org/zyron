@@ -18,6 +18,7 @@ import { useAuth, getDashboardForRole, isRedirectValidForRole } from "@/lib/auth
 import { apiClient } from "@/lib/api-client";
 import { getAddress } from "ethers";
 import { toast } from "sonner";
+import { PrivyConnectButton } from "@/components/passport/privy-connect-button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -178,8 +179,16 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* Social / GitHub & Web3 Actions (Using Landing Page ExpandingButton Component) */}
+      {/* Social / Privy & Web3 Actions (Using Landing Page ExpandingButton Component) */}
       <div className="space-y-3">
+        {/* Continue with Privy (Featured Monad Trust Passport Onboarding) */}
+        <PrivyConnectButton
+          label="Continue with Privy (Trust Passport)"
+          variant="dark"
+          size="md"
+          redirectTo="/portal/passport"
+        />
+
         {/* Continue with GitHub (ExpandingButton CTA) */}
         <a href={githubAuthUrl} className="block w-full">
           <ExpandingButton
@@ -205,23 +214,6 @@ export default function LoginPage() {
             </span>
           </ExpandingButton>
         </a>
-
-        {/* Web3 Sign-in Button (ExpandingButton CTA) */}
-        <ExpandingButton
-          type="button"
-          variant="dark"
-          size="md"
-          rounded="xl"
-          disabled={isWeb3Loading}
-          onClick={handleWeb3Login}
-          className="w-full cursor-pointer"
-          icon={<ArrowUpRight className="h-4 w-4 stroke-[2.5]" />}
-        >
-          <span className="flex items-center gap-2.5">
-            <Wallet className="h-4 w-4 text-accent-scan shrink-0" />
-            <span>{isWeb3Loading ? "Connecting wallet..." : "Sign in with Ethereum"}</span>
-          </span>
-        </ExpandingButton>
       </div>
 
       {/* Divider */}

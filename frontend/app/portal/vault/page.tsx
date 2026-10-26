@@ -58,6 +58,11 @@ interface AuditRecord {
   peerAuditor?: string;
   pdfSize?: string;
   reportPdfUrl?: string;
+  ipfsCid?: string;
+  ipfsReportUrl?: string;
+  ipfsGatewayUrl?: string;
+  ipfsMetadataCid?: string;
+  ipfsPinnedAt?: string;
   roundsToResolution?: number;
   failureReason?: string;
   currentActivity?: string;
@@ -526,9 +531,24 @@ export default function DocumentVaultPage() {
                             <span>JSON</span>
                           </button>
 
+                          {item.ipfsCid && (
+                            <a
+                              href={item.ipfsGatewayUrl || `https://ipfs.io/ipfs/${item.ipfsCid}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-600 dark:text-sky-400 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
+                              title={`View on Decentralized IPFS: ipfs://${item.ipfsCid}`}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              <span>IPFS ({item.ipfsCid.slice(0, 8)}...)</span>
+                            </a>
+                          )}
+
                           <a
-                            href={item.reportPdfUrl || "#"}
-                            download
+                            href={item.reportPdfUrl ? `http://localhost:4000${item.reportPdfUrl}` : `http://localhost:4000/api/v1/audits/${item.id}/report.pdf`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={`${item.id}-${item.contractFileName}.pdf`}
                             className="px-3 py-1.5 rounded-lg bg-accent-scan/10 hover:bg-accent-scan/20 border border-accent-scan/30 text-accent-scan text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
                             title="Download Signed PDF Report"
                           >
@@ -698,6 +718,65 @@ export default function DocumentVaultPage() {
                           </div>
                         </div>
 
+                        {/* IPFS Decentralized Storage Provenance */}
+                        {item.ipfsCid && (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs text-text-muted">
+                              <span className="font-semibold uppercase tracking-wider text-[10px] text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
+                                <Layers className="h-3 w-3" />
+                                IPFS Permanent Decentralized Storage Provenance
+                              </span>
+                              <span className="text-[10px] text-sky-600 dark:text-sky-400 font-medium">
+                                Pinned & Immutable (CIDv1)
+                              </span>
+                            </div>
+                            <div className="p-3 rounded-lg bg-white dark:bg-bg-void border border-sky-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 text-text-muted text-[11px]">
+                                  <span>URI:</span>
+                                  <span className="text-text-primary break-all font-semibold">ipfs://{item.ipfsCid}</span>
+                                </div>
+                                {item.ipfsMetadataCid && (
+                                  <div className="flex items-center gap-1.5 text-text-muted text-[10px] pt-0.5">
+                                    <span>Token Metadata:</span>
+                                    <span className="text-text-muted break-all">ipfs://{item.ipfsMetadataCid}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleCopyHash(item.ipfsCid!, `ipfs-${item.id}`)
+                                  }
+                                  className="px-2.5 py-1 rounded-md bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                                >
+                                  {copiedHashId === `ipfs-${item.id}` ? (
+                                    <>
+                                      <Check className="h-3 w-3 text-signal-resolved" />
+                                      <span>Copied</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="h-3 w-3" />
+                                      <span>Copy CID</span>
+                                    </>
+                                  )}
+                                </button>
+                                <a
+                                  href={item.ipfsGatewayUrl || `https://ipfs.io/ipfs/${item.ipfsCid}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-2.5 py-1 rounded-md bg-accent-scan text-bg-void text-[11px] font-bold hover:bg-accent-scan/90 transition-colors flex items-center gap-1 shadow-xs"
+                                >
+                                  <span>Open Gateway</span>
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Audit Verification Team & Rounds */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
                           <div className="p-3 rounded-lg bg-white dark:bg-bg-void border border-border-hairline space-y-1">
@@ -731,8 +810,10 @@ export default function DocumentVaultPage() {
                               <span>Export Attestation JSON</span>
                             </button>
                             <a
-                              href={item.reportPdfUrl || "#"}
-                              download
+                              href={item.reportPdfUrl ? `http://localhost:4000${item.reportPdfUrl}` : `http://localhost:4000/api/v1/audits/${item.id}/report.pdf`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download={`${item.id}-${item.contractFileName}.pdf`}
                               className="px-3.5 py-1.5 rounded-lg bg-accent-scan text-bg-void text-xs font-bold hover:bg-accent-scan/90 transition-colors flex items-center gap-1.5 shadow-xs"
                             >
                               <Download className="h-3.5 w-3.5" />

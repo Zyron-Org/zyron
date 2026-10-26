@@ -2,13 +2,16 @@
   "name": "zyron-platform",
   "version": "1.0.0",
   "private": true,
-  "description": "Zyron — Smart Contract Security & Audit Platform",
+  "description": "Zyron — Trust & Attestation Layer for AI Agents & Protocols on Monad",
   "scripts": {
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run start:dev",
+    "dev:agent": "npm --prefix zyron-agent run dev",
     "test:backend": "npm --prefix backend run test",
+    "test:agent": "npm --prefix zyron-agent run test",
     "build:backend": "npm --prefix backend run build",
-    "build:frontend": "npm --prefix frontend run build"
+    "build:frontend": "npm --prefix frontend run build",
+    "build:agent": "npm --prefix zyron-agent run build"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.0"

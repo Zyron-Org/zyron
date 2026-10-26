@@ -33,10 +33,14 @@ model User {
   githubAccessToken String?             // OAuth token for private repo access (store encrypted in prod)
   githubAvatarUrl   String?             // GitHub avatar URL
 
+  // Privy Integration
+  privyDid          String?   @unique  // Privy Decentralized Identifier (did:privy:...)
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   // Relations
+  passport        TrustPassport?
   submittedAudits AuditRequest[] @relation("SubmittedBy")
   leadAudits      AuditRequest[] @relation("LeadAuditor")
   peerAudits      AuditRequest[] @relation("PeerAuditor")
@@ -142,6 +146,13 @@ model AuditRequest {
   engineVersion     String  @default("v3.0.0-ast")
   ruleSetVersion    String  @default("v2026.09")
 
+  // Decentralized IPFS Storage
+  ipfsCid           String? // IPFS Content Identifier (e.g. bafybeig...)
+  ipfsReportUrl     String? // ipfs://{ipfsCid}
+  ipfsGatewayUrl    String? // Public HTTP gateway URL
+  ipfsMetadataCid   String? // IPFS CID for ERC-721 attestation metadata
+  ipfsPinnedAt      DateTime?
+
   // Failure
   failureReason String?
 
@@ -161,6 +172,7 @@ model AuditRequest {
   scanRuns ScanRun[]
   payment  Payment?
   comments Comment[]
+  trustClaims TrustClaim[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -202,11 +214,15 @@ model Finding {
   remediatedCode          String?
   remediationNote         String?
   fuzzTestStatus          String?
+  fundsDrainedEth         Float?
   isMitigated             Boolean  @default(false)
   mitigationJustification String?
   ruleId                  String?  // e.g. "ZYRON-08-001"
   falsePositive           Boolean  @default(false)
   fpJustification         String?  // Auditor justification for FP marking
+  foundBy                 String   @default("STATIC") // STATIC, AI, MANUAL
+  traceSteps              String?  // JSON string containing step-by-step EVM call replay trace
+  synthesizedPoC          String?  // Synthesized Solidity exploit test contract
 
   auditId  String
   audit    AuditRequest @relation(fields: [auditId], references: [id])
@@ -293,4 +309,46 @@ model Payment {
   status        String       @default("PENDING") // PENDING, ESCROWED, PARTIALLY_RELEASED, FULLY_RELEASED, REFUNDED
   paidAt        DateTime?
   createdAt     DateTime     @default(now())
+}
+
+// ─── TRUST PASSPORT & CLAIMS ─────────────────────────────
+
+model TrustPassport {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle          String?      @unique
+  title           String?      @default("Zyron Trust Passport")
+  bio             String?
+  reputationScore Int          @default(100)
+  isVerified      Boolean      @default(false)
+  claims          TrustClaim[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+model TrustClaim {
+  id               String         @id @default(cuid())
+  passportId       String
+  passport         TrustPassport  @relation(fields: [passportId], references: [id], onDelete: Cascade)
+  claimType        String         // DEVELOPER_VERIFIED, GITHUB_VERIFIED, AI_AGENT_VERIFIED, AUDIT_COMPLETED, CONTRACT_VERIFIED, SECURITY_FINDING, HUMAN_REVIEWED, CONTENT_VERIFIED
+  subject          String         // e.g. wallet address, github username, auditId, contract address
+  issuer           String         // e.g. "ZYRON_AI_AUDITOR_001", "ZYRON_SYSTEM", auditor wallet address
+  evidence         String         // JSON string containing verification data, metadata, or findings Merkle root
+  evidenceHash     String         // Deterministic SHA-256 hash of canonical evidence
+  status           String         @default("VERIFIED") // PENDING, VERIFIED, REVOKED
+  onChainTxHash    String?        // Monad transaction hash
+  onChainChainId   Int?           @default(10143)
+  onChainTokenId   Int?           // Soulbound token ID
+  auditId          String?        // Link to AuditRequest if applicable
+  audit            AuditRequest?  @relation(fields: [auditId], references: [id])
+  issuedAt         DateTime       @default(now())
+  revokedAt        DateTime?
+
+  @@index([passportId])
+  @@index([claimType])
+  @@index([evidenceHash])
+  @@index([auditId])
 }

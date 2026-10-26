@@ -21,6 +21,7 @@ import {
   X,
   PanelLeftClose,
   PanelLeft,
+  ShieldCheck,
 } from "lucide-react";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Badge } from "@/components/ui/badge";
@@ -131,6 +132,18 @@ export function PortalSidebar() {
       ],
     },
     {
+      group: "IDENTITY & TRUST",
+      items: [
+        {
+          href: "/portal/passport",
+          label: "Trust Passport",
+          icon: ShieldCheck,
+          badge: "MONAD",
+          badgeColor: "scan" as const,
+        },
+      ],
+    },
+    {
       group: "DEVELOPER & SYSTEM",
       items: [
         {
@@ -150,6 +163,13 @@ export function PortalSidebar() {
           label: "Account Settings",
           icon: SlidersHorizontal,
           badge: null,
+        },
+        {
+          href: "/verify",
+          label: "Verify Attestation",
+          icon: ShieldCheck,
+          badge: "PUBLIC",
+          badgeColor: "scan" as const,
         },
       ],
     },

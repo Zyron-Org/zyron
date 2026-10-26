@@ -31,15 +31,56 @@ export class Pass14SymbolicExecution implements ScannerPass {
     cfg: any,
     findings: PassFinding[],
   ): void {
-    const pathGuards = new Set<string>();
-
-    const walkNode = (node: any) => {
+    const walkNode = (node: any, currentGuards: Set<string>) => {
       if (!node || typeof node !== 'object') return;
 
-      // 1. Collect require() guards along execution path
-      if (node.type === 'FunctionCall' && node.expression?.name === 'require') {
-        const condStr = JSON.stringify(node.arguments?.[0]);
-        if (condStr) pathGuards.add(condStr);
+      const activeGuards = new Set(currentGuards);
+
+      // If this is a sequential statements block, propagate guards down statement sequence
+      if (Array.isArray(node.statements)) {
+        for (const stmt of node.statements) {
+          // 1. Check require() statement
+          if (
+            (stmt.type === 'ExpressionStatement' &&
+              stmt.expression?.type === 'FunctionCall' &&
+              stmt.expression.expression?.name === 'require') ||
+            (stmt.type === 'FunctionCall' && stmt.expression?.name === 'require')
+          ) {
+            const callNode = stmt.type === 'FunctionCall' ? stmt : stmt.expression;
+            const condStr = JSON.stringify(callNode.arguments?.[0]);
+            if (condStr) activeGuards.add(condStr);
+          }
+
+          // 2. Check if-revert statement
+          if (stmt.type === 'IfStatement') {
+            const bodyStr = JSON.stringify(stmt.trueBody || stmt.TrueBody || {});
+            if (bodyStr.includes('revert') || bodyStr.includes('RevertStatement')) {
+              const condStr = JSON.stringify(stmt.condition);
+              if (condStr) activeGuards.add(condStr);
+            }
+
+            // Statements INSIDE trueBody also have condition as active positive constraint
+            if (stmt.trueBody || stmt.TrueBody) {
+              const trueBranchGuards = new Set(activeGuards);
+              const condStr = JSON.stringify(stmt.condition);
+              if (condStr) trueBranchGuards.add(condStr);
+              walkNode(stmt.trueBody || stmt.TrueBody, trueBranchGuards);
+            }
+
+            if (stmt.falseBody || stmt.FalseBody) {
+              const falseBranchGuards = new Set(activeGuards);
+              walkNode(stmt.falseBody || stmt.FalseBody, falseBranchGuards);
+            }
+
+            if (stmt.condition) {
+              walkNode(stmt.condition, activeGuards);
+            }
+            continue;
+          }
+
+          walkNode(stmt, activeGuards);
+        }
+        return;
       }
 
       // 2. Check assert() statements — assert should only test invariants, never input validation
@@ -75,9 +116,9 @@ export class Pass14SymbolicExecution implements ScannerPass {
         const divisor = node.right;
         const divisorName = divisor?.name;
         if (divisorName && fn.parameters.some((p) => p.name === divisorName)) {
-          // Check if pathGuards contain `divisorName != 0` or `divisorName > 0`
-          const isGuarded = Array.from(pathGuards).some(
-            (g) => g.includes(divisorName) && (g.includes('!=') || g.includes('>')),
+          // Check if activeGuards contain `divisorName != 0` or `divisorName > 0` or if-revert on zero (`== 0`, `<= 0`)
+          const isGuarded = Array.from(activeGuards).some(
+            (g) => g.includes(divisorName) && (g.includes('!=') || g.includes('>') || g.includes('==') || g.includes('<=')),
           );
 
           if (!isGuarded) {
@@ -104,11 +145,11 @@ export class Pass14SymbolicExecution implements ScannerPass {
       for (const key of Object.keys(node)) {
         if (key === 'loc') continue;
         const child = node[key];
-        if (Array.isArray(child)) child.forEach(walkNode);
-        else if (child && typeof child === 'object') walkNode(child);
+        if (Array.isArray(child)) child.forEach((c) => walkNode(c, activeGuards));
+        else if (child && typeof child === 'object') walkNode(child, activeGuards);
       }
     };
 
-    walkNode(fn.astNode);
+    walkNode(fn.astNode, new Set<string>());
   }
 }

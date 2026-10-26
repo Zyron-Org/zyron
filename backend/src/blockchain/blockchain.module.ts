@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { BlockchainService } from './blockchain.service';
+import { BlockchainController } from './blockchain.controller';
 import {
   ChainConfigService,
   TransactionVerifierService,
@@ -7,10 +8,12 @@ import {
   AttestationService,
   AttestationConfirmerService,
   AttestationSubmitterService,
+  EvidenceHasherService,
 } from './services';
 
 @Global()
 @Module({
+  controllers: [BlockchainController],
   providers: [
     BlockchainService,
     ChainConfigService,
@@ -19,6 +22,7 @@ import {
     AttestationService,
     AttestationConfirmerService,
     AttestationSubmitterService,
+    EvidenceHasherService,
   ],
   exports: [
     BlockchainService,
@@ -28,6 +32,7 @@ import {
     AttestationService,
     AttestationConfirmerService,
     AttestationSubmitterService,
+    EvidenceHasherService,
   ],
 })
 export class BlockchainModule {}

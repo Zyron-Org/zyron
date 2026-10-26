@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   X,
+  ShieldCheck,
 } from "lucide-react";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Badge } from "@/components/ui/badge";
@@ -107,6 +108,13 @@ export function AuditorSidebar() {
           icon: SlidersHorizontal,
           badge: null,
           badgeType: "muted" as const,
+        },
+        {
+          href: "/verify",
+          label: "Verify Attestation",
+          icon: ShieldCheck,
+          badge: "PUBLIC",
+          badgeType: "scan" as const,
         },
       ],
     },
