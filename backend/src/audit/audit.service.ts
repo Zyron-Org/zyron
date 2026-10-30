@@ -208,8 +208,59 @@ export class AuditService {
     return audit;
   }
 
-  getAttestationPayload(auditId: string, signerAddress?: string) {
-    return this.blockchainService.buildAttestationPayload(auditId, signerAddress);
+  getAttestationPayload(auditId: string, signerAddress?: string, chainId?: number) {
+    return this.blockchainService.buildAttestationPayload(auditId, signerAddress, chainId);
+  }
+
+  async getAuditEvidenceBundle(auditId: string) {
+    return this.blockchainService.getAuditEvidenceBundle(auditId);
+  }
+
+  async getChainAttestations(auditId: string) {
+    const bundle = await this.blockchainService.getAuditEvidenceBundle(auditId);
+    const supportedChains = this.blockchainService.getSupportedChainMatrix();
+    return {
+      auditId: bundle.auditId,
+      evidenceRoot: bundle.evidenceRoot,
+      chainAttestations: bundle.chainAttestations,
+      supportedChains,
+    };
+  }
+
+  prepareChainAttestation(
+    auditId: string,
+    chainId: number,
+    signerAddress?: string,
+    targetContractAddress?: string,
+  ) {
+    return this.blockchainService.prepareChainAttestation(
+      auditId,
+      chainId,
+      signerAddress,
+      targetContractAddress,
+    );
+  }
+
+  approveChainAttestation(
+    auditId: string,
+    chainId: number,
+    signature: string,
+    signerAddress: string,
+  ) {
+    return this.blockchainService.approveChainAttestation({
+      auditId,
+      chainId,
+      signature,
+      signerAddress,
+    });
+  }
+
+  async submitApprovedChainAttestation(auditId: string, chainId: number) {
+    const submitted = await this.blockchainService.submitApprovedChainAttestation(auditId, chainId);
+    if (submitted?.txHash) {
+      await this.advanceStageService.recordClaims(auditId, submitted.txHash, submitted.chainId);
+    }
+    return submitted;
   }
 
   async signAndCompleteAttestation(

@@ -105,7 +105,32 @@ function VerifyPageContent() {
     audit?: VerificationData;
   } | null>(null);
   const [recentAudits, setRecentAudits] = React.useState<VerificationData[]>([]);
+  const [selectedVerifyChainId, setSelectedVerifyChainId] = React.useState<number>(10143);
+  const [evidenceBundle, setEvidenceBundle] = React.useState<any | null>(null);
+  const [liveOnChainRecord, setLiveOnChainRecord] = React.useState<any | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  React.useEffect(() => {
+    const auditId = verificationResult?.audit?.id;
+    if (!auditId) {
+      setEvidenceBundle(null);
+      setLiveOnChainRecord(null);
+      return;
+    }
+    apiClient
+      .get(`/audits/${auditId}/evidence`)
+      .then((res) => setEvidenceBundle(res.data))
+      .catch(() => setEvidenceBundle(null));
+  }, [verificationResult?.audit?.id]);
+
+  React.useEffect(() => {
+    const auditId = verificationResult?.audit?.id;
+    if (!auditId) return;
+    apiClient
+      .get(`/blockchain/verify/${selectedVerifyChainId}/${auditId}`)
+      .then((res) => setLiveOnChainRecord(res.data))
+      .catch(() => setLiveOnChainRecord(null));
+  }, [verificationResult?.audit?.id, selectedVerifyChainId]);
 
   React.useEffect(() => {
     setMounted(true);
@@ -963,156 +988,294 @@ function VerifyPageContent() {
 
                     {/* SubTab 2: Proof Vault */}
                     {resultSubTab === "proofs" && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Bytecode & Merkle */}
-                        <div className="bg-bg-void border border-border-hairline rounded-[4px] p-4 space-y-3 font-mono text-xs">
-                          <div className="flex items-center gap-2 text-text-primary font-bold text-xs uppercase tracking-wider pb-2 border-b border-border-hairline">
-                            <Lock className="w-3.5 h-3.5 text-accent-scan" />
-                            On-Chain Cryptographic Proofs
-                          </div>
-
+                      <div className="space-y-4">
+                        {/* Multichain Attestation Selector Bar */}
+                        <div className="bg-bg-void border border-border-hairline rounded-[4px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs">
                           <div>
-                            <div className="text-[10px] text-text-muted uppercase">Source Bytecode SHA-256 Digest</div>
-                            <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
-                              <span className="text-[11px] text-accent-scan break-all">
-                                {audit.cryptography.bytecodeHash || "0x98f4a3c2..."}
+                            <div className="text-[10px] text-text-muted uppercase tracking-wider font-bold">
+                              Multichain Attestation Target Network
+                            </div>
+                            <div className="text-text-primary mt-0.5">
+                              Chain-Scoped Identity:{" "}
+                              <span className="text-accent-scan">
+                                {selectedVerifyChainId}:{(audit.contractAddress || "0x0000000000000000000000000000000000000000").toLowerCase()}
                               </span>
-                              <button
-                                type="button"
-                                onClick={() => copyToClipboard(audit.cryptography.bytecodeHash || "", "bytecode")}
-                                className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer"
-                              >
-                                {copiedKey === "bytecode" ? <Check className="w-3.5 h-3.5 text-accent-scan" /> : <Copy className="w-3.5 h-3.5" />}
-                              </button>
                             </div>
                           </div>
-
-                          {audit.cryptography.merkleRoot && (
-                            <div>
-                              <div className="text-[10px] text-text-muted uppercase">Findings Merkle Root</div>
-                              <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
-                                <span className="text-[11px] text-text-primary break-all">
-                                  {audit.cryptography.merkleRoot}
-                                </span>
-                                <button
-                                type="button"
-                                onClick={() => copyToClipboard(audit.cryptography.merkleRoot || "", "merkle")}
-                                className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer"
-                              >
-                                {copiedKey === "merkle" ? <Check className="w-3.5 h-3.5 text-accent-scan" /> : <Copy className="w-3.5 h-3.5" />}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        {audit.cryptography.onChainTxHash && (
-                          <div>
-                            <div className="flex items-center justify-between text-[10px] text-text-muted uppercase">
-                              <span>On-Chain Attestation Tx (Monad Testnet)</span>
-                              <a
-                                href={`https://testnet.monadvision.com/tx/${audit.cryptography.onChainTxHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-accent-scan hover:underline flex items-center gap-1 font-bold text-[10px]"
-                              >
-                                <span>Monad Vision</span>
-                                <ExternalLink className="w-2.5 h-2.5" />
-                              </a>
-                            </div>
-                            <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
-                              <span className="text-[11px] text-text-primary break-all">
-                                {audit.cryptography.onChainTxHash}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => copyToClipboard(audit.cryptography.onChainTxHash || "", "tx")}
-                                className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer"
-                              >
-                                {copiedKey === "tx" ? <Check className="w-3.5 h-3.5 text-accent-scan" /> : <Copy className="w-3.5 h-3.5" />}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        {audit.cryptography.attestationSig && (
-                          <div>
-                            <div className="text-[10px] text-text-muted uppercase">EIP-712 Cryptographic Auditor Signature</div>
-                            <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
-                              <span className="text-[11px] text-accent-scan break-all">
-                                {audit.cryptography.attestationSig}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => copyToClipboard(audit.cryptography.attestationSig || "", "sig")}
-                                className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer"
-                              >
-                                {copiedKey === "sig" ? <Check className="w-3.5 h-3.5 text-accent-scan" /> : <Copy className="w-3.5 h-3.5" />}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        <div>
-                          <div className="text-[10px] text-text-muted uppercase">Zyron On-Chain Registry Contract</div>
-                          <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
-                            <span className="text-[11px] text-text-primary break-all">
-                              0x3331185fAEB2AD65ccDEB7C15025393Ca8F6834D
-                            </span>
-                            <a
-                              href="https://sepolia.arbiscan.io/address/0x3331185fAEB2AD65ccDEB7C15025393Ca8F6834D#readContract"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-signal-resolved hover:underline text-[10px] flex items-center gap-1 shrink-0 font-bold"
-                            >
-                              <span>Contract</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* IPFS Decentralized Storage */}
-                      <div className="bg-bg-void border border-border-hairline rounded-[4px] p-4 space-y-3 font-mono text-xs">
-                        <div className="flex items-center gap-2 text-text-primary font-bold text-xs uppercase tracking-wider pb-2 border-b border-border-hairline">
-                          <Terminal className="w-3.5 h-3.5 text-accent-scan" />
-                          Decentralized IPFS Storage
-                        </div>
-
-                        <div>
-                          <div className="text-[10px] text-text-muted uppercase">RFC CIDv1 Base32 Multihash</div>
-                          <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
-                            <span className="text-[11px] text-accent-scan break-all">
-                              {audit.cryptography.ipfsCid || "bafkrei..."}
-                            </span>
+                          <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => copyToClipboard(audit.cryptography.ipfsCid || "", "cid")}
-                              className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer"
+                              onClick={() => setSelectedVerifyChainId(10143)}
+                              className={`px-3 py-1.5 rounded-[4px] border text-xs font-bold cursor-pointer transition-colors ${
+                                selectedVerifyChainId === 10143
+                                  ? "bg-accent-scan text-white border-accent-scan"
+                                  : "bg-bg-panel text-text-muted border-border-hairline hover:text-text-primary"
+                              }`}
                             >
-                              {copiedKey === "cid" ? <Check className="w-3.5 h-3.5 text-accent-scan" /> : <Copy className="w-3.5 h-3.5" />}
+                              Monad Testnet (10143)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedVerifyChainId(84532)}
+                              className={`px-3 py-1.5 rounded-[4px] border text-xs font-bold cursor-pointer transition-colors ${
+                                selectedVerifyChainId === 84532
+                                  ? "bg-accent-scan text-white border-accent-scan"
+                                  : "bg-bg-panel text-text-muted border-border-hairline hover:text-text-primary"
+                              }`}
+                            >
+                              Base Sepolia (84532)
                             </button>
                           </div>
                         </div>
 
-                        <div>
-                          <div className="text-[10px] text-text-muted uppercase">IPFS Gateway Access</div>
-                          <a
-                            href={audit.cryptography.ipfsGatewayUrl || `https://ipfs.io/ipfs/${audit.cryptography.ipfsCid}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2 text-[11px] text-text-primary hover:text-accent-scan transition-colors"
-                          >
-                            <span className="truncate">{audit.cryptography.ipfsGatewayUrl || `https://ipfs.io/ipfs/${audit.cryptography.ipfsCid}`}</span>
-                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                          </a>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Bytecode & Merkle */}
+                          <div className="bg-bg-void border border-border-hairline rounded-[4px] p-4 space-y-3 font-mono text-xs">
+                            <div className="flex items-center justify-between text-text-primary font-bold text-xs uppercase tracking-wider pb-2 border-b border-border-hairline">
+                              <div className="flex items-center gap-2">
+                                <Lock className="w-3.5 h-3.5 text-accent-scan" />
+                                <span>
+                                  On-Chain Cryptographic Proofs ({selectedVerifyChainId === 10143 ? "Monad Testnet" : "Base Sepolia"})
+                                </span>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-[4px] text-[10px] bg-bg-panel border border-border-hairline text-accent-scan">
+                                {(() => {
+                                  const chainAtt = evidenceBundle?.chainAttestations?.find(
+                                    (c: any) => Number(c.chainId) === selectedVerifyChainId
+                                  );
+                                  if (chainAtt?.status) return chainAtt.status;
+                                  if (liveOnChainRecord?.isVerified) return "CONFIRMED";
+                                  if (audit.cryptography.onChainTxHash && (audit.cryptography.onChainChainId || 10143) === selectedVerifyChainId) {
+                                    return "CONFIRMED";
+                                  }
+                                  return "UNATTESTED_ON_CHAIN";
+                                })()}
+                              </span>
+                            </div>
+
+                            <div>
+                              <div className="text-[10px] text-text-muted uppercase">Source Bytecode SHA-256 Digest</div>
+                              <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
+                                <span className="text-[11px] text-accent-scan break-all">
+                                  {audit.cryptography.bytecodeHash || "0x98f4a3c2..."}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(audit.cryptography.bytecodeHash || "", "bytecode")}
+                                  className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer"
+                                >
+                                  {copiedKey === "bytecode" ? <Check className="w-3.5 h-3.5 text-accent-scan" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
+                            </div>
+
+                            {(evidenceBundle?.evidenceRoot || audit.cryptography.merkleRoot) && (
+                              <div>
+                                <div className="text-[10px] text-text-muted uppercase">
+                                  Canonical Evidence Root (zyron.evidence/v1)
+                                </div>
+                                <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
+                                  <span className="text-[11px] text-text-primary break-all">
+                                    {evidenceBundle?.evidenceRoot || audit.cryptography.merkleRoot}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      copyToClipboard(
+                                        evidenceBundle?.evidenceRoot || audit.cryptography.merkleRoot || "",
+                                        "merkle"
+                                      )
+                                    }
+                                    className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer"
+                                  >
+                                    {copiedKey === "merkle" ? <Check className="w-3.5 h-3.5 text-accent-scan" /> : <Copy className="w-3.5 h-3.5" />}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {(() => {
+                              const chainAtt = evidenceBundle?.chainAttestations?.find(
+                                (c: any) => Number(c.chainId) === selectedVerifyChainId
+                              );
+                              const txHash =
+                                chainAtt?.txHash ||
+                                ((audit.cryptography.onChainChainId || 10143) === selectedVerifyChainId
+                                  ? audit.cryptography.onChainTxHash
+                                  : null);
+                              const explorerBase =
+                                selectedVerifyChainId === 10143
+                                  ? "https://testnet.monadvision.com"
+                                  : "https://sepolia.basescan.org";
+                              if (!txHash) return null;
+                              return (
+                                <div>
+                                  <div className="flex items-center justify-between text-[10px] text-text-muted uppercase">
+                                    <span>
+                                      On-Chain Attestation Tx ({selectedVerifyChainId === 10143 ? "Monad Testnet" : "Base Sepolia"})
+                                    </span>
+                                    <a
+                                      href={`${explorerBase}/tx/${txHash}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-accent-scan hover:underline flex items-center gap-1 font-bold text-[10px]"
+                                    >
+                                      <span>{selectedVerifyChainId === 10143 ? "Monad Vision" : "BaseScan"}</span>
+                                      <ExternalLink className="w-2.5 h-2.5" />
+                                    </a>
+                                  </div>
+                                  <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
+                                    <span className="text-[11px] text-text-primary break-all">{txHash}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyToClipboard(txHash, "tx")}
+                                      className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer"
+                                    >
+                                      {copiedKey === "tx" ? <Check className="w-3.5 h-3.5 text-accent-scan" /> : <Copy className="w-3.5 h-3.5" />}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {audit.cryptography.attestationSig && (
+                              <div>
+                                <div className="text-[10px] text-text-muted uppercase">EIP-712 Cryptographic Auditor Signature</div>
+                                <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
+                                  <span className="text-[11px] text-accent-scan break-all">
+                                    {audit.cryptography.attestationSig}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(audit.cryptography.attestationSig || "", "sig")}
+                                    className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer"
+                                  >
+                                    {copiedKey === "sig" ? <Check className="w-3.5 h-3.5 text-accent-scan" /> : <Copy className="w-3.5 h-3.5" />}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            <div>
+                              <div className="text-[10px] text-text-muted uppercase">
+                                Zyron On-Chain Registry Contract (Chain {selectedVerifyChainId})
+                              </div>
+                              <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
+                                <span className="text-[11px] text-text-primary break-all">
+                                  {selectedVerifyChainId === 10143
+                                    ? "0xBd24D2BFFbc69a17aCe69aaF930fC4e0d979c4D3"
+                                    : liveOnChainRecord?.contractAddress || "Requires BASE_SEPOLIA_ATTESTATION_ADDRESS"}
+                                </span>
+                                {selectedVerifyChainId === 10143 && (
+                                  <a
+                                    href="https://testnet.monadvision.com/address/0xBd24D2BFFbc69a17aCe69aaF930fC4e0d979c4D3"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-signal-resolved hover:underline text-[10px] flex items-center gap-1 shrink-0 font-bold"
+                                  >
+                                    <span>Contract</span>
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* IPFS Decentralized Storage */}
+                          <div className="bg-bg-void border border-border-hairline rounded-[4px] p-4 space-y-3 font-mono text-xs">
+                            <div className="flex items-center gap-2 text-text-primary font-bold text-xs uppercase tracking-wider pb-2 border-b border-border-hairline">
+                              <Terminal className="w-3.5 h-3.5 text-accent-scan" />
+                              Decentralized IPFS &amp; Verifier Metadata
+                            </div>
+
+                            <div>
+                              <div className="text-[10px] text-text-muted uppercase">RFC CIDv1 Base32 Multihash</div>
+                              <div className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2">
+                                <span className="text-[11px] text-accent-scan break-all">
+                                  {audit.cryptography.ipfsCid || "bafkrei..."}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(audit.cryptography.ipfsCid || "", "cid")}
+                                  className="text-text-muted hover:text-text-primary shrink-0 cursor-pointer"
+                                >
+                                  {copiedKey === "cid" ? <Check className="w-3.5 h-3.5 text-accent-scan" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="text-[10px] text-text-muted uppercase">IPFS Gateway Access</div>
+                              <a
+                                href={audit.cryptography.ipfsGatewayUrl || `https://ipfs.io/ipfs/${audit.cryptography.ipfsCid}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-1 p-2 rounded-[4px] bg-bg-panel border border-border-hairline flex items-center justify-between gap-2 text-[11px] text-text-primary hover:text-accent-scan transition-colors"
+                              >
+                                <span className="truncate">{audit.cryptography.ipfsGatewayUrl || `https://ipfs.io/ipfs/${audit.cryptography.ipfsCid}`}</span>
+                                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                              </a>
+                            </div>
+
+                            <div className="p-2.5 rounded-[4px] bg-bg-panel border border-border-hairline space-y-1 text-[11px]">
+                              <div className="flex justify-between">
+                                <span className="text-text-muted">Autonomous Prover Model:</span>
+                                <span className="text-accent-scan font-bold">Meta AI (muse-spark-1.3)</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-text-muted">Deterministic Verifier:</span>
+                                <span className="text-text-primary font-bold">zyron-verifier/2.0.0</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-text-muted">Evidence Schema:</span>
+                                <span className="text-text-primary">zyron.evidence/v1</span>
+                              </div>
+                            </div>
+
+                            <div className="text-[10px] text-text-muted pt-1">
+                              AI investigates, the isolated Foundry sandbox produces execution evidence, deterministic verification rules evaluate the evidence, and the blockchain records an authorized claim.
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="text-[10px] text-text-muted pt-1">
-                          Permanently pinned artifact. Tamper-evident byte representation matches on-chain attestation digest.
-                        </div>
+                        {/* Canonical Prover Evidence Records */}
+                        {evidenceBundle?.proverEvidences && evidenceBundle.proverEvidences.length > 0 && (
+                          <div className="bg-bg-void border border-border-hairline rounded-[4px] p-4 space-y-3 font-mono text-xs">
+                            <div className="text-text-primary font-bold text-xs uppercase tracking-wider pb-2 border-b border-border-hairline flex items-center justify-between">
+                              <span>Canonical Prover Evidence Records (zyron.evidence/v1)</span>
+                              <span className="text-[10px] text-accent-scan">
+                                {evidenceBundle.proverEvidences.length} Verified Record(s)
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              {evidenceBundle.proverEvidences.map((ev: any) => (
+                                <div key={ev.id} className="p-3 rounded-[4px] bg-bg-panel border border-border-hairline space-y-1.5">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-text-primary">{ev.findingDisplayId || ev.findingId}</span>
+                                      <span className="px-2 py-0.5 rounded-[4px] text-[10px] font-bold bg-bg-void border border-border-hairline text-accent-scan">
+                                        {ev.finalStatus}
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] text-text-muted">
+                                      {ev.provider}/{ev.model} · {ev.verifierVersion}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-text-muted break-all">
+                                    Evidence Digest: <span className="text-accent-scan">{ev.evidenceHash}</span>
+                                  </div>
+                                  {ev.testFile && (
+                                    <div className="text-[10px] text-text-muted">
+                                      Sandbox Harness: <code className="text-text-primary">{ev.testFile}::{ev.testFunction}</code> ({ev.runs?.length || 0} reproducible runs)
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* SubTab 3: Findings */}
                   {resultSubTab === "findings" && (

@@ -82,25 +82,25 @@ const PIPELINE_STEPS = [
   {
     step: 1,
     title: "Scope Lock",
-    shortDesc: "Commit & AST scope permanently pinned",
+    shortDesc: "Commit & SHA-256 source integrity baseline pinned",
     stageKey: "INTAKE",
   },
   {
     step: 2,
-    title: "AST & AI Red-Team Scan",
-    shortDesc: "Real-time AST taint passes & vulnerability detection",
+    title: "AST Scan & Meta AI Prover",
+    shortDesc: "14-pass AST scanner + Meta AI (muse-spark-1.3) Foundry sandbox verification",
     stageKey: "SCANNING",
   },
   {
     step: 3,
-    title: "Auditor Triage",
-    shortDesc: "Senior auditor review & manual invariant verification",
+    title: "Deterministic Verifier & Auditor Triage",
+    shortDesc: "zyron-verifier/2.0.0 evidence validation & human reviewer approval",
     stageKey: "IN_REVIEW",
   },
   {
     step: 4,
-    title: "Attestation",
-    shortDesc: "Cryptographic signature & report sealed in vault",
+    title: "Multichain Attestation",
+    shortDesc: "EIP-712 signed zyron.evidence/v1 sealed on Monad Testnet / Base Sepolia",
     stageKey: "COMPLETED",
   },
 ];

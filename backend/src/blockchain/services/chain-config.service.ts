@@ -54,8 +54,12 @@ export class ChainConfigService {
       name: 'Base Sepolia',
       rpcUrl: process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org',
       explorerUrl: 'https://sepolia.basescan.org',
-      attestationAddress: process.env.BASE_SEPOLIA_ATTESTATION_ADDRESS || '',
+      attestationAddress:
+        process.env.BASE_SEPOLIA_ATTESTATION_ADDRESS !== undefined
+          ? process.env.BASE_SEPOLIA_ATTESTATION_ADDRESS
+          : '0xc242125A0b342E045Cf0E1c2e02C95D1EAEEC5c4',
       nativeUsdcAddress: '',
+      nativeCurrencySymbol: 'ETH',
     }],
     [1, {
       chainId: 1,

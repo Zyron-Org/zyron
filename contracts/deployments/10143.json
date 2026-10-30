@@ -1,0 +1,23 @@
+{
+  "chainId": 10143,
+  "network": "Monad Testnet",
+  "isTestnet": true,
+  "rpcUrl": "https://testnet-rpc.monad.xyz",
+  "explorerUrl": "https://testnet.monadvision.com",
+  "nativeCurrencySymbol": "MON",
+  "contracts": {
+    "ZyronAttestation": {
+      "address": "0xBd24D2BFFbc69a17aCe69aaF930fC4e0d979c4D3",
+      "deployTxHash": "0xe7e706c56c781c5fe66bf13c13b177484094568bcd8625c8f9458001063ed356",
+      "blockNumber": 68403973,
+      "deployer": "0x48b106E3C8681D08c513268854Aef257883298d3",
+      "eip712Domain": {
+        "name": "ZyronAttestation",
+        "version": "3.0.0",
+        "chainId": 10143,
+        "verifyingContract": "0xBd24D2BFFbc69a17aCe69aaF930fC4e0d979c4D3"
+      },
+      "status": "DEPLOYED"
+    }
+  }
+}

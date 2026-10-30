@@ -1,0 +1,24 @@
+{
+  "chainId": 84532,
+  "network": "Base Sepolia",
+  "isTestnet": true,
+  "rpcUrl": "https://sepolia.base.org",
+  "explorerUrl": "https://sepolia.basescan.org",
+  "nativeCurrencySymbol": "ETH",
+  "contracts": {
+    "ZyronAttestation": {
+      "address": "0xc242125A0b342E045Cf0E1c2e02C95D1EAEEC5c4",
+      "deployTxHash": "0x76e83f6f210635b943c578f6640b82b23159a40a8b7287a7d223c44a4683cae8",
+      "blockNumber": 51552967,
+      "deployer": "0xb78DD7C841B67B0D9A2a67deb3c0aa862e4248Bf",
+      "operator": "0xb78DD7C841B67B0D9A2a67deb3c0aa862e4248Bf",
+      "eip712Domain": {
+        "name": "ZyronAttestation",
+        "version": "3.0.0",
+        "chainId": 84532,
+        "verifyingContract": "0xc242125A0b342E045Cf0E1c2e02C95D1EAEEC5c4"
+      },
+      "status": "DEPLOYED"
+    }
+  }
+}

@@ -206,6 +206,7 @@ export default function AuditorCodeReviewPage() {
   const [showReportModal, setShowReportModal] = React.useState(false);
   const [isCompilingReport, setIsCompilingReport] = React.useState(false);
   const [compiledPdfUrl, setCompiledPdfUrl] = React.useState<string | null>(null);
+  const [selectedAttestationChainId, setSelectedAttestationChainId] = React.useState<number>(10143);
 
   // Autonomous AI Prover execution state
   const [isRunningProver, setIsRunningProver] = React.useState(false);
@@ -986,8 +987,9 @@ contract ${baseName} {
   const handleFinalizeReport = async () => {
     setIsCompilingReport(true);
     try {
-      const MONAD_TESTNET_CHAIN_ID_HEX = "0x279f";
-      const MONAD_TESTNET_CHAIN_ID_DEC = 10143;
+      const targetChainIdDec = selectedAttestationChainId || 10143;
+      const targetChainIdHex = targetChainIdDec === 84532 ? "0x14a34" : "0x279f";
+      const targetChainName = targetChainIdDec === 84532 ? "Base Sepolia" : "Monad Testnet";
 
       // 1. Resolve Ethereum provider from Privy or window.ethereum
       let ethereum: any = null;
@@ -1017,13 +1019,19 @@ contract ${baseName} {
 
       // If user has a wallet address in their profile/privy, use that
       if (!signerAddress) {
-        signerAddress = user?.walletAddress || privyUser?.wallet?.address || "0x48b106E3C8681D08c513268854Aef257883298d3";
+        signerAddress = user?.walletAddress || privyUser?.wallet?.address || "";
       }
 
-      // 2. Ensure network is Monad Testnet
+      if (!signerAddress) {
+        toast.error("Please connect an authorized Auditor/Admin Web3 wallet before signing.");
+        setIsCompilingReport(false);
+        return;
+      }
+
+      // 2. Ensure network matches selected attestation chain
       if (primaryPrivyWallet && (primaryPrivyWallet as any).switchChain) {
         try {
-          await (primaryPrivyWallet as any).switchChain(MONAD_TESTNET_CHAIN_ID_DEC);
+          await (primaryPrivyWallet as any).switchChain(targetChainIdDec);
         } catch (swErr: any) {
           console.warn("Privy switchChain warning:", swErr);
         }
@@ -1031,7 +1039,7 @@ contract ${baseName} {
         try {
           await ethereum.request({
             method: "wallet_switchEthereumChain",
-            params: [{ chainId: MONAD_TESTNET_CHAIN_ID_HEX }],
+            params: [{ chainId: targetChainIdHex }],
           });
         } catch (switchErr: any) {
           if (switchErr.code === 4902) {
@@ -1039,13 +1047,21 @@ contract ${baseName} {
               await ethereum.request({
                 method: "wallet_addEthereumChain",
                 params: [
-                  {
-                    chainId: MONAD_TESTNET_CHAIN_ID_HEX,
-                    chainName: "Monad Testnet",
-                    nativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
-                    rpcUrls: ["https://testnet-rpc.monad.xyz"],
-                    blockExplorerUrls: ["https://testnet.monadvision.com"],
-                  },
+                  targetChainIdDec === 84532
+                    ? {
+                        chainId: targetChainIdHex,
+                        chainName: "Base Sepolia",
+                        nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+                        rpcUrls: ["https://sepolia.base.org"],
+                        blockExplorerUrls: ["https://sepolia.basescan.org"],
+                      }
+                    : {
+                        chainId: targetChainIdHex,
+                        chainName: "Monad Testnet",
+                        nativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
+                        rpcUrls: ["https://testnet-rpc.monad.xyz"],
+                        blockExplorerUrls: ["https://testnet.monadvision.com"],
+                      },
                 ],
               });
             } catch (addErr: any) {
@@ -1055,12 +1071,12 @@ contract ${baseName} {
         }
       }
 
-      // 3. Fetch structured EIP-712 payload customized for this signerAddress
+      // 3. Fetch structured EIP-712 payload customized for this signerAddress & chainId
       let payloadData: any = null;
       try {
-        toast.info("Fetching cryptographic attestation payload...");
+        toast.info(`Preparing ${targetChainName} EIP-712 attestation payload...`);
         const payloadRes = await apiClient.get(
-          `/audits/${audit.id}/attestation/payload?signerAddress=${signerAddress}`
+          `/audits/${audit.id}/attestation/payload?signerAddress=${signerAddress}&chainId=${targetChainIdDec}`
         );
         payloadData = payloadRes.data;
       } catch (payloadErr: any) {
@@ -1075,11 +1091,11 @@ contract ${baseName} {
         return;
       }
 
-      // 4. Request EIP-712 Typed Data Signature (if wallet provider supports it)
+      // 4. Request EIP-712 Typed Data Signature (fail closed if wallet does not sign)
       let signature = "";
       if (ethereum?.request) {
         try {
-          toast.info("Please sign the EIP-712 attestation payload in your Privy / Web3 wallet...");
+          toast.info(`Please sign the ${targetChainName} EIP-712 attestation payload in your wallet...`);
           signature = await ethereum.request({
             method: "eth_signTypedData_v4",
             params: [signerAddress, JSON.stringify(payloadData.payload)],
@@ -1091,25 +1107,27 @@ contract ${baseName} {
             setIsCompilingReport(false);
             return;
           }
-          console.warn("Wallet signing fallback:", signErr);
+          console.warn("Wallet signing error:", signErr);
         }
       }
 
-      if (!signature) {
-        signature = `0x_zyron_auditor_${audit.id}_${Date.now()}`;
+      if (!signature || !signature.startsWith("0x")) {
+        toast.error("An authentic EIP-712 wallet signature is required to authorize on-chain attestation.");
+        setIsCompilingReport(false);
+        return;
       }
 
-      // 5. Broadcast to Monad Testnet via Zyron Relayer (Operator wallet 0x48b106E3... sponsors gas)
+      // 5. Broadcast to selected chain via Zyron Relayer
       const activeContractAddress =
         payloadData.verifyingContract || "0xBd24D2BFFbc69a17aCe69aaF930fC4e0d979c4D3";
 
-      toast.info("Broadcasting verified attestation to Monad Testnet via Zyron Relayer (Gas Sponsored)...");
+      toast.info(`Broadcasting verified attestation to ${targetChainName} via Zyron Relayer...`);
       const signRes = await apiClient.post(`/audits/${audit.id}/attestation/sign`, {
         signature,
         signerAddress,
         contractAddress: activeContractAddress,
         payloadMessage: payloadData.payload.message,
-        chainId: MONAD_TESTNET_CHAIN_ID_DEC,
+        chainId: targetChainIdDec,
       });
 
       const updatedData = signRes.data?.audit;
@@ -1132,7 +1150,7 @@ contract ${baseName} {
         pdfSize: updatedData?.pdfSize || "2.4 MB",
         roundsToResolution: 2,
         onChainTxHash: finalTxHash,
-        onChainChainId: onChainInfo?.chainId || updatedData?.onChainChainId || MONAD_TESTNET_CHAIN_ID_DEC,
+        onChainChainId: onChainInfo?.chainId || updatedData?.onChainChainId || targetChainIdDec,
         findings: {
           critical: 0,
           high: 0,
@@ -1146,7 +1164,7 @@ contract ${baseName} {
       setTicketStage("completed");
       setIsFinalized(true);
       setCompiledPdfUrl(completedAudit.reportPdfUrl || null);
-      toast.success(`Attestation #${audit.id} successfully sealed and registered on Monad Testnet!`);
+      toast.success(`Attestation #${audit.id} successfully sealed and registered on ${targetChainName}!`);
     } catch (globalErr: any) {
       console.error("Finalization failed:", globalErr);
       toast.error(`Failed to finalize attestation: ${globalErr.message}`);
@@ -2655,6 +2673,39 @@ mitigated or verified false positives before production deployment.
                 <div>
                   <span className="text-text-muted text-[10px]">PINNED COMMIT SHA:</span>
                   <div className="text-signal-resolved font-bold font-mono">{audit.gitCommit || "4b8f10e"}</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-lg bg-white dark:bg-bg-panel border border-gray-200/80 dark:border-border-hairline space-y-2">
+                <div className="flex items-center justify-between text-[10px] text-text-muted">
+                  <span>TARGET BLOCKCHAIN ATTESTATION NETWORK:</span>
+                  <span className="text-accent-scan font-mono font-bold">
+                    {selectedAttestationChainId === 10143 ? "Monad Testnet (10143)" : "Base Sepolia (84532)"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 font-mono text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAttestationChainId(10143)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer transition-colors ${
+                      selectedAttestationChainId === 10143
+                        ? "bg-accent-scan text-white border-accent-scan"
+                        : "bg-bg-void text-text-muted border-border-hairline hover:text-text-primary"
+                    }`}
+                  >
+                    Monad Testnet (10143)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAttestationChainId(84532)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer transition-colors ${
+                      selectedAttestationChainId === 84532
+                        ? "bg-accent-scan text-white border-accent-scan"
+                        : "bg-bg-void text-text-muted border-border-hairline hover:text-text-primary"
+                    }`}
+                  >
+                    Base Sepolia (84532)
+                  </button>
                 </div>
               </div>
 

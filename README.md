@@ -1,7 +1,8 @@
 # 🛡️ Zyron: The Trust & Attestation Layer for AI Agents & Protocols on Monad
 
-> **Monad Metropolis Hackathon** | **Track**: Trust, Identity & Data Ownership for AI  
+> **Monad Metropolis & Meta Global AI Developer Hackathon 2026** | **Track**: Trust, Identity & Data Ownership for AI  
 > **Deployed on Monad Testnet (`10143`)**: [`0xBd24D2BFFbc69a17aCe69aaF930fC4e0d979c4D3`](https://testnet.monadvision.com/address/0xBd24D2BFFbc69a17aCe69aaF930fC4e0d979c4D3)  
+> **Deployed on Base Sepolia (`84532`)**: [`0xc242125A0b342E045Cf0E1c2e02C95D1EAEEC5c4`](https://sepolia.basescan.org/address/0xc242125A0b342E045Cf0E1c2e02C95D1EAEEC5c4)  
 > **Interactive API & OpenAPI Specs**: `http://localhost:4000/docs` (Swagger: `admin` / `zyron2026`)
 
 ---
@@ -130,7 +131,56 @@ npm run dev:backend
 
 # Start autonomous agent prover (http://localhost:5001)
 npm run dev:agent
+
+# Run reproducible End-to-End Hackathon Demo (Meta AI + Verifier v2 + Evidence v1 + EIP-712)
+npm --prefix zyron-agent run demo
 ```
+
+---
+
+## 🌐 Meta Global AI Developer Hackathon 2026 — Meta AI & Multichain Extension
+
+> **Core Principle**: *AI investigates, the isolated sandbox produces execution evidence, deterministic verification rules evaluate the evidence, and the blockchain records an authorized claim.*
+
+For the **Meta Global AI Developer Hackathon 2026**, Zyron extends its security engine with:
+1. **Official Meta Model API Integration (`muse-spark-1.3`)**:
+   - Integrated in both the autonomous prover loop ([`zyron-agent/src/llm/meta.provider.ts`](./zyron-agent/src/llm/meta.provider.ts)) and backend scanner triage ([`backend/src/scanner/ai-providers/meta-provider.service.ts`](./backend/src/scanner/ai-providers/meta-provider.service.ts)) via `https://api.meta.ai/v1/chat/completions` in **Standard mode** using server-side `MODEL_API_KEY`.
+2. **Evidence-Driven Autonomous Prover & Deterministic Verifier (`zyron-verifier/2.0.0`)**:
+   - Strict tool allowlist (`read_file`, `list_dir`, `search_code`, `write_file`, `forge_build`, `run_forge_test`, `submit_verdict`) with path-traversal protection (`^test/zyron/[A-Za-z0-9_.\-/]+\.sol$`) and shell-free search.
+   - SHA-256 baseline source integrity checks, banned state-faking cheatcode enforcement (`vm.etch`, `vm.store`, `vm.mockCall`, `vm.ffi`), verbatim `counterevidenceGuard` verification, and 2x independent Foundry sandbox test runs (`PROVEN_EXPLOIT`, `PROVEN_FALSE_POSITIVE`, `INCONCLUSIVE`).
+3. **Canonical Cryptographic Evidence (`zyron.evidence/v1`) & Human Authorization**:
+   - Canonical JSON serialization, SHA-256 evidence digests, sorted binary Merkle root bound into EIP-712 `AttestationPayload.merkleRoot`, and mandatory human reviewer (`AUDITOR`/`ADMIN`) EIP-712 signature verification.
+4. **Multichain `ChainAdapter` Architecture**:
+   - Chain-scoped contract identities (`${chainId}:${address.toLowerCase()}`), per-chain `ChainAttestation` records, and adapters for **Monad Testnet (`10143`)** and **Base Sepolia (`84532`)**.
+
+### Supported Chain Matrix
+
+| Network | Chain ID | Registry Address | Explorer | Manifest |
+|---|---|---|---|---|
+| **Monad Testnet** | `10143` | `0xBd24D2BFFbc69a17aCe69aaF930fC4e0d979c4D3` | `https://testnet.monadvision.com` | [`contracts/deployments/10143.json`](./contracts/deployments/10143.json) |
+| **Base Sepolia** | `84532` | Configurable via `BASE_SEPOLIA_ATTESTATION_ADDRESS` | `https://sepolia.basescan.org` | [`contracts/deployments/84532.json`](./contracts/deployments/84532.json) |
+
+### Architecture & Security Documentation
+- [`docs/HACKATHON_SCOPE.md`](./docs/HACKATHON_SCOPE.md) — Pre-existing vs. hackathon-added capabilities & honest status matrix
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — End-to-end architecture & deterministic verification rules
+- [`docs/THREAT_MODEL.md`](./docs/THREAT_MODEL.md) — Trust boundaries, sandbox isolation, and attack mitigations
+- [`docs/MULTICHAIN.md`](./docs/MULTICHAIN.md) — Multichain `ChainAdapter` design & Base Sepolia deployment guide
+
+### 🎬 3-Minute Judge Demo Script
+
+1. **0:00 – 0:45 | Problem & Core Invariant**:
+   - Show [`zyron-test-protocol/contracts/VaultCore.sol`](./zyron-test-protocol/contracts/VaultCore.sol). Explain why LLM prose alone cannot be trusted to prove or dismiss smart contract vulnerabilities.
+2. **0:45 – 1:45 | Meta AI Investigation + Deterministic Verifier (`zyron-verifier/2.0.0`)**:
+   - Run `npm --prefix zyron-agent run demo` (or trigger the prover from `/auditor/review/ZYR-9481`).
+   - Show Meta AI (`muse-spark-1.3`) selecting `read_file` → `write_file` → `run_forge_test` → `submit_verdict`.
+   - Highlight the three deterministic classifications on `VaultCore.sol`:
+     - `ZYR-DEMO-001` (`withdraw` reentrancy) → `PROVEN_EXPLOIT` (2/2 passing Foundry runs, original SHA-256 intact).
+     - `ZYR-DEMO-002` (`safeEmergencyWithdraw`) → `PROVEN_FALSE_POSITIVE` (verbatim `require(!_locked, "LOCKED");` guard + 2/2 passing counter-test).
+     - `ZYR-DEMO-003` (unproven claim) → automatically downgraded to `INCONCLUSIVE`.
+3. **1:45 – 2:30 | Canonical Evidence (`zyron.evidence/v1`) & Authorized Multichain EIP-712 Signing**:
+   - Open `/auditor/review/ZYR-9481`, select **Monad Testnet (`10143`)** or **Base Sepolia (`84532`)**, and sign the EIP-712 `AttestationPayload` binding the `zyron.evidence/v1` Merkle root.
+4. **2:30 – 3:00 | Public Verification (`/verify`)**:
+   - Open `/verify?query=ZYR-9481`, switch between **Monad Testnet (`10143`)** and **Base Sepolia (`84532`)** in the **Proof Vault** tab, inspect the chain-scoped identity (`10143:0x...`), `zyron.evidence/v1` digests, transaction status, and downloadable PDF report.
 
 ---
 

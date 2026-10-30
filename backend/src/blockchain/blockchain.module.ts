@@ -10,6 +10,11 @@ import {
   AttestationSubmitterService,
   EvidenceHasherService,
 } from './services';
+import {
+  MonadTestnetAdapter,
+  BaseSepoliaAdapter,
+  ChainAdapterRegistry,
+} from './adapters';
 
 @Global()
 @Module({
@@ -23,6 +28,9 @@ import {
     AttestationConfirmerService,
     AttestationSubmitterService,
     EvidenceHasherService,
+    MonadTestnetAdapter,
+    BaseSepoliaAdapter,
+    ChainAdapterRegistry,
   ],
   exports: [
     BlockchainService,
@@ -33,6 +41,9 @@ import {
     AttestationConfirmerService,
     AttestationSubmitterService,
     EvidenceHasherService,
+    MonadTestnetAdapter,
+    BaseSepoliaAdapter,
+    ChainAdapterRegistry,
   ],
 })
 export class BlockchainModule {}

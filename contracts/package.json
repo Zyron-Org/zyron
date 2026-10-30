@@ -7,6 +7,8 @@
     "test": "test"
   },
   "scripts": {
+    "compile": "node compile.js",
+    "deploy:base-sepolia": "node deploy-base-sepolia.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
