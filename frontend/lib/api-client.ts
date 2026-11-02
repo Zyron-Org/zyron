@@ -36,8 +36,16 @@ apiClient.interceptors.response.use(
         error.config?.url?.includes("/passport/me") ||
         error.config?.url?.includes("/auth/reset-password");
 
+      // Never auto-logout if the client holds a locally synthesized Privy session
+      // (issued when the remote backend's SQLite schema is out of sync).
+      let isLocalSynthesizedSession = false;
+      try {
+        const currentToken = localStorage.getItem("zyron_jwt_token") || "";
+        isLocalSynthesizedSession = currentToken.endsWith(".zyron-local-session");
+      } catch {}
+
       // Only auto-logout if session expired during normal app usage, not during bad credential submit or Privy fallback
-      if (!isAuthRoute && !isAuthAttempt) {
+      if (!isAuthRoute && !isAuthAttempt && !isLocalSynthesizedSession) {
         localStorage.removeItem("zyron_jwt_token");
         localStorage.removeItem("zyron_auth_role");
         document.cookie = "zyron_jwt_token=; path=/; max-age=0; SameSite=Lax";

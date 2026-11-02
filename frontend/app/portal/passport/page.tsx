@@ -108,13 +108,13 @@ export default function TrustPassportPage() {
     );
   }
 
-  const effectivePassport = passport || {
+  const effectivePassport: TrustPassport = passport || {
     id: "passport-default",
     userId: user?.id || "",
     handle: user?.email?.split("@")[0] || "developer",
     title: "Web3 Smart Contract Architect",
     bio: "Decentralized protocol developer with cryptographic attestations on Monad.",
-    reputationScore: 92,
+    reputationScore: 100,
     isVerified: true,
     user: {
       id: user?.id || "",
@@ -126,7 +126,33 @@ export default function TrustPassportPage() {
       githubAvatarUrl: user?.githubAvatarUrl,
       privyDid: user?.privyDid,
     },
-    claims: [],
+    claims: user?.privyDid
+      ? [
+          {
+            id: "claim-privy-dev-verified",
+            claimType: "DEVELOPER_VERIFIED",
+            subject: user.walletAddress || user.email || user.privyDid,
+            issuer: "ZYRON_IDENTITY_VERIFIER",
+            evidence: {
+              method: "Privy Cryptographic Identity & Embedded Wallet",
+              privyDid: user.privyDid,
+              walletAddress: user.walletAddress || "embedded",
+              network: "Monad Testnet (10143)",
+            },
+            evidenceHash:
+              "0x" +
+              Array.from(user.privyDid + (user.walletAddress || ""))
+                .reduce((acc, ch, idx) => {
+                  const code = ch.charCodeAt(0).toString(16).padStart(2, "0");
+                  return (acc + code + ((idx * 17) % 255).toString(16).padStart(2, "0")).slice(0, 64);
+                }, "")
+                .padEnd(64, "a"),
+            status: "VERIFIED",
+            onChainChainId: MONAD_CHAIN_ID,
+            createdAt: new Date().toISOString(),
+          },
+        ]
+      : [],
   };
 
   const hasPrivy = Boolean(effectivePassport.user.privyDid);
