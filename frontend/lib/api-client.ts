@@ -50,6 +50,11 @@ apiClient.interceptors.response.use(
       error.response?.data?.message ||
       error.message ||
       "An unexpected error occurred connecting to Zyron API";
-    return Promise.reject(new Error(Array.isArray(message) ? message.join(", ") : message));
+    const wrapped: any = new Error(Array.isArray(message) ? message.join(", ") : message);
+    wrapped.status = error.response?.status;
+    wrapped.response = error.response;
+    wrapped.retryAfter =
+      error.response?.headers?.["retry-after"] || error.response?.headers?.["x-ratelimit-reset"];
+    return Promise.reject(wrapped);
   }
 );

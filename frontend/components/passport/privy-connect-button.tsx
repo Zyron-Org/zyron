@@ -68,6 +68,12 @@ export function PrivyConnectButton({
     }
     if (ready && authenticated && !zyronUser && !syncingRef.current && !autoSyncAttemptedRef.current) {
       autoSyncAttemptedRef.current = true;
+      // Cross-reload cooldown: never auto-sync more than once every 30s (prevents login <-> dashboard loops)
+      try {
+        const last = Number(sessionStorage.getItem("zyron_privy_autosync_at") || 0);
+        if (Date.now() - last < 30_000) return;
+        sessionStorage.setItem("zyron_privy_autosync_at", String(Date.now()));
+      } catch {}
       getAccessToken()
         .then((token) => {
           if (token && !syncingRef.current) {

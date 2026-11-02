@@ -20,6 +20,41 @@ function clearAuthCookie() {
   } catch {}
 }
 
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    return JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
+    return null;
+  }
+}
+
+/** A raw Privy access token (sub = did:privy:...) is not a Zyron session JWT (sub = Zyron user id). */
+function isRawPrivyToken(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  return Boolean(payload?.sub && String(payload.sub).startsWith("did:privy:"));
+}
+
+/** Rebuild a minimal user from a still-valid Zyron session JWT (used only when the API is transiently unavailable). */
+function decodeZyronJwtUser(token: string, savedRole: string | null): AuthUser | null {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.sub || String(payload.sub).startsWith("did:privy:")) return null;
+  const now = Math.floor(Date.now() / 1000);
+  if (payload.exp && payload.exp <= now) return null;
+  const wallet: string | undefined = payload.walletAddress || undefined;
+  return {
+    id: payload.sub,
+    email: payload.email || "",
+    name: wallet ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : payload.email || "Zyron User",
+    role: String(payload.role || savedRole || "CLIENT").toUpperCase(),
+    walletAddress: wallet,
+    privyDid: payload.privyDid || undefined,
+  };
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export type UserRole = "CLIENT" | "AUDITOR" | "ADMIN" | "client" | "auditor" | "admin";
 
 export interface AuthUser {
@@ -103,6 +138,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const savedToken = localStorage.getItem("zyron_jwt_token");
         const savedRole = localStorage.getItem("zyron_auth_role");
 
+        // Purge stale raw Privy tokens stored by an earlier client build — they are NOT Zyron session JWTs
+        // and cause every protected API call to 401, bouncing the user back to /auth/login in a loop.
+        if (savedToken && isRawPrivyToken(savedToken)) {
+          clearAuthCookie();
+          localStorage.removeItem("zyron_jwt_token");
+          localStorage.removeItem("zyron_auth_role");
+          setUser(null);
+          return;
+        }
+
         if (savedToken || savedRole) {
           if (savedToken) {
             setToken(savedToken);
@@ -112,31 +157,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const res = await apiClient.get("/auth/profile");
             setUser(res.data);
           } catch (e: any) {
-            // Decode non-expired JWT claims so rate limits (429) or Privy fallback tokens never log the user out
-            let restoredFromToken: AuthUser | null = null;
-            if (savedToken) {
-              try {
-                const parts = savedToken.split(".");
-                if (parts.length === 3) {
-                  const decoded = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-                  const now = Math.floor(Date.now() / 1000);
-                  if (decoded?.sub && (!decoded.exp || decoded.exp > now)) {
-                    const isPrivy = String(decoded.sub).startsWith("did:privy:");
-                    restoredFromToken = {
-                      id: isPrivy ? String(decoded.sub).replace("did:privy:", "usr_") : decoded.sub,
-                      email: decoded.email || `${String(decoded.sub).replace("did:privy:", "")}@privy.user`,
-                      name: decoded.name || (decoded.walletAddress ? `${decoded.walletAddress.slice(0, 6)}...${decoded.walletAddress.slice(-4)}` : "Monad Developer"),
-                      role: (decoded.role || savedRole || "CLIENT").toUpperCase(),
-                      walletAddress: decoded.walletAddress,
-                      privyDid: isPrivy ? decoded.sub : decoded.privyDid,
-                    };
-                  }
-                }
-              } catch {}
-            }
+            const status = e?.status;
+            const isTransient = !status || status === 429 || status >= 500;
+            const restored = isTransient && savedToken ? decodeZyronJwtUser(savedToken, savedRole) : null;
 
-            if (restoredFromToken) {
-              setUser(restoredFromToken);
+            if (restored) {
+              // Backend temporarily unavailable / rate-limited: keep the valid Zyron session
+              setUser(restored);
             } else {
               setUser(null);
               clearAuthCookie();
@@ -218,42 +245,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ): Promise<AuthUser> => {
       setLoading(true);
       try {
-        let apiUser: AuthUser;
-        let accessToken: string;
+        let apiUser: AuthUser | undefined;
+        let accessToken: string | undefined;
+        let lastErr: any;
 
-        try {
-          const res = await apiClient.post("/auth/privy", {
-            privyToken,
-            walletAddress,
-            email,
-          });
-          apiUser = res.data.user;
-          accessToken = res.data.accessToken;
-        } catch (err: any) {
-          // Resilient fallback if backend is rate-limited (429) or redeploying (5xx) after Privy has already authenticated the user
-          let sub = "did:privy:verified";
+        // Exchange the Privy token for a real Zyron session JWT. Retry briefly on 429/5xx,
+        // but NEVER store the raw Privy token as a Zyron session (that causes a redirect loop).
+        for (let attempt = 0; attempt < 3; attempt++) {
           try {
-            const parts = privyToken.split(".");
-            if (parts.length === 3) {
-              const decoded = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-              if (decoded?.sub) sub = decoded.sub;
-            }
-          } catch {}
+            const res = await apiClient.post("/auth/privy", {
+              privyToken,
+              walletAddress,
+              email,
+            });
+            apiUser = res.data.user;
+            accessToken = res.data.accessToken;
+            break;
+          } catch (err: any) {
+            lastErr = err;
+            const status = err?.status;
+            const transient = !status || status === 429 || status >= 500;
+            if (!transient || attempt === 2) break;
+            const waitSec = Math.min(Number(err?.retryAfter) || 2 * (attempt + 1), 10);
+            await sleep(waitSec * 1000);
+          }
+        }
 
-          const cleanWallet = walletAddress?.toLowerCase();
-          const fallbackName = cleanWallet
-            ? `${cleanWallet.slice(0, 6)}...${cleanWallet.slice(-4)}`
-            : email?.split("@")[0] || "Monad Developer";
-
-          apiUser = {
-            id: sub.replace("did:privy:", "usr_"),
-            email: email || `${sub.replace("did:privy:", "")}@privy.user`,
-            name: fallbackName,
-            role: "CLIENT",
-            walletAddress: cleanWallet,
-            privyDid: sub,
-          };
-          accessToken = privyToken;
+        if (!apiUser || !accessToken) {
+          throw lastErr || new Error("Could not create Zyron session from Privy login");
         }
 
         setUser(apiUser);
