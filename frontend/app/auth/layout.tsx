@@ -46,6 +46,7 @@ export default function AuthLayout({
           By continuing, you agree to our{" "}
           <Link
             href="/terms"
+            prefetch={false}
             className="text-text-primary hover:text-accent-scan underline underline-offset-4 transition-colors"
           >
             Terms of Service
@@ -53,6 +54,7 @@ export default function AuthLayout({
           and{" "}
           <Link
             href="/privacy"
+            prefetch={false}
             className="text-text-primary hover:text-accent-scan underline underline-offset-4 transition-colors"
           >
             Privacy Policy

@@ -31,9 +31,12 @@ apiClient.interceptors.response.use(
       const isAuthAttempt =
         error.config?.url?.includes("/auth/login") ||
         error.config?.url?.includes("/auth/register") ||
+        error.config?.url?.includes("/auth/privy") ||
+        error.config?.url?.includes("/auth/profile") ||
+        error.config?.url?.includes("/passport/me") ||
         error.config?.url?.includes("/auth/reset-password");
 
-      // Only auto-logout if session expired during normal app usage, not during bad credential submit
+      // Only auto-logout if session expired during normal app usage, not during bad credential submit or Privy fallback
       if (!isAuthRoute && !isAuthAttempt) {
         localStorage.removeItem("zyron_jwt_token");
         localStorage.removeItem("zyron_auth_role");
