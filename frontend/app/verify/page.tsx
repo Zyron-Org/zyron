@@ -238,7 +238,8 @@ function VerifyPageContent() {
     formData.append("file", file);
 
     try {
-      const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+      const rawBaseURL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1").replace(/\/+$/, "");
+      const baseURL = rawBaseURL.endsWith("/api/v1") ? rawBaseURL : `${rawBaseURL}/api/v1`;
       const res = await axios.post(`${baseURL}/audits/verify/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
