@@ -29,6 +29,7 @@ export function PrivyConnectButton({
   const { user: zyronUser, loginWithPrivy } = useAuth();
   const [isProcessing, setIsProcessing] = React.useState(false);
   const syncingRef = React.useRef(false);
+  const autoSyncAttemptedRef = React.useRef(false);
 
   // Sync Privy session with Zyron backend
   const syncWithZyron = React.useCallback(
@@ -59,9 +60,14 @@ export function PrivyConnectButton({
     [wallets, privyUser, loginWithPrivy, router, redirectTo]
   );
 
-  // Auto-sync if Privy authenticated but Zyron user not loaded
+  // Auto-sync once if Privy authenticated but Zyron user not loaded
   React.useEffect(() => {
-    if (ready && authenticated && !zyronUser && !syncingRef.current) {
+    if (!authenticated) {
+      autoSyncAttemptedRef.current = false;
+      return;
+    }
+    if (ready && authenticated && !zyronUser && !syncingRef.current && !autoSyncAttemptedRef.current) {
+      autoSyncAttemptedRef.current = true;
       getAccessToken()
         .then((token) => {
           if (token && !syncingRef.current) {
