@@ -53,7 +53,8 @@ import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, API_BASE_URL } from "@/lib/api-client";
+import { Bot, Copy, Github } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -132,6 +133,18 @@ export default function LandingPage() {
   const [billingCycle, setBillingCycle] = React.useState<"engagement" | "continuous">("engagement");
   const [stats, setStats] = React.useState<any>(null);
   const [searchScans, setSearchScans] = React.useState("");
+  const [copiedBotText, setCopiedBotText] = React.useState<string | null>(null);
+
+  const isGithubConnected = Boolean(user?.githubLogin || (user as any)?.githubAccessToken);
+  const webhookPayloadUrl = `${API_BASE_URL}/webhooks/github`;
+  const githubAuthHref = `${API_BASE_URL}/auth/github?redirect=/portal/integrations`;
+
+  const handleCopyBotSnippet = (text: string, key: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedBotText(key);
+    toast.success("Copied to clipboard!");
+    setTimeout(() => setCopiedBotText(null), 2000);
+  };
 
   React.useEffect(() => {
     let isMounted = true;
@@ -427,6 +440,13 @@ export default function LandingPage() {
               How It Works
             </Link>
             <Link
+              href="#github-bot"
+              className="px-3 py-1.5 rounded-[4px] text-accent-scan hover:text-text-primary hover:bg-bg-panel-raised transition-colors flex items-center gap-1"
+            >
+              <Bot className="h-3.5 w-3.5" />
+              <span>@zyron-bot</span>
+            </Link>
+            <Link
               href="#ecosystem"
               className="px-3 py-1.5 rounded-[4px] hover:text-text-primary hover:bg-bg-panel-raised transition-colors"
             >
@@ -516,6 +536,17 @@ export default function LandingPage() {
                 >
                   <span>How It Works</span>
                   <ArrowUpRight className="h-3.5 w-3.5 text-text-muted" />
+                </Link>
+                <Link
+                  href="#github-bot"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between p-2.5 rounded-[4px] text-accent-scan hover:bg-bg-panel-raised transition-colors"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Bot className="h-3.5 w-3.5" />
+                    <span>@zyron-bot GitHub Guide</span>
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 text-accent-scan" />
                 </Link>
                 <Link
                   href="#ecosystem"
@@ -1383,6 +1414,272 @@ export default function LandingPage() {
                     <span>Public Proof: <span className="text-text-primary">zyron.io/verify/8942</span></span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 5.5: GITHUB @ZYRON-BOT MENTION GUIDE & PR/ISSUE WORKFLOW          */}
+      {/* ========================================================================= */}
+      <section id="github-bot" className="py-24 px-4 sm:px-6 md:px-12 border-t border-border-hairline bg-bg-void relative overflow-hidden">
+        <div className="max-w-7xl mx-auto space-y-12">
+          {/* Header */}
+          <div className="reveal-on-scroll max-w-3xl space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[4px] bg-bg-panel border border-border-hairline text-accent-scan font-mono text-xs">
+              <Bot className="h-3.5 w-3.5 text-accent-scan" />
+              <span>GITHUB @ZYRON-BOT · ISSUE &amp; PR COMMENT TRIGGER</span>
+            </div>
+
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-normal tracking-tight text-text-primary leading-[1.12]">
+              Trigger audits directly on GitHub by mentioning{" "}
+              <span className="text-accent-scan">@zyron-bot.</span>
+            </h2>
+
+            <p className="text-sm sm:text-base text-text-muted font-sans leading-relaxed">
+              No need to leave your repository. Open a GitHub Issue or Pull Request, comment{" "}
+              <code className="px-1.5 py-0.5 rounded bg-bg-panel border border-border-hairline font-mono text-xs text-accent-scan">
+                @zyron-bot audit contracts/YourContract.sol
+              </code>
+              , and Zyron will automatically ingest the contract, run AST + Meta AI verification, and reply directly on the thread with your ticket and findings breakdown.
+            </p>
+          </div>
+
+          {/* Mandatory GitHub Sign-Up Notice Banner */}
+          <div className="reveal-on-scroll rounded-[18px] p-5 sm:p-6 bg-amber-500/10 border border-amber-500/30 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500 shrink-0 mt-0.5">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-sm sm:text-base font-bold text-text-primary">
+                    Mandatory Requirement: Sign Up With GitHub on the Main Zyron Platform First
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                    {isGithubConnected ? `Verified (@${user?.githubLogin || "GitHub"})` : "Required Before Mentioning"}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-[13px] text-text-muted leading-relaxed max-w-4xl">
+                  The <code className="font-mono text-text-primary font-semibold">@zyron-bot</code> mention on GitHub <strong>only works if the GitHub account posting the Issue or PR comment has signed up / connected with GitHub on the main Zyron platform</strong>. Zyron uses your authenticated GitHub OAuth session (<code className="font-mono text-[11px]">repo</code> scope) to verify your identity, read repository files, and post the automated audit replies back onto your GitHub thread.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0">
+              <a href={githubAuthHref}>
+                <button
+                  type="button"
+                  className="h-10 px-4 rounded-[8px] bg-text-primary text-bg-void font-mono text-xs font-bold hover:bg-accent-scan hover:text-white transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <Github className="h-4 w-4" />
+                  <span>{isGithubConnected ? "GitHub Connected ✓" : "Sign Up / Connect GitHub"}</span>
+                </button>
+              </a>
+            </div>
+          </div>
+
+          {/* 3-Step Visual Setup Grid + Live GitHub Comment Preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            {/* Left 7 Columns: Step-by-Step Instructions */}
+            <div className="lg:col-span-7 space-y-4 flex flex-col justify-between">
+              {/* Step 1 */}
+              <div className="reveal-on-scroll rounded-[16px] bg-bg-panel border border-border-hairline p-5 sm:p-6 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-6 w-6 rounded-[6px] bg-accent-scan/15 border border-accent-scan/30 text-accent-scan font-mono text-xs font-bold flex items-center justify-center">
+                      01
+                    </span>
+                    <h3 className="font-display text-base font-semibold text-text-primary">
+                      Sign Up or Sign In With GitHub on Zyron
+                    </h3>
+                  </div>
+                  <Link href="/auth/login" className="text-xs font-mono text-accent-scan hover:underline flex items-center gap-1">
+                    <span>/auth/login</span>
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Click <strong>Continue with GitHub</strong> on the Zyron login page so your GitHub username (<code className="font-mono text-text-primary">@username</code>) and OAuth token are linked to your Zyron workspace. Comments from unlinked GitHub accounts will be prompted to register first.
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="reveal-on-scroll rounded-[16px] bg-bg-panel border border-border-hairline p-5 sm:p-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-6 w-6 rounded-[6px] bg-accent-scan/15 border border-accent-scan/30 text-accent-scan font-mono text-xs font-bold flex items-center justify-center">
+                      02
+                    </span>
+                    <h3 className="font-display text-base font-semibold text-text-primary">
+                      Add the Zyron Webhook to Your GitHub Repository
+                    </h3>
+                  </div>
+                  <span className="text-[11px] font-mono text-text-muted">Settings &rarr; Webhooks</span>
+                </div>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  In your GitHub repository, go to <strong className="text-text-primary">Settings &rarr; Webhooks &rarr; Add webhook</strong>, set Content type to <code className="font-mono text-text-primary">application/json</code>, enable <strong>Issues</strong>, <strong>Issue comments</strong>, and <strong>Pull request review comments</strong>, and paste this Payload URL:
+                </p>
+                <div className="flex items-center justify-between gap-2 p-2.5 rounded-[8px] bg-bg-void border border-border-hairline font-mono text-xs text-accent-scan">
+                  <span className="truncate select-all">{webhookPayloadUrl}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyBotSnippet(webhookPayloadUrl, "home-webhook")}
+                    className="px-2.5 py-1 rounded bg-bg-panel border border-border-hairline text-text-primary hover:border-accent-scan text-[11px] flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  >
+                    {copiedBotText === "home-webhook" ? (
+                      <Check className="h-3 w-3 text-signal-resolved" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                    <span>{copiedBotText === "home-webhook" ? "Copied" : "Copy URL"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="reveal-on-scroll rounded-[16px] bg-bg-panel border border-border-hairline p-5 sm:p-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-6 w-6 rounded-[6px] bg-accent-scan/15 border border-accent-scan/30 text-accent-scan font-mono text-xs font-bold flex items-center justify-center">
+                      03
+                    </span>
+                    <h3 className="font-display text-base font-semibold text-text-primary">
+                      Comment @zyron-bot on Any Issue or Pull Request
+                    </h3>
+                  </div>
+                  <span className="text-[11px] font-mono text-signal-resolved">Instant Reply</span>
+                </div>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Open any Pull Request or create a new Issue on your repo and post one of these commands in the comment box:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="p-2.5 rounded-[8px] bg-bg-void border border-border-hairline space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-text-muted font-mono">
+                      <span>AUDIT SPECIFIC FILE</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCopyBotSnippet(
+                            "@zyron-bot audit contracts/src/ZyronAttestation.sol",
+                            "home-cmd-1"
+                          )
+                        }
+                        className="text-accent-scan hover:underline cursor-pointer"
+                      >
+                        {copiedBotText === "home-cmd-1" ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                    <code className="block font-mono text-[11px] text-accent-scan truncate select-all">
+                      @zyron-bot audit contracts/src/ZyronAttestation.sol
+                    </code>
+                  </div>
+
+                  <div className="p-2.5 rounded-[8px] bg-bg-void border border-border-hairline space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-text-muted font-mono">
+                      <span>ROUND-2 FIX VERIFICATION</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyBotSnippet("@zyron-bot re-audit", "home-cmd-2")}
+                        className="text-accent-scan hover:underline cursor-pointer"
+                      >
+                        {copiedBotText === "home-cmd-2" ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                    <code className="block font-mono text-[11px] text-accent-scan truncate select-all">
+                      @zyron-bot re-audit
+                    </code>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right 5 Columns: Live Simulated GitHub Issue/PR Thread */}
+            <div className="lg:col-span-5 reveal-on-scroll rounded-[16px] bg-bg-panel border border-border-hairline p-5 sm:p-6 flex flex-col justify-between space-y-4 font-mono text-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-border-hairline">
+                <div className="flex items-center gap-2">
+                  <GitPullRequest className="h-4 w-4 text-accent-scan" />
+                  <span className="text-text-primary font-semibold">GitHub Issue #1 · Live Bot Thread</span>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-signal-resolved/10 text-signal-resolved text-[10px] font-bold">
+                  WEBHOOK ACTIVE
+                </span>
+              </div>
+
+              <div className="space-y-3 my-auto">
+                {/* User Comment */}
+                <div className="p-3.5 rounded-[10px] bg-bg-void border border-border-hairline space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px] text-text-muted">
+                    <span className="font-bold text-text-primary">@Vasakee (GitHub Verified)</span>
+                    <span>just now</span>
+                  </div>
+                  <div className="text-accent-scan font-semibold text-xs">
+                    @zyron-bot audit contracts/src/ZyronAttestation.sol
+                  </div>
+                </div>
+
+                {/* Bot Reply 1 */}
+                <div className="p-3.5 rounded-[10px] bg-bg-panel-raised border border-accent-scan/30 space-y-2">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-accent-scan flex items-center gap-1.5">
+                      <Bot className="h-3.5 w-3.5" />
+                      zyron-security-bot
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-accent-scan/10 text-accent-scan">BOT</span>
+                  </div>
+                  <div className="text-[11px] text-text-primary font-sans font-semibold">
+                    ⏳ Zyron Security Labs Audit Initiated
+                  </div>
+                  <div className="space-y-1 text-[10px] text-text-muted">
+                    <div>• Ticket ID: <span className="text-text-primary font-bold">ZYR-9482</span></div>
+                    <div>• Target File: <span className="text-accent-scan">contracts/src/ZyronAttestation.sol</span></div>
+                    <div>• Assigned Auditor: <span className="text-text-primary">K4 Auditor + Meta muse-spark-1.3</span></div>
+                  </div>
+                </div>
+
+                {/* Bot Reply 2 */}
+                <div className="p-3.5 rounded-[10px] bg-bg-panel-raised border border-signal-resolved/30 space-y-2">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-signal-resolved flex items-center gap-1.5">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      zyron-security-bot
+                    </span>
+                    <span className="text-text-muted">+2.5s</span>
+                  </div>
+                  <div className="text-[11px] text-text-primary font-sans font-semibold">
+                    🛡️ Audit Findings Summary — Ticket ZYR-9482
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] pt-0.5">
+                    <div className="p-1.5 rounded bg-bg-void border border-border-hairline">
+                      <div className="text-signal-critical font-bold">1</div>
+                      <div className="text-[9px] text-text-muted">CRIT</div>
+                    </div>
+                    <div className="p-1.5 rounded bg-bg-void border border-border-hairline">
+                      <div className="text-signal-high font-bold">1</div>
+                      <div className="text-[9px] text-text-muted">HIGH</div>
+                    </div>
+                    <div className="p-1.5 rounded bg-bg-void border border-border-hairline">
+                      <div className="text-text-primary font-bold">2</div>
+                      <div className="text-[9px] text-text-muted">MED</div>
+                    </div>
+                    <div className="p-1.5 rounded bg-bg-void border border-border-hairline">
+                      <div className="text-signal-resolved font-bold">PROVEN</div>
+                      <div className="text-[9px] text-text-muted">FOUNDRY</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border-hairline flex items-center justify-between text-[11px]">
+                <span className="text-text-muted">Full CI/CD &amp; Webhook Docs</span>
+                <Link
+                  href="/portal/integrations"
+                  className="text-accent-scan hover:underline flex items-center gap-1 font-semibold"
+                >
+                  <span>Open Integration Workbench</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
             </div>
           </div>
