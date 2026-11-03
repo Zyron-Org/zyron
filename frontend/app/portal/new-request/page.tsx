@@ -991,6 +991,44 @@ export default function NewAuditRequestPage() {
                     )}
                   </div>
                 </div>
+
+                {/* GitHub @zyron-bot Mention Explainer Callout */}
+                <div className="sm:col-span-2 p-4 rounded-xl bg-[#F8F9FA] dark:bg-bg-void/60 border border-border-hairline space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-text-primary">
+                      <Terminal className="h-3.5 w-3.5 text-accent-scan" />
+                      <span>Prefer Triggering Audits Directly on GitHub via @zyron-bot?</span>
+                    </div>
+                    <Link
+                      href="/portal/integrations"
+                      className="text-[11px] font-mono text-accent-scan hover:underline flex items-center gap-1"
+                    >
+                      <span>View Full Webhook &amp; Bot Setup Guide</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </div>
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    You can trigger an automated audit directly inside any GitHub <strong>Issue</strong> or <strong>Pull Request</strong> by commenting{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-white dark:bg-bg-panel border border-border-hairline font-mono text-accent-scan">
+                      @zyron-bot audit contracts/YourContract.sol
+                    </code>{" "}
+                    (or <code className="px-1.5 py-0.5 rounded bg-white dark:bg-bg-panel border border-border-hairline font-mono text-accent-scan">@zyron-bot re-audit</code> after pushing fixes).
+                  </p>
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-2 text-[11px] text-amber-800 dark:text-amber-300">
+                    <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Account Requirement:</strong> The <code className="font-mono">@zyron-bot</code> mention only works if the GitHub account posting the comment has <strong>signed up / connected with GitHub on the main Zyron platform</strong> (and the repository has the Zyron webhook configured).{" "}
+                      {!isGithubConnected && (
+                        <a
+                          href={`${apiClient.defaults.baseURL || "http://localhost:4000/api/v1"}/auth/github?redirect=/portal/new-request`}
+                          className="font-semibold underline ml-1"
+                        >
+                          Connect GitHub account &rarr;
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

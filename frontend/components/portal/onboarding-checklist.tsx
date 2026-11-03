@@ -143,9 +143,9 @@ export function OnboardingChecklist({
     },
     {
       id: "configure_cicd",
-      title: "Set up CI/CD GitHub Action & developer tooling",
-      description: "Embed automated pull-request security gates and local pre-commit invariant checks into your repository.",
-      actionText: "Configure CI/CD",
+      title: "Set up @zyron-bot GitHub Mentions & CI/CD Webhooks",
+      description: "Sign up with GitHub on Zyron, attach the repository webhook, and trigger automated scans by commenting @zyron-bot on Issues or PRs.",
+      actionText: "Bot & Webhook Guide",
       actionHref: "/portal/integrations",
       icon: Code2,
       isComplete: !!completedSteps["configure_cicd"],
