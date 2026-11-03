@@ -1595,15 +1595,15 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right 5 Columns: Live Simulated GitHub Issue/PR Thread */}
+            {/* Right 5 Columns: Example GitHub Issue/PR Thread Preview */}
             <div className="lg:col-span-5 reveal-on-scroll rounded-[16px] bg-bg-panel border border-border-hairline p-5 sm:p-6 flex flex-col justify-between space-y-4 font-mono text-xs">
               <div className="flex items-center justify-between pb-3 border-b border-border-hairline">
                 <div className="flex items-center gap-2">
                   <GitPullRequest className="h-4 w-4 text-accent-scan" />
-                  <span className="text-text-primary font-semibold">GitHub Issue #1 · Live Bot Thread</span>
+                  <span className="text-text-primary font-semibold">Example GitHub Issue Thread Preview</span>
                 </div>
                 <span className="px-2 py-0.5 rounded bg-signal-resolved/10 text-signal-resolved text-[10px] font-bold">
-                  WEBHOOK ACTIVE
+                  EXAMPLE PREVIEW
                 </span>
               </div>
 
@@ -1611,8 +1611,8 @@ export default function LandingPage() {
                 {/* User Comment */}
                 <div className="p-3.5 rounded-[10px] bg-bg-void border border-border-hairline space-y-1.5">
                   <div className="flex items-center justify-between text-[10px] text-text-muted">
-                    <span className="font-bold text-text-primary">@Vasakee (GitHub Verified)</span>
-                    <span>just now</span>
+                    <span className="font-bold text-text-primary">@developer (GitHub Verified)</span>
+                    <span>example comment</span>
                   </div>
                   <div className="text-accent-scan font-semibold text-xs">
                     @zyron-bot audit contracts/src/ZyronAttestation.sol
