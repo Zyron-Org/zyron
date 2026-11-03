@@ -131,7 +131,7 @@ export default function NewAuditRequestPage() {
   const [contractFileName, setContractFileName] = React.useState<string>("");
   const [contractAddress, setContractAddress] = React.useState<string>("");
   const [compilerVersion, setCompilerVersion] = React.useState<string>("v0.8.20");
-  const [network, setNetwork] = React.useState<string>("Ethereum Mainnet (1)");
+  const [network, setNetwork] = React.useState<string>("Monad Testnet (10143)");
   const [gitCommit, setGitCommit] = React.useState<string>("");
   const [sourceCode, setSourceCode] = React.useState<string>("");
 
@@ -1179,12 +1179,15 @@ export default function NewAuditRequestPage() {
                     onChange={(e) => setNetwork(e.target.value)}
                     className="w-full h-9 px-3 rounded-xl bg-white dark:bg-bg-panel border border-border-hairline text-xs text-text-primary focus:outline-hidden focus:ring-1 focus:ring-accent-scan"
                   >
-                    <option value="Ethereum Mainnet (1)">Ethereum Mainnet</option>
-                    <option value="Sepolia Testnet (11155111)">Sepolia Testnet</option>
-                    <option value="Arbitrum One (42161)">Arbitrum One</option>
-                    <option value="Optimism (10)">Optimism</option>
-                    <option value="Base (8453)">Base</option>
-                    <option value="Polygon (137)">Polygon</option>
+                    <option value="Monad Testnet (10143)">Monad Testnet (10143) — Live Attestation &amp; Passport</option>
+                    <option value="Base Sepolia (84532)">Base Sepolia (84532) — Live Attestation</option>
+                    <option value="Arbitrum Sepolia (421614)">Arbitrum Sepolia (421614) — Live Attestation</option>
+                    <option value="Ethereum Sepolia (11155111)">Ethereum Sepolia (11155111)</option>
+                    <option value="Ethereum Mainnet (1)">Ethereum Mainnet (1)</option>
+                    <option value="Base (8453)">Base Mainnet (8453)</option>
+                    <option value="Arbitrum One (42161)">Arbitrum One (42161)</option>
+                    <option value="Optimism (10)">Optimism (10)</option>
+                    <option value="Polygon (137)">Polygon (137)</option>
                   </select>
                 </div>
 
