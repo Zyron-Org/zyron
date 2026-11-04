@@ -8,8 +8,51 @@ export const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 15000,
+  timeout: 45000,
 });
+
+const CACHED_AUDITS_KEY = "zyron_cached_audits";
+
+export function cacheSubmittedAudit(audit: any): void {
+  if (typeof window === "undefined" || !audit?.id) return;
+  try {
+    const cleanId = String(audit.id).replace(/^#/, "");
+    const raw = localStorage.getItem(CACHED_AUDITS_KEY);
+    const map: Record<string, any> = raw ? JSON.parse(raw) : {};
+    map[cleanId] = {
+      ...map[cleanId],
+      ...audit,
+      id: cleanId,
+      cachedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(CACHED_AUDITS_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+export function getCachedAudit(ticketId: string): any | null {
+  if (typeof window === "undefined" || !ticketId) return null;
+  try {
+    const cleanId = String(ticketId).replace(/^#/, "");
+    const raw = localStorage.getItem(CACHED_AUDITS_KEY);
+    if (!raw) return null;
+    const map: Record<string, any> = JSON.parse(raw);
+    return map[cleanId] || null;
+  } catch {
+    return null;
+  }
+}
+
+export function getAllCachedAudits(): any[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CACHED_AUDITS_KEY);
+    if (!raw) return [];
+    const map: Record<string, any> = JSON.parse(raw);
+    return Object.values(map);
+  } catch {
+    return [];
+  }
+}
 
 // Automatically inject JWT Bearer Token into requests
 apiClient.interceptors.request.use((config) => {

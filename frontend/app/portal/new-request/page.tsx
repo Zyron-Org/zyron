@@ -40,7 +40,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ExpandingButton } from "@/components/ui/expanding-button";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, cacheSubmittedAudit } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -459,8 +459,27 @@ export default function NewAuditRequestPage() {
       });
 
       const auditId = res.data?.id || "ZYR-9486";
-      const createdTicket = auditId.startsWith("#") ? auditId : `#${auditId}`;
+      const cleanId = String(auditId).replace(/^#/, "");
+      const createdTicket = `#${cleanId}`;
       setSubmittedTicketId(createdTicket);
+
+      cacheSubmittedAudit({
+        id: cleanId,
+        protocolName,
+        contractFileName,
+        contractAddress: contractAddress || undefined,
+        compilerVersion,
+        network,
+        sloc: calculatedSloc,
+        gitCommit: gitCommit || "8f9b2d4c01e9a37",
+        githubRepoUrl: customGithubUrl || undefined,
+        githubBranch: selectedBranch || "main",
+        stage: res.data?.stage || "SCANNING",
+        stageNumber: res.data?.stageNumber || 2,
+        submittedAt: res.data?.submittedAt || new Date().toISOString(),
+        createdAt: res.data?.createdAt || new Date().toISOString(),
+        ...res.data,
+      });
 
       toast.success(`Audit Request ${createdTicket} created successfully! AST scan queue initialized.`);
       setIsSubmitted(true);

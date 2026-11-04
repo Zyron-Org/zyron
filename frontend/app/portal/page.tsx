@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusPill, type PipelineStatus } from "@/components/ui/status-pill";
 import { ExpandingButton } from "@/components/ui/expanding-button";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, getAllCachedAudits } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OnboardingChecklist } from "@/components/portal/onboarding-checklist";
@@ -92,7 +92,13 @@ export default function ClientDashboardPage() {
   const fetchAudits = async () => {
     try {
       const res = await apiClient.get("/audits");
-      const rawData = Array.isArray(res.data) ? res.data : [];
+      const apiList = Array.isArray(res.data) ? res.data : [];
+      const cachedList = getAllCachedAudits();
+      const seenIds = new Set(apiList.map((a: any) => String(a.id).replace(/^#/, "")));
+      const rawData = [
+        ...apiList,
+        ...cachedList.filter((c: any) => c?.id && !seenIds.has(String(c.id).replace(/^#/, ""))),
+      ];
 
       const formatted: FormattedAudit[] = rawData.map((item: any) => {
         const baseStage = normalizeStage(item.stage);
@@ -157,7 +163,29 @@ export default function ClientDashboardPage() {
       setAudits(formatted);
     } catch (e: any) {
       console.warn("Dashboard: could not load audits:", e.message);
-      setAudits([]);
+      const cachedList = getAllCachedAudits();
+      if (cachedList.length > 0) {
+        setAudits(
+          cachedList.map((item: any) => ({
+            id: item.id,
+            protocolName: item.protocolName || "Smart Contract",
+            contractFileName: item.contractFileName || "Contract.sol",
+            contractAddress: item.contractAddress,
+            network: item.network || "Monad Testnet (10143)",
+            sloc: item.sloc || 0,
+            stage: normalizeStage(item.stage || "SCANNING"),
+            stageNumber: item.stageNumber || 2,
+            submittedAt: item.submittedAt || "Just now",
+            criticalCount: 0,
+            highCount: 0,
+            mediumCount: 0,
+            lowCount: 0,
+            resolvedCount: 0,
+          }))
+        );
+      } else {
+        setAudits([]);
+      }
     } finally {
       setLoading(false);
     }
