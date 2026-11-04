@@ -1428,10 +1428,10 @@ function VerifyPageContent() {
                 Contact Zyron Security at:
               </div>
               <a
-                href="mailto:security@zyron.io"
+                href="mailto:security@zyron.tools"
                 className="text-text-primary hover:text-accent-scan transition-colors font-mono text-sm sm:text-base font-semibold inline-flex items-center gap-1.5"
               >
-                <span>security@zyron.io</span>
+                <span>security@zyron.tools</span>
                 <span className="text-xs">↗</span>
               </a>
             </div>

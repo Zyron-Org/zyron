@@ -1411,7 +1411,7 @@ export default function LandingPage() {
                   </div>
 
                   <div className="p-2 rounded bg-bg-panel-raised border border-border-hairline/60 flex items-center justify-between text-[10px] text-text-muted">
-                    <span>Public Proof: <span className="text-text-primary">zyron.io/verify/8942</span></span>
+                    <span>Public Proof: <span className="text-text-primary">zyron.tools/verify/8942</span></span>
                   </div>
                 </div>
               </div>
@@ -2102,10 +2102,10 @@ export default function LandingPage() {
                 Contact Zyron Security at:
               </div>
               <a
-                href="mailto:security@zyron.io"
+                href="mailto:security@zyron.tools"
                 className="text-text-primary hover:text-accent-scan transition-colors font-mono text-sm sm:text-base font-semibold inline-flex items-center gap-1.5"
               >
-                <span>security@zyron.io</span>
+                <span>security@zyron.tools</span>
                 <span className="text-xs">↗</span>
               </a>
             </div>

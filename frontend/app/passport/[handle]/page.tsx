@@ -95,7 +95,7 @@ export default function PublicPassportPage() {
             isVerified: true,
             user: {
               name: handle.charAt(0).toUpperCase() + handle.slice(1),
-              email: `${handle}@zyron.io`,
+              email: `${handle}@zyron.tools`,
               walletAddress: "0x48b106E3C8681D08c513268854Aef257883298d3",
               githubLogin: handle,
               privyDid: `did:privy:cly${handle.slice(0, 10)}`,
@@ -104,7 +104,7 @@ export default function PublicPassportPage() {
               {
                 id: "c-1",
                 claimType: "DEVELOPER_VERIFIED",
-                subject: `${handle}@zyron.io`,
+                subject: `${handle}@zyron.tools`,
                 issuer: "Privy Identity Gateway",
                 evidenceHash: "0x4f8b2c918a3d5e6f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
                 status: "VERIFIED",
